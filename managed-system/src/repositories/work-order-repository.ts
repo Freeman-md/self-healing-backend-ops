@@ -1,5 +1,12 @@
 import { randomUUID } from "node:crypto";
 
+import { asc, eq } from "drizzle-orm";
+
+import { databaseAccess } from "@/infrastructure/database/service";
+import {
+  workOrdersTable,
+  workOrderUpdatesTable,
+} from "@/infrastructure/database/schema";
 import type { WorkOrderRepositoryInterface } from "@/interfaces/work-order-repository-interface";
 import type {
   CreateWorkOrderInput,
@@ -8,84 +15,144 @@ import type {
   WorkOrderUpdate,
 } from "@/types/work-order";
 
-class InMemoryWorkOrderRepository implements WorkOrderRepositoryInterface {
-  private readonly workOrders = new Map<string, WorkOrder>();
-  private readonly workOrderUpdates = new Map<string, WorkOrderUpdate[]>();
+function mapWorkOrderRow(row: typeof workOrdersTable.$inferSelect): WorkOrder {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    status: row.status,
+    assignee: row.assignee,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
 
-  create(input: CreateWorkOrderInput): WorkOrder {
+function mapWorkOrderUpdateRow(
+  row: typeof workOrderUpdatesTable.$inferSelect,
+): WorkOrderUpdate {
+  return {
+    id: row.id,
+    workOrderId: row.workOrderId,
+    note: row.note,
+    createdAt: row.createdAt,
+  };
+}
+
+class PostgresWorkOrderRepository implements WorkOrderRepositoryInterface {
+  async create(input: CreateWorkOrderInput): Promise<WorkOrder> {
     const now = new Date().toISOString();
-    const workOrder: WorkOrder = {
-      id: randomUUID(),
-      title: input.title,
-      description: input.description,
-      status: "open",
-      assignee: input.assignee ?? null,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const row = await databaseAccess.queryFirst((database) =>
+      database
+        .insert(workOrdersTable)
+        .values({
+          id: randomUUID(),
+          title: input.title,
+          description: input.description,
+          status: "open",
+          assignee: input.assignee ?? null,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning(),
+    );
 
-    this.workOrders.set(workOrder.id, workOrder);
-    this.workOrderUpdates.set(workOrder.id, []);
+    if (!row) {
+      throw new Error("failed to create work order");
+    }
 
-    return workOrder;
+    return mapWorkOrderRow(row);
   }
 
-  findAll(): WorkOrder[] {
-    return Array.from(this.workOrders.values());
+  async findAll(): Promise<WorkOrder[]> {
+    const rows = await databaseAccess.queryMany((database) =>
+      database
+        .select()
+        .from(workOrdersTable)
+        .orderBy(asc(workOrdersTable.createdAt)),
+    );
+
+    return rows.map(mapWorkOrderRow);
   }
 
-  findById(id: string): WorkOrder | null {
-    return this.workOrders.get(id) ?? null;
+  async findById(id: string): Promise<WorkOrder | null> {
+    const row = await databaseAccess.queryFirst((database) =>
+      database.select().from(workOrdersTable).where(eq(workOrdersTable.id, id)),
+    );
+
+    return row ? mapWorkOrderRow(row) : null;
   }
 
-  updateStatus(id: string, input: UpdateWorkOrderStatusInput): WorkOrder | null {
-    const existing = this.workOrders.get(id);
+  async updateStatus(
+    id: string,
+    input: UpdateWorkOrderStatusInput,
+  ): Promise<WorkOrder | null> {
+    const row = await databaseAccess.queryFirst((database) =>
+      database
+        .update(workOrdersTable)
+        .set({
+          status: input.status,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(workOrdersTable.id, id))
+        .returning(),
+    );
 
-    if (!existing) {
+    return row ? mapWorkOrderRow(row) : null;
+  }
+
+  async addUpdate(id: string, note: string): Promise<WorkOrderUpdate | null> {
+    const now = new Date().toISOString();
+
+    return databaseAccess.client.transaction(async (transaction) => {
+      const workOrderRows = await transaction
+        .update(workOrdersTable)
+        .set({
+          updatedAt: now,
+        })
+        .where(eq(workOrdersTable.id, id))
+        .returning();
+      const workOrder = workOrderRows[0] ?? null;
+
+      if (!workOrder) {
+        return null;
+      }
+
+      const updateRows = await transaction
+        .insert(workOrderUpdatesTable)
+        .values({
+          id: randomUUID(),
+          workOrderId: id,
+          note,
+          createdAt: now,
+        })
+        .returning();
+      const update = updateRows[0] ?? null;
+
+      if (!update) {
+        throw new Error("failed to create work order update");
+      }
+
+      return mapWorkOrderUpdateRow(update);
+    });
+  }
+
+  async findUpdatesByWorkOrderId(id: string): Promise<WorkOrderUpdate[] | null> {
+    const workOrder = await this.findById(id);
+
+    if (!workOrder) {
       return null;
     }
 
-    const updated: WorkOrder = {
-      ...existing,
-      status: input.status,
-      updatedAt: new Date().toISOString(),
-    };
+    const rows = await databaseAccess.queryMany((database) =>
+      database
+        .select()
+        .from(workOrderUpdatesTable)
+        .where(eq(workOrderUpdatesTable.workOrderId, id))
+        .orderBy(asc(workOrderUpdatesTable.createdAt)),
+    );
 
-    this.workOrders.set(id, updated);
-
-    return updated;
-  }
-
-  addUpdate(id: string, note: string): WorkOrderUpdate | null {
-    const existing = this.workOrders.get(id);
-    const existingUpdates = this.workOrderUpdates.get(id);
-
-    if (!existing || !existingUpdates) {
-      return null;
-    }
-
-    const update: WorkOrderUpdate = {
-      id: randomUUID(),
-      workOrderId: id,
-      note,
-      createdAt: new Date().toISOString(),
-    };
-
-    existing.updatedAt = update.createdAt;
-
-    existingUpdates.push(update);
-    this.workOrderUpdates.set(id, existingUpdates);
-
-    return update;
-  }
-
-  findUpdatesByWorkOrderId(id: string): WorkOrderUpdate[] | null {
-    if (!this.workOrders.has(id)) {
-      return null;
-    }
-
-    return this.workOrderUpdates.get(id) ?? [];
+    return rows.map(mapWorkOrderUpdateRow);
   }
 }
 
-export const workOrderRepository = new InMemoryWorkOrderRepository();
+export const workOrderRepository = new PostgresWorkOrderRepository();

@@ -9,30 +9,30 @@ import { workOrderService } from "@/services/work-order-service";
 import { readRequiredPathParam } from "@/shared/request-params";
 
 export class WorkOrderController {
-  createWorkOrder(request: Request, response: Response) {
+  async createWorkOrder(request: Request, response: Response) {
     const input = parseCreateWorkOrderInput(request.body);
-    const workOrder = workOrderService.createWorkOrder(input);
+    const workOrder = await workOrderService.createWorkOrder(input);
 
     return response.status(201).json({ data: workOrder });
   }
 
-  listWorkOrders(_request: Request, response: Response) {
-    const workOrders = workOrderService.listWorkOrders();
+  async listWorkOrders(_request: Request, response: Response) {
+    const workOrders = await workOrderService.listWorkOrders();
 
     return response.status(200).json({ data: workOrders });
   }
 
-  getWorkOrder(request: Request, response: Response) {
-    const workOrder = workOrderService.getWorkOrder(
+  async getWorkOrder(request: Request, response: Response) {
+    const workOrder = await workOrderService.getWorkOrder(
       readRequiredPathParam(request.params.id, "id"),
     );
 
     return response.status(200).json({ data: workOrder });
   }
 
-  updateWorkOrderStatus(request: Request, response: Response) {
+  async updateWorkOrderStatus(request: Request, response: Response) {
     const input = parseUpdateWorkOrderStatusInput(request.body);
-    const workOrder = workOrderService.updateWorkOrderStatus(
+    const workOrder = await workOrderService.updateWorkOrderStatus(
       readRequiredPathParam(request.params.id, "id"),
       input,
     );
@@ -40,9 +40,9 @@ export class WorkOrderController {
     return response.status(200).json({ data: workOrder });
   }
 
-  addWorkOrderUpdate(request: Request, response: Response) {
+  async addWorkOrderUpdate(request: Request, response: Response) {
     const input = parseAddWorkOrderUpdateInput(request.body);
-    const update = workOrderService.addWorkOrderUpdate(
+    const update = await workOrderService.addWorkOrderUpdate(
       readRequiredPathParam(request.params.id, "id"),
       input,
     );
@@ -50,8 +50,8 @@ export class WorkOrderController {
     return response.status(201).json({ data: update });
   }
 
-  listWorkOrderUpdates(request: Request, response: Response) {
-    const updates = workOrderService.listWorkOrderUpdates(
+  async listWorkOrderUpdates(request: Request, response: Response) {
+    const updates = await workOrderService.listWorkOrderUpdates(
       readRequiredPathParam(request.params.id, "id"),
     );
 

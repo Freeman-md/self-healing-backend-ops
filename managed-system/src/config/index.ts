@@ -11,7 +11,17 @@ import type {
   ServerConfig,
 } from "@/types/config";
 
-function buildDatabaseConfig(env: NodeJS.ProcessEnv): DatabaseConfig {
+export function buildDatabaseConnectionUrl(
+  databaseConfig: DatabaseConfig,
+): string {
+  if (databaseConfig.connectionUrl) {
+    return databaseConfig.connectionUrl;
+  }
+
+  return `postgresql://${databaseConfig.user}:${databaseConfig.password}@${databaseConfig.host}:${databaseConfig.port}/${databaseConfig.name}`;
+}
+
+export function buildDatabaseConfig(env: NodeJS.ProcessEnv): DatabaseConfig {
   return {
     host: readString(env.DB_HOST, "localhost"),
     port: readInteger(env.DB_PORT, 5432, "DB_PORT"),

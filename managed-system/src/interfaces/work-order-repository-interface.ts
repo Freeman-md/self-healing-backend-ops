@@ -6,10 +6,13 @@ import type {
 } from "@/types/work-order";
 
 export interface WorkOrderRepositoryInterface {
-  create(input: CreateWorkOrderInput): WorkOrder;
-  findAll(): WorkOrder[];
-  findById(id: string): WorkOrder | null;
-  updateStatus(id: string, input: UpdateWorkOrderStatusInput): WorkOrder | null;
-  addUpdate(id: string, note: string): WorkOrderUpdate | null;
-  findUpdatesByWorkOrderId(id: string): WorkOrderUpdate[] | null;
+  create(input: CreateWorkOrderInput): Promise<WorkOrder>;
+  findAll(): Promise<WorkOrder[]>;
+  findById(id: string): Promise<WorkOrder | null>;
+  updateStatus(
+    id: string,
+    input: UpdateWorkOrderStatusInput,
+  ): Promise<WorkOrder | null>;
+  addUpdate(id: string, note: string): Promise<WorkOrderUpdate | null>;
+  findUpdatesByWorkOrderId(id: string): Promise<WorkOrderUpdate[] | null>;
 }

@@ -11,16 +11,16 @@ import { workOrderRepository } from "@/repositories/work-order-repository";
 export class WorkOrderService {
   constructor(private readonly repository: WorkOrderRepositoryInterface) {}
 
-  createWorkOrder(input: CreateWorkOrderInput) {
+  async createWorkOrder(input: CreateWorkOrderInput) {
     return this.repository.create(input);
   }
 
-  listWorkOrders() {
+  async listWorkOrders() {
     return this.repository.findAll();
   }
 
-  getWorkOrder(id: string) {
-    const workOrder = this.repository.findById(id);
+  async getWorkOrder(id: string) {
+    const workOrder = await this.repository.findById(id);
 
     if (!workOrder) {
       throw new HttpError(404, "work order not found");
@@ -29,8 +29,8 @@ export class WorkOrderService {
     return workOrder;
   }
 
-  updateWorkOrderStatus(id: string, input: UpdateWorkOrderStatusInput) {
-    const workOrder = this.repository.updateStatus(id, input);
+  async updateWorkOrderStatus(id: string, input: UpdateWorkOrderStatusInput) {
+    const workOrder = await this.repository.updateStatus(id, input);
 
     if (!workOrder) {
       throw new HttpError(404, "work order not found");
@@ -39,8 +39,8 @@ export class WorkOrderService {
     return workOrder;
   }
 
-  addWorkOrderUpdate(id: string, input: AddWorkOrderUpdateInput) {
-    const update = this.repository.addUpdate(id, input.note);
+  async addWorkOrderUpdate(id: string, input: AddWorkOrderUpdateInput) {
+    const update = await this.repository.addUpdate(id, input.note);
 
     if (!update) {
       throw new HttpError(404, "work order not found");
@@ -49,8 +49,8 @@ export class WorkOrderService {
     return update;
   }
 
-  listWorkOrderUpdates(id: string) {
-    const updates = this.repository.findUpdatesByWorkOrderId(id);
+  async listWorkOrderUpdates(id: string) {
+    const updates = await this.repository.findUpdatesByWorkOrderId(id);
 
     if (!updates) {
       throw new HttpError(404, "work order not found");
