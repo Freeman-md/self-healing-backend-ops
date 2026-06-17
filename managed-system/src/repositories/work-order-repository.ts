@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { asc, eq } from "drizzle-orm";
 
-import { databaseAccess } from "@/infrastructure/database/service";
+import { databaseService } from "@/infrastructure/database/service";
 import { workOrdersTable } from "@/infrastructure/database/schema";
 import type { IWorkOrderRepository } from "@/interfaces/work-order-repository-interface";
 import type {
@@ -11,22 +11,32 @@ import type {
   WorkOrder,
 } from "@/types/work-order";
 
-function mapWorkOrderRow(row: typeof workOrdersTable.$inferSelect): WorkOrder {
-  return {
-    id: row.id,
-    title: row.title,
-    description: row.description,
-    status: row.status,
-    assignee: row.assignee,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  };
+function buildWorkOrderUpdateValues(input: UpdateWorkOrderInput) {
+  const values: Partial<typeof workOrdersTable.$inferInsert> = {};
+
+  if (input.title !== undefined) {
+    values.title = input.title;
+  }
+
+  if (input.description !== undefined) {
+    values.description = input.description;
+  }
+
+  if (input.status !== undefined) {
+    values.status = input.status;
+  }
+
+  if (input.assignee !== undefined) {
+    values.assignee = input.assignee;
+  }
+
+  return values;
 }
 
 class PostgresWorkOrderRepository implements IWorkOrderRepository {
   async create(input: CreateWorkOrderInput): Promise<WorkOrder> {
     const now = new Date().toISOString();
-    const row = await databaseAccess.queryFirst((database) =>
+    const row = await databaseService.findFirst((database) =>
       database
         .insert(workOrdersTable)
         .values({
@@ -45,34 +55,31 @@ class PostgresWorkOrderRepository implements IWorkOrderRepository {
       throw new Error("failed to create work order");
     }
 
-    return mapWorkOrderRow(row);
+    return row satisfies WorkOrder;
   }
 
   async update(
     id: string,
     input: UpdateWorkOrderInput,
   ): Promise<WorkOrder | null> {
-    const row = await databaseAccess.queryFirst((database) =>
+    const values = buildWorkOrderUpdateValues(input);
+
+    const row = await databaseService.findFirst((database) =>
       database
         .update(workOrdersTable)
         .set({
-          ...(input.title !== undefined ? { title: input.title } : {}),
-          ...(input.description !== undefined
-            ? { description: input.description }
-            : {}),
-          ...(input.status !== undefined ? { status: input.status } : {}),
-          ...(input.assignee !== undefined ? { assignee: input.assignee } : {}),
+          ...values,
           updatedAt: new Date().toISOString(),
         })
         .where(eq(workOrdersTable.id, id))
         .returning(),
     );
 
-    return row ? mapWorkOrderRow(row) : null;
+    return row;
   }
 
   async delete(id: string): Promise<boolean> {
-    const row = await databaseAccess.queryFirst((database) =>
+    const row = await databaseService.findFirst((database) =>
       database
         .delete(workOrdersTable)
         .where(eq(workOrdersTable.id, id))
@@ -83,22 +90,20 @@ class PostgresWorkOrderRepository implements IWorkOrderRepository {
   }
 
   async findById(id: string): Promise<WorkOrder | null> {
-    const row = await databaseAccess.queryFirst((database) =>
+    const row = await databaseService.findFirst((database) =>
       database.select().from(workOrdersTable).where(eq(workOrdersTable.id, id)),
     );
 
-    return row ? mapWorkOrderRow(row) : null;
+    return row;
   }
 
   async findAll(): Promise<WorkOrder[]> {
-    const rows = await databaseAccess.queryMany((database) =>
+    return databaseService.findMany((database) =>
       database
         .select()
         .from(workOrdersTable)
         .orderBy(asc(workOrdersTable.createdAt)),
     );
-
-    return rows.map(mapWorkOrderRow);
   }
 }
 
