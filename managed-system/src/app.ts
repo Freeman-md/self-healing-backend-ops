@@ -1,3 +1,18 @@
-export function createApp(): null {
-  return null;
+import express from "express";
+
+import { errorHandler } from "@/middlewares/error-handler";
+import { notFoundHandler } from "@/middlewares/not-found-handler";
+import { workOrderRoutes } from "@/routes/work-order-routes";
+
+export function createApp() {
+  const app = express();
+
+  app.use(express.json());
+
+  app.use("/work-orders", workOrderRoutes);
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
+
+  return app;
 }
