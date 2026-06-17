@@ -1,26 +1,26 @@
 export type LogLevel = "error" | "warn" | "info" | "debug";
 
-export interface ServerConfig {
+export type ServerConfig = {
   port: number;
   environment: string;
-}
+};
 
-export interface DatabaseConfig {
+export type DatabaseConfig = {
   host: string;
   port: number;
   name: string;
   user: string;
   password: string;
   connectionUrl: string | null;
-}
+};
 
-export interface ObservabilityConfig {
+export type ObservabilityConfig = {
   logLevel: LogLevel;
   metricsEnabled: boolean;
-}
+};
 
-export interface RuntimeConfig {
+export type RuntimeConfig = {
   server: ServerConfig;
   database: DatabaseConfig;
   observability: ObservabilityConfig;
-}
+};

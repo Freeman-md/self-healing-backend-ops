@@ -8,7 +8,7 @@ export const WORK_ORDER_STATUSES = [
 
 export type WorkOrderStatus = (typeof WORK_ORDER_STATUSES)[number];
 
-export interface WorkOrder {
+export type WorkOrder = {
   id: string;
   title: string;
   description: string;
@@ -16,25 +16,25 @@ export interface WorkOrder {
   assignee: string | null;
   createdAt: string;
   updatedAt: string;
-}
+};
 
-export interface WorkOrderUpdate {
+export type WorkOrderUpdate = {
   id: string;
   workOrderId: string;
   note: string;
   createdAt: string;
-}
+};
 
-export interface CreateWorkOrderInput {
+export type CreateWorkOrderInput = {
   title: string;
   description: string;
   assignee?: string | null;
-}
+};
 
-export interface UpdateWorkOrderStatusInput {
+export type UpdateWorkOrderStatusInput = {
   status: WorkOrderStatus;
-}
+};
 
-export interface AddWorkOrderUpdateInput {
+export type AddWorkOrderUpdateInput = {
   note: string;
-}
+};

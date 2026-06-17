@@ -1,3 +1,4 @@
+import type { WorkOrderRepositoryInterface } from "@/interfaces/work-order-repository-interface";
 import { HttpError } from "@/shared/http-error";
 import type {
   AddWorkOrderUpdateInput,
@@ -5,13 +6,10 @@ import type {
   UpdateWorkOrderStatusInput,
 } from "@/types/work-order";
 
-import {
-  workOrderRepository,
-  type WorkOrderRepository,
-} from "@/repositories/work-order-repository";
+import { workOrderRepository } from "@/repositories/work-order-repository";
 
 export class WorkOrderService {
-  constructor(private readonly repository: WorkOrderRepository) {}
+  constructor(private readonly repository: WorkOrderRepositoryInterface) {}
 
   createWorkOrder(input: CreateWorkOrderInput) {
     return this.repository.create(input);

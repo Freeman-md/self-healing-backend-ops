@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import type { WorkOrderRepositoryInterface } from "@/interfaces/work-order-repository-interface";
 import type {
   CreateWorkOrderInput,
   UpdateWorkOrderStatusInput,
@@ -7,16 +8,7 @@ import type {
   WorkOrderUpdate,
 } from "@/types/work-order";
 
-export interface WorkOrderRepository {
-  create(input: CreateWorkOrderInput): WorkOrder;
-  findAll(): WorkOrder[];
-  findById(id: string): WorkOrder | null;
-  updateStatus(id: string, input: UpdateWorkOrderStatusInput): WorkOrder | null;
-  addUpdate(id: string, note: string): WorkOrderUpdate | null;
-  findUpdatesByWorkOrderId(id: string): WorkOrderUpdate[] | null;
-}
-
-class InMemoryWorkOrderRepository implements WorkOrderRepository {
+class InMemoryWorkOrderRepository implements WorkOrderRepositoryInterface {
   private readonly workOrders = new Map<string, WorkOrder>();
   private readonly workOrderUpdates = new Map<string, WorkOrderUpdate[]>();
 

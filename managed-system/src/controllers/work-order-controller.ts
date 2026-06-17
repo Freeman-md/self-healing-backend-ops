@@ -1,24 +1,16 @@
 import type { Request, Response } from "express";
 
-import { workOrderService } from "@/services/work-order-service";
 import {
-  validateAddWorkOrderUpdateInput,
-  validateCreateWorkOrderInput,
-  validateUpdateWorkOrderStatusInput,
-} from "@/shared/work-order-validation";
-import { HttpError } from "@/shared/http-error";
-
-function readPathId(value: string | string[] | undefined): string {
-  if (typeof value === "string" && value.trim() !== "") {
-    return value;
-  }
-
-  throw new HttpError(400, "id path parameter is required");
-}
+  parseAddWorkOrderUpdateInput,
+  parseCreateWorkOrderInput,
+  parseUpdateWorkOrderStatusInput,
+} from "@/dtos/work-order";
+import { workOrderService } from "@/services/work-order-service";
+import { readRequiredPathParam } from "@/shared/request-params";
 
 export class WorkOrderController {
   createWorkOrder(request: Request, response: Response) {
-    const input = validateCreateWorkOrderInput(request.body);
+    const input = parseCreateWorkOrderInput(request.body);
     const workOrder = workOrderService.createWorkOrder(input);
 
     return response.status(201).json({ data: workOrder });
@@ -31,15 +23,17 @@ export class WorkOrderController {
   }
 
   getWorkOrder(request: Request, response: Response) {
-    const workOrder = workOrderService.getWorkOrder(readPathId(request.params.id));
+    const workOrder = workOrderService.getWorkOrder(
+      readRequiredPathParam(request.params.id, "id"),
+    );
 
     return response.status(200).json({ data: workOrder });
   }
 
   updateWorkOrderStatus(request: Request, response: Response) {
-    const input = validateUpdateWorkOrderStatusInput(request.body);
+    const input = parseUpdateWorkOrderStatusInput(request.body);
     const workOrder = workOrderService.updateWorkOrderStatus(
-      readPathId(request.params.id),
+      readRequiredPathParam(request.params.id, "id"),
       input,
     );
 
@@ -47,9 +41,9 @@ export class WorkOrderController {
   }
 
   addWorkOrderUpdate(request: Request, response: Response) {
-    const input = validateAddWorkOrderUpdateInput(request.body);
+    const input = parseAddWorkOrderUpdateInput(request.body);
     const update = workOrderService.addWorkOrderUpdate(
-      readPathId(request.params.id),
+      readRequiredPathParam(request.params.id, "id"),
       input,
     );
 
@@ -58,7 +52,7 @@ export class WorkOrderController {
 
   listWorkOrderUpdates(request: Request, response: Response) {
     const updates = workOrderService.listWorkOrderUpdates(
-      readPathId(request.params.id),
+      readRequiredPathParam(request.params.id, "id"),
     );
 
     return response.status(200).json({ data: updates });
