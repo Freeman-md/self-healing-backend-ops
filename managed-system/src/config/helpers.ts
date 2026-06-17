@@ -1,6 +1,6 @@
-const LOG_LEVELS = ["error", "warn", "info", "debug"] as const;
+import type { LogLevel } from "@/types/config";
 
-export type LogLevel = (typeof LOG_LEVELS)[number];
+const LOG_LEVELS: LogLevel[] = ["error", "warn", "info", "debug"];
 
 export function readString(
   value: string | undefined | null,

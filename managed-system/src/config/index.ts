@@ -3,33 +3,13 @@ import {
   readInteger,
   readLogLevel,
   readString,
-  type LogLevel,
-} from "./helpers.js";
-
-export interface ServerConfig {
-  port: number;
-  environment: string;
-}
-
-export interface DatabaseConfig {
-  host: string;
-  port: number;
-  name: string;
-  user: string;
-  password: string;
-  connectionUrl: string | null;
-}
-
-export interface ObservabilityConfig {
-  logLevel: LogLevel;
-  metricsEnabled: boolean;
-}
-
-export interface RuntimeConfig {
-  server: ServerConfig;
-  database: DatabaseConfig;
-  observability: ObservabilityConfig;
-}
+} from "@/config/helpers";
+import type {
+  DatabaseConfig,
+  ObservabilityConfig,
+  RuntimeConfig,
+  ServerConfig,
+} from "@/types/config";
 
 function buildDatabaseConfig(env: NodeJS.ProcessEnv): DatabaseConfig {
   return {
