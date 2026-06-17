@@ -1,0 +1,47 @@
+import {
+  checkPostgresConnection,
+  postgresPool,
+} from "@/infrastructure/postgres/index";
+import type { HealthCheckResult, HealthResponse } from "@/types/health";
+
+function createHealthyCheck(message: string): HealthCheckResult {
+  return {
+    status: "healthy",
+    message,
+  };
+}
+
+function createUnhealthyCheck(message: string): HealthCheckResult {
+  return {
+    status: "unhealthy",
+    message,
+  };
+}
+
+export class HealthService {
+  async getHealth(): Promise<HealthResponse> {
+    const appCheck = createHealthyCheck("app is running");
+
+    try {
+      await checkPostgresConnection(postgresPool);
+
+      return {
+        status: "healthy",
+        checks: {
+          app: appCheck,
+          database: createHealthyCheck("database connectivity check passed"),
+        },
+      };
+    } catch {
+      return {
+        status: "unhealthy",
+        checks: {
+          app: appCheck,
+          database: createUnhealthyCheck("database connectivity check failed"),
+        },
+      };
+    }
+  }
+}
+
+export const healthService = new HealthService();
