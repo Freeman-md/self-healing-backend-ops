@@ -31,10 +31,18 @@ export type CreateWorkOrderInput = {
   assignee?: string | null;
 };
 
-export type UpdateWorkOrderStatusInput = {
-  status: WorkOrderStatus;
+export type UpdateWorkOrderInput = {
+  title?: string;
+  description?: string;
+  status?: WorkOrderStatus;
+  assignee?: string | null;
 };
 
-export type AddWorkOrderUpdateInput = {
+export type CreateWorkOrderUpdateInput = {
+  workOrderId?: string;
+  note: string;
+};
+
+export type UpdateWorkOrderUpdateInput = {
   note: string;
 };

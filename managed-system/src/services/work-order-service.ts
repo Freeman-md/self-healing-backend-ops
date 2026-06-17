@@ -1,15 +1,14 @@
-import type { WorkOrderRepositoryInterface } from "@/interfaces/work-order-repository-interface";
+import type { IWorkOrderRepository } from "@/interfaces/work-order-repository-interface";
 import { HttpError } from "@/shared/http-error";
 import type {
-  AddWorkOrderUpdateInput,
   CreateWorkOrderInput,
-  UpdateWorkOrderStatusInput,
+  UpdateWorkOrderInput,
 } from "@/types/work-order";
 
 import { workOrderRepository } from "@/repositories/work-order-repository";
 
 export class WorkOrderService {
-  constructor(private readonly repository: WorkOrderRepositoryInterface) {}
+  constructor(private readonly repository: IWorkOrderRepository) {}
 
   async createWorkOrder(input: CreateWorkOrderInput) {
     return this.repository.create(input);
@@ -29,34 +28,14 @@ export class WorkOrderService {
     return workOrder;
   }
 
-  async updateWorkOrderStatus(id: string, input: UpdateWorkOrderStatusInput) {
-    const workOrder = await this.repository.updateStatus(id, input);
+  async updateWorkOrder(id: string, input: UpdateWorkOrderInput) {
+    const workOrder = await this.repository.update(id, input);
 
     if (!workOrder) {
       throw new HttpError(404, "work order not found");
     }
 
     return workOrder;
-  }
-
-  async addWorkOrderUpdate(id: string, input: AddWorkOrderUpdateInput) {
-    const update = await this.repository.addUpdate(id, input.note);
-
-    if (!update) {
-      throw new HttpError(404, "work order not found");
-    }
-
-    return update;
-  }
-
-  async listWorkOrderUpdates(id: string) {
-    const updates = await this.repository.findUpdatesByWorkOrderId(id);
-
-    if (!updates) {
-      throw new HttpError(404, "work order not found");
-    }
-
-    return updates;
   }
 }
 

@@ -3,16 +3,12 @@ import { randomUUID } from "node:crypto";
 import { asc, eq } from "drizzle-orm";
 
 import { databaseAccess } from "@/infrastructure/database/service";
-import {
-  workOrdersTable,
-  workOrderUpdatesTable,
-} from "@/infrastructure/database/schema";
-import type { WorkOrderRepositoryInterface } from "@/interfaces/work-order-repository-interface";
+import { workOrdersTable } from "@/infrastructure/database/schema";
+import type { IWorkOrderRepository } from "@/interfaces/work-order-repository-interface";
 import type {
   CreateWorkOrderInput,
-  UpdateWorkOrderStatusInput,
+  UpdateWorkOrderInput,
   WorkOrder,
-  WorkOrderUpdate,
 } from "@/types/work-order";
 
 function mapWorkOrderRow(row: typeof workOrdersTable.$inferSelect): WorkOrder {
@@ -27,18 +23,7 @@ function mapWorkOrderRow(row: typeof workOrdersTable.$inferSelect): WorkOrder {
   };
 }
 
-function mapWorkOrderUpdateRow(
-  row: typeof workOrderUpdatesTable.$inferSelect,
-): WorkOrderUpdate {
-  return {
-    id: row.id,
-    workOrderId: row.workOrderId,
-    note: row.note,
-    createdAt: row.createdAt,
-  };
-}
-
-class PostgresWorkOrderRepository implements WorkOrderRepositoryInterface {
+class PostgresWorkOrderRepository implements IWorkOrderRepository {
   async create(input: CreateWorkOrderInput): Promise<WorkOrder> {
     const now = new Date().toISOString();
     const row = await databaseAccess.queryFirst((database) =>
@@ -63,15 +48,38 @@ class PostgresWorkOrderRepository implements WorkOrderRepositoryInterface {
     return mapWorkOrderRow(row);
   }
 
-  async findAll(): Promise<WorkOrder[]> {
-    const rows = await databaseAccess.queryMany((database) =>
+  async update(
+    id: string,
+    input: UpdateWorkOrderInput,
+  ): Promise<WorkOrder | null> {
+    const row = await databaseAccess.queryFirst((database) =>
       database
-        .select()
-        .from(workOrdersTable)
-        .orderBy(asc(workOrdersTable.createdAt)),
+        .update(workOrdersTable)
+        .set({
+          ...(input.title !== undefined ? { title: input.title } : {}),
+          ...(input.description !== undefined
+            ? { description: input.description }
+            : {}),
+          ...(input.status !== undefined ? { status: input.status } : {}),
+          ...(input.assignee !== undefined ? { assignee: input.assignee } : {}),
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(workOrdersTable.id, id))
+        .returning(),
     );
 
-    return rows.map(mapWorkOrderRow);
+    return row ? mapWorkOrderRow(row) : null;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const row = await databaseAccess.queryFirst((database) =>
+      database
+        .delete(workOrdersTable)
+        .where(eq(workOrdersTable.id, id))
+        .returning({ id: workOrdersTable.id }),
+    );
+
+    return Boolean(row);
   }
 
   async findById(id: string): Promise<WorkOrder | null> {
@@ -82,76 +90,15 @@ class PostgresWorkOrderRepository implements WorkOrderRepositoryInterface {
     return row ? mapWorkOrderRow(row) : null;
   }
 
-  async updateStatus(
-    id: string,
-    input: UpdateWorkOrderStatusInput,
-  ): Promise<WorkOrder | null> {
-    const row = await databaseAccess.queryFirst((database) =>
-      database
-        .update(workOrdersTable)
-        .set({
-          status: input.status,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(workOrdersTable.id, id))
-        .returning(),
-    );
-
-    return row ? mapWorkOrderRow(row) : null;
-  }
-
-  async addUpdate(id: string, note: string): Promise<WorkOrderUpdate | null> {
-    const now = new Date().toISOString();
-
-    return databaseAccess.client.transaction(async (transaction) => {
-      const workOrderRows = await transaction
-        .update(workOrdersTable)
-        .set({
-          updatedAt: now,
-        })
-        .where(eq(workOrdersTable.id, id))
-        .returning();
-      const workOrder = workOrderRows[0] ?? null;
-
-      if (!workOrder) {
-        return null;
-      }
-
-      const updateRows = await transaction
-        .insert(workOrderUpdatesTable)
-        .values({
-          id: randomUUID(),
-          workOrderId: id,
-          note,
-          createdAt: now,
-        })
-        .returning();
-      const update = updateRows[0] ?? null;
-
-      if (!update) {
-        throw new Error("failed to create work order update");
-      }
-
-      return mapWorkOrderUpdateRow(update);
-    });
-  }
-
-  async findUpdatesByWorkOrderId(id: string): Promise<WorkOrderUpdate[] | null> {
-    const workOrder = await this.findById(id);
-
-    if (!workOrder) {
-      return null;
-    }
-
+  async findAll(): Promise<WorkOrder[]> {
     const rows = await databaseAccess.queryMany((database) =>
       database
         .select()
-        .from(workOrderUpdatesTable)
-        .where(eq(workOrderUpdatesTable.workOrderId, id))
-        .orderBy(asc(workOrderUpdatesTable.createdAt)),
+        .from(workOrdersTable)
+        .orderBy(asc(workOrdersTable.createdAt)),
     );
 
-    return rows.map(mapWorkOrderUpdateRow);
+    return rows.map(mapWorkOrderRow);
   }
 }
 

@@ -1,9 +1,8 @@
 import type { Request, Response } from "express";
 
 import {
-  parseAddWorkOrderUpdateInput,
   parseCreateWorkOrderInput,
-  parseUpdateWorkOrderStatusInput,
+  parseUpdateWorkOrderInput,
 } from "@/dtos/work-order";
 import { workOrderService } from "@/services/work-order-service";
 import { readRequiredPathParam } from "@/shared/request-params";
@@ -30,32 +29,14 @@ export class WorkOrderController {
     return response.status(200).json({ data: workOrder });
   }
 
-  async updateWorkOrderStatus(request: Request, response: Response) {
-    const input = parseUpdateWorkOrderStatusInput(request.body);
-    const workOrder = await workOrderService.updateWorkOrderStatus(
+  async updateWorkOrder(request: Request, response: Response) {
+    const input = parseUpdateWorkOrderInput(request.body);
+    const workOrder = await workOrderService.updateWorkOrder(
       readRequiredPathParam(request.params.id, "id"),
       input,
     );
 
     return response.status(200).json({ data: workOrder });
-  }
-
-  async addWorkOrderUpdate(request: Request, response: Response) {
-    const input = parseAddWorkOrderUpdateInput(request.body);
-    const update = await workOrderService.addWorkOrderUpdate(
-      readRequiredPathParam(request.params.id, "id"),
-      input,
-    );
-
-    return response.status(201).json({ data: update });
-  }
-
-  async listWorkOrderUpdates(request: Request, response: Response) {
-    const updates = await workOrderService.listWorkOrderUpdates(
-      readRequiredPathParam(request.params.id, "id"),
-    );
-
-    return response.status(200).json({ data: updates });
   }
 }
 

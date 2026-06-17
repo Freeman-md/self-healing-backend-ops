@@ -1,18 +1,9 @@
+import type { IRepository } from "@/interfaces/repository";
 import type {
   CreateWorkOrderInput,
-  UpdateWorkOrderStatusInput,
+  UpdateWorkOrderInput,
   WorkOrder,
-  WorkOrderUpdate,
 } from "@/types/work-order";
 
-export interface WorkOrderRepositoryInterface {
-  create(input: CreateWorkOrderInput): Promise<WorkOrder>;
-  findAll(): Promise<WorkOrder[]>;
-  findById(id: string): Promise<WorkOrder | null>;
-  updateStatus(
-    id: string,
-    input: UpdateWorkOrderStatusInput,
-  ): Promise<WorkOrder | null>;
-  addUpdate(id: string, note: string): Promise<WorkOrderUpdate | null>;
-  findUpdatesByWorkOrderId(id: string): Promise<WorkOrderUpdate[] | null>;
-}
+export interface IWorkOrderRepository
+  extends IRepository<WorkOrder, CreateWorkOrderInput, UpdateWorkOrderInput> { }

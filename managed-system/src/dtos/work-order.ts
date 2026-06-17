@@ -1,13 +1,11 @@
 import { parseWithSchema } from "@/lib/zod/helpers";
 import {
-  addWorkOrderUpdateSchema,
   createWorkOrderSchema,
-  updateWorkOrderStatusSchema,
+  updateWorkOrderSchema,
 } from "@/lib/zod/schemas/work-order";
 import type {
-  AddWorkOrderUpdateInput,
   CreateWorkOrderInput,
-  UpdateWorkOrderStatusInput,
+  UpdateWorkOrderInput,
 } from "@/types/work-order";
 
 export function parseCreateWorkOrderInput(
@@ -16,14 +14,8 @@ export function parseCreateWorkOrderInput(
   return parseWithSchema(createWorkOrderSchema, payload);
 }
 
-export function parseUpdateWorkOrderStatusInput(
+export function parseUpdateWorkOrderInput(
   payload: unknown,
-): UpdateWorkOrderStatusInput {
-  return parseWithSchema(updateWorkOrderStatusSchema, payload);
-}
-
-export function parseAddWorkOrderUpdateInput(
-  payload: unknown,
-): AddWorkOrderUpdateInput {
-  return parseWithSchema(addWorkOrderUpdateSchema, payload);
+): UpdateWorkOrderInput {
+  return parseWithSchema(updateWorkOrderSchema, payload);
 }

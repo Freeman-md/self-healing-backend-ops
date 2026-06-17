@@ -14,12 +14,26 @@ export const createWorkOrderSchema = z.object({
     .transform((value) => value ?? null),
 });
 
-export const updateWorkOrderStatusSchema = z.object({
-  status: z.enum(WORK_ORDER_STATUSES, {
-    error: () => ({ message: "status is invalid" }),
-  }),
-});
-
-export const addWorkOrderUpdateSchema = z.object({
-  note: z.string().trim().min(1, "note is required"),
-});
+export const updateWorkOrderSchema = z
+  .object({
+    title: z.string().trim().min(1, "title cannot be empty").optional(),
+    description: z
+      .string()
+      .trim()
+      .min(1, "description cannot be empty")
+      .optional(),
+    status: z
+      .enum(WORK_ORDER_STATUSES, {
+        error: () => ({ message: "status is invalid" }),
+      })
+      .optional(),
+    assignee: z
+      .string()
+      .trim()
+      .min(1, "assignee cannot be empty")
+      .nullable()
+      .optional(),
+  })
+  .refine((payload) => Object.keys(payload).length > 0, {
+    message: "at least one field is required",
+  });
