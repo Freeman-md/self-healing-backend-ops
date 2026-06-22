@@ -32,4 +32,14 @@ export class WorkOrderService {
 
     return workOrder;
   }
+
+  deleteWorkOrder = async(id: string) => {
+    const deleted = await this.repository.delete(id);
+
+    if (!deleted) {
+      throw new HttpError(404, "work order not found");
+    }
+
+    return deleted;
+  }
 }

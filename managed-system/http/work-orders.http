@@ -1,0 +1,67 @@
+@baseUrl = http://localhost:3000
+@workOrderId = 18ab9497-c55c-4305-ae46-b812fd1a4bde
+@workOrderUpdateId = 6efc7a82-2690-4b91-9869-bfa53a3b2b69
+
+### Work Orders - Create
+POST {{baseUrl}}/work-orders
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Payment reconciliation failure",
+  "description": "Nightly reconciliation job failed after a downstream timeout from the settlement provider.",
+  "status": "PENDING",
+  "assignee": "freeman"
+}
+
+### Work Orders - Get All
+GET {{baseUrl}}/work-orders
+Accept: application/json
+
+### Work Orders - Get By Id
+GET {{baseUrl}}/work-orders/{{workOrderId}}
+Accept: application/json
+
+### Work Orders - Update
+PATCH {{baseUrl}}/work-orders/{{workOrderId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "status": "IN_PROGRESS",
+  "assignee": "ops-oncall"
+}
+
+### Work Orders - Delete
+DELETE {{baseUrl}}/work-orders/{{workOrderId}}
+Accept: application/json
+
+### Work Order Updates - Create
+POST {{baseUrl}}/work-orders/{{workOrderId}}/updates
+Content-Type: application/json
+Accept: application/json
+
+{
+  "note": "Initial incident review completed. Retrying provider handshake and monitoring for recovery."
+}
+
+### Work Order Updates - Get All
+GET {{baseUrl}}/work-orders/{{workOrderId}}/updates
+Accept: application/json
+
+### Work Order Updates - Get By Id
+GET {{baseUrl}}/work-orders/{{workOrderId}}/updates/{{workOrderUpdateId}}
+Accept: application/json
+
+### Work Order Updates - Update
+PATCH {{baseUrl}}/work-orders/{{workOrderId}}/updates/{{workOrderUpdateId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "note": "Provider handshake retry completed. Monitoring error rate before closing the incident."
+}
+
+### Work Order Updates - Delete
+DELETE {{baseUrl}}/work-orders/{{workOrderId}}/updates/{{workOrderUpdateId}}
+Accept: application/json

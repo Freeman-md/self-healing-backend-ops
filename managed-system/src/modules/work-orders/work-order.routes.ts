@@ -25,4 +25,7 @@ workOrderRoutes.get("/:id", (request, response) =>
 workOrderRoutes.patch("/:id", (request, response) =>
   workOrderController.updateWorkOrder(request, response),
 );
+workOrderRoutes.delete("/:id", (request, response) =>
+  workOrderController.deleteWorkOrder(request, response),
+);
 workOrderRoutes.use("/:workOrderId/updates", workOrderUpdateRoutes);

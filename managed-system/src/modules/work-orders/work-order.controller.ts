@@ -40,4 +40,12 @@ export class WorkOrderController {
 
     return response.status(200).json({ data: workOrder });
   }
+
+  deleteWorkOrder = async (request: Request, response: Response) => {
+    await this.workOrderService.deleteWorkOrder(
+      readRequiredPathParam(request.params.id, "id"),
+    );
+
+    return response.status(204).send();
+  }
 }
