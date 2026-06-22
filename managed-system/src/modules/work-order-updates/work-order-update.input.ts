@@ -1,12 +1,13 @@
 import { parseWithSchema } from "@/lib/zod/helpers";
-import {
-  createWorkOrderUpdateSchema,
-  updateWorkOrderUpdateSchema,
-} from "@/lib/zod/schemas/work-order-update";
+
 import type {
   CreateWorkOrderUpdateInput,
   UpdateWorkOrderUpdateInput,
-} from "@/types/work-order";
+} from "./work-order-update.model";
+import {
+  createWorkOrderUpdateSchema,
+  updateWorkOrderUpdateSchema,
+} from "./work-order-update.validation";
 
 export function parseCreateWorkOrderUpdateInput(
   payload: unknown,

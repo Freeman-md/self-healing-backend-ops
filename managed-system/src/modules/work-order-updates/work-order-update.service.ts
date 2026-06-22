@@ -1,16 +1,15 @@
-import type { IWorkOrderUpdateRepository } from "@/interfaces/work-order-update-repository-interface";
 import { HttpError } from "@/shared/http-error";
+
 import type {
   CreateWorkOrderUpdateInput,
   UpdateWorkOrderUpdateInput,
-} from "@/types/work-order";
-
-import { workOrderUpdateRepository } from "@/repositories/work-order-update-repository";
+} from "./work-order-update.model";
+import { IWorkOrderUpdateRepository } from "./work-order-update.repository.interface";
 
 export class WorkOrderUpdateService {
   constructor(private readonly repository: IWorkOrderUpdateRepository) {}
 
-  async createWorkOrderUpdate(input: CreateWorkOrderUpdateInput) {
+  createWorkOrderUpdate = async (input: CreateWorkOrderUpdateInput) => {
     try {
       return await this.repository.create(input);
     } catch (error) {
@@ -20,9 +19,9 @@ export class WorkOrderUpdateService {
 
       throw error;
     }
-  }
+  };
 
-  async getWorkOrderUpdate(updateId: string) {
+  getWorkOrderUpdate = async (updateId: string) => {
     const update = await this.repository.findById(updateId);
 
     if (!update) {
@@ -30,16 +29,16 @@ export class WorkOrderUpdateService {
     }
 
     return update;
-  }
+  };
 
-  async listWorkOrderUpdates(workOrderId: string) {
+  listWorkOrderUpdates = async (workOrderId: string) => {
     return this.repository.findByWorkOrderId(workOrderId);
-  }
+  };
 
-  async updateWorkOrderUpdate(
+  updateWorkOrderUpdate = async (
     updateId: string,
     input: UpdateWorkOrderUpdateInput,
-  ) {
+  ) => {
     const update = await this.repository.update(updateId, input);
 
     if (!update) {
@@ -47,9 +46,9 @@ export class WorkOrderUpdateService {
     }
 
     return update;
-  }
+  };
 
-  async deleteWorkOrderUpdate(updateId: string) {
+  deleteWorkOrderUpdate = async (updateId: string) => {
     const deleted = await this.repository.delete(updateId);
 
     if (!deleted) {
@@ -57,9 +56,5 @@ export class WorkOrderUpdateService {
     }
 
     return deleted;
-  }
+  };
 }
-
-export const workOrderUpdateService = new WorkOrderUpdateService(
-  workOrderUpdateRepository,
-);

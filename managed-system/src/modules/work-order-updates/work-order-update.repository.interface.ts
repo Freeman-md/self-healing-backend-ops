@@ -1,9 +1,11 @@
-import type { IRepository } from "@/shared/contracts/repository.interface";
+import { WorkOrderUpdate } from "@prisma/client";
+
+import { IRepository } from "@/shared/contracts/repository.interface";
+
 import type {
   CreateWorkOrderUpdateInput,
   UpdateWorkOrderUpdateInput,
-  WorkOrderUpdate,
-} from "@/types/work-order";
+} from "./work-order-update.model";
 
 export interface IWorkOrderUpdateRepository
   extends IRepository<
