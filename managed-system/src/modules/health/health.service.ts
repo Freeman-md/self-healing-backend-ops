@@ -2,7 +2,8 @@ import {
   checkPostgresConnection,
   postgresPool,
 } from "@/infrastructure/postgres/index";
-import type { HealthCheckResult, HealthResponse } from "@/types/health";
+
+import type { HealthCheckResult, HealthResponse } from "./health.model";
 
 function createHealthyCheck(message: string): HealthCheckResult {
   return {
@@ -19,7 +20,7 @@ function createUnhealthyCheck(message: string): HealthCheckResult {
 }
 
 export class HealthService {
-  async getHealth(): Promise<HealthResponse> {
+  getHealth = async (): Promise<HealthResponse> => {
     const appCheck = createHealthyCheck("app is running");
 
     try {
@@ -41,7 +42,5 @@ export class HealthService {
         },
       };
     }
-  }
+  };
 }
-
-export const healthService = new HealthService();

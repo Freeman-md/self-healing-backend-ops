@@ -1,8 +1,8 @@
 import express from "express";
 
 import { errorHandler } from "@/middlewares/error-handler";
+import { healthRoutes } from "@/modules/health/health.routes";
 import { notFoundHandler } from "@/middlewares/not-found-handler";
-import { healthRoutes } from "@/routes/health-routes";
 import { workOrderRoutes } from "@/modules/work-orders/work-order.routes";
 
 export function createApp() {
