@@ -8,23 +8,29 @@
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json --resolve-full-paths --resolve-full-extension .js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/infrastructure/database/migrate.ts",
+    "prisma:studio": "prisma studio",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:generate": "prisma generate",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
     "drizzle-kit": "^0.31.10",
+    "prisma": "^7.8.0",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.20.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "@types/express": "^5.0.6",
     "@types/pg": "^8.20.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
-    "pg": "^8.21.0",
+    "pg": "^8.22.0",
     "zod": "^4.4.3"
   }
 }

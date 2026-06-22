@@ -14,7 +14,7 @@ import type {
   WorkOrderUpdate,
 } from "@/types/work-order";
 
-class PostgresWorkOrderUpdateRepository
+class WorkOrderUpdateRepository
   implements IWorkOrderUpdateRepository
 {
   async create(input: CreateWorkOrderUpdateInput): Promise<WorkOrderUpdate> {
@@ -116,4 +116,4 @@ class PostgresWorkOrderUpdateRepository
   }
 }
 
-export const workOrderUpdateRepository = new PostgresWorkOrderUpdateRepository();
+export const workOrderUpdateRepository = new WorkOrderUpdateRepository();

@@ -1,0 +1,44 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum WorkOrderStatus {
+  PENDING
+  IN_PROGRESS
+  BLOCKED
+  RESOLVED
+  CLOSED
+}
+
+model WorkOrder {
+  id          String          @id @default(uuid())
+  title       String
+  description String
+  status      WorkOrderStatus @default(PENDING)
+  assignee    String?
+
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  updates     WorkOrderUpdate[]
+
+  @@map("work_orders")
+}
+
+model WorkOrderUpdate {
+  id          String    @id @default(uuid())
+
+  workOrderId String    @map("work_order_id")
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  note        String
+
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([workOrderId], map: "work_order_updates_work_order_id_idx")
+  @@map("work_order_updates")
+}

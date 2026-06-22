@@ -1,4 +1,4 @@
-import type { IRepository } from "@/interfaces/repository";
+import type { IRepository } from "@/shared/contracts/repository.interface";
 import type {
   CreateWorkOrderUpdateInput,
   UpdateWorkOrderUpdateInput,

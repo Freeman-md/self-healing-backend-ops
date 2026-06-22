@@ -3,35 +3,37 @@ import type { Request, Response } from "express";
 import {
   parseCreateWorkOrderInput,
   parseUpdateWorkOrderInput,
-} from "@/dtos/work-order";
-import { workOrderService } from "@/services/work-order-service";
+} from "@/modules/work-orders/work-order.input";
 import { readRequiredPathParam } from "@/shared/request-params";
+import { WorkOrderService } from "./work-order.service";
 
 export class WorkOrderController {
-  async createWorkOrder(request: Request, response: Response) {
+  constructor(private readonly workOrderService: WorkOrderService) { }
+
+  createWorkOrder = async (request: Request, response: Response) => {
     const input = parseCreateWorkOrderInput(request.body);
-    const workOrder = await workOrderService.createWorkOrder(input);
+    const workOrder = await this.workOrderService.createWorkOrder(input);
 
     return response.status(201).json({ data: workOrder });
   }
 
-  async listWorkOrders(_request: Request, response: Response) {
-    const workOrders = await workOrderService.listWorkOrders();
+  listWorkOrders = async (_request: Request, response: Response) => {
+    const workOrders = await this.workOrderService.listWorkOrders();
 
     return response.status(200).json({ data: workOrders });
   }
 
-  async getWorkOrder(request: Request, response: Response) {
-    const workOrder = await workOrderService.getWorkOrder(
+  getWorkOrder = async (request: Request, response: Response) => {
+    const workOrder = await this.workOrderService.getWorkOrder(
       readRequiredPathParam(request.params.id, "id"),
     );
 
     return response.status(200).json({ data: workOrder });
   }
 
-  async updateWorkOrder(request: Request, response: Response) {
+  updateWorkOrder = async (request: Request, response: Response) => {
     const input = parseUpdateWorkOrderInput(request.body);
-    const workOrder = await workOrderService.updateWorkOrder(
+    const workOrder = await this.workOrderService.updateWorkOrder(
       readRequiredPathParam(request.params.id, "id"),
       input,
     );
@@ -39,5 +41,3 @@ export class WorkOrderController {
     return response.status(200).json({ data: workOrder });
   }
 }
-
-export const workOrderController = new WorkOrderController();
