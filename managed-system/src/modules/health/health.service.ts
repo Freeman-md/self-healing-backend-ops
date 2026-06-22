@@ -1,7 +1,4 @@
-import {
-  checkPostgresConnection,
-  postgresPool,
-} from "@/infrastructure/postgres/index";
+import { prisma } from "@/shared/db/prisma";
 
 import type { HealthCheckResult, HealthResponse } from "./health.model";
 
@@ -24,7 +21,7 @@ export class HealthService {
     const appCheck = createHealthyCheck("app is running");
 
     try {
-      await checkPostgresConnection(postgresPool);
+      await prisma.$queryRaw`SELECT 1`;
 
       return {
         status: "healthy",
