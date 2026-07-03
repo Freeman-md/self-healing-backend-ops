@@ -6,6 +6,7 @@ import type {
 } from "./work-order-update.model";
 import { IWorkOrderUpdateRepository } from "./work-order-update.repository.interface";
 import { appLogger } from "@/observability/logging/app-logger";
+import { workOrderUpdatesCreatedTotal } from "@/observability/metrics/metrics";
 
 export class WorkOrderUpdateService {
   constructor(private readonly repository: IWorkOrderUpdateRepository) {}
@@ -13,6 +14,8 @@ export class WorkOrderUpdateService {
   createWorkOrderUpdate = async (input: CreateWorkOrderUpdateInput) => {
     try {
       const update = await this.repository.create(input);
+
+      workOrderUpdatesCreatedTotal.inc();
 
       appLogger.info("work_order_update_created", {
         updateId: update.id,

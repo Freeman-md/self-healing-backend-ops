@@ -2,12 +2,15 @@ import { HttpError } from "@/shared/http-error";
 import { CreateWorkOrderInput, UpdateWorkOrderInput } from "./work-order.model";
 import { IWorkOrderRepository } from "./work-order.repository.interface";
 import { appLogger } from "@/observability/logging/app-logger";
+import { workOrdersCreatedTotal } from "@/observability/metrics/metrics";
 
 export class WorkOrderService {
   constructor(private readonly repository: IWorkOrderRepository) {}
 
   createWorkOrder = async(input: CreateWorkOrderInput) => {
     const workOrder = await this.repository.create(input);
+
+    workOrdersCreatedTotal.inc();
 
     appLogger.info("work_order_created", {
       workOrderId: workOrder.id,
