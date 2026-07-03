@@ -1,6 +1,7 @@
 import { prisma } from "@/shared/db/prisma";
 
 import type { HealthCheckResult, HealthResponse } from "./health.model";
+import { appLogger } from "@/observability/logging/app-logger";
 
 function createHealthyCheck(message: string): HealthCheckResult {
   return {
@@ -30,7 +31,11 @@ export class HealthService {
           database: createHealthyCheck("database connectivity check passed"),
         },
       };
-    } catch {
+    } catch (error) {
+      appLogger.error("health_check_failed", error, {
+        databaseStatus: "unhealthy",
+      });
+
       return {
         status: "unhealthy",
         checks: {

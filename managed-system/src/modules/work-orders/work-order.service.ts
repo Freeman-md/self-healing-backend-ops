@@ -1,16 +1,25 @@
 import { HttpError } from "@/shared/http-error";
 import { CreateWorkOrderInput, UpdateWorkOrderInput } from "./work-order.model";
 import { IWorkOrderRepository } from "./work-order.repository.interface";
+import { appLogger } from "@/observability/logging/app-logger";
 
 export class WorkOrderService {
   constructor(private readonly repository: IWorkOrderRepository) {}
 
   createWorkOrder = async(input: CreateWorkOrderInput) => {
-    return this.repository.create(input);
+    const workOrder = await this.repository.create(input);
+
+    appLogger.info("work_order_created", {
+      workOrderId: workOrder.id,
+      status: workOrder.status,
+      assignee: workOrder.assignee,
+    });
+
+    return workOrder
   }
 
   listWorkOrders = async() => {
-    return this.repository.findAll();
+    return await this.repository.findAll();
   }
 
   getWorkOrder = async(id: string) => {
@@ -30,6 +39,13 @@ export class WorkOrderService {
       throw new HttpError(404, "work order not found");
     }
 
+    appLogger.info("work_order_updated", {
+      workOrderId: workOrder.id,
+      status: workOrder.status,
+      assignee: workOrder.assignee,
+      updatedFields: Object.keys(input),
+    });
+
     return workOrder;
   }
 
@@ -39,6 +55,10 @@ export class WorkOrderService {
     if (!deleted) {
       throw new HttpError(404, "work order not found");
     }
+
+    appLogger.info("work_order_deleted", {
+      workOrderId: id,
+    });
 
     return deleted;
   }

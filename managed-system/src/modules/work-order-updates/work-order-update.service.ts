@@ -5,13 +5,21 @@ import type {
   UpdateWorkOrderUpdateInput,
 } from "./work-order-update.model";
 import { IWorkOrderUpdateRepository } from "./work-order-update.repository.interface";
+import { appLogger } from "@/observability/logging/app-logger";
 
 export class WorkOrderUpdateService {
   constructor(private readonly repository: IWorkOrderUpdateRepository) {}
 
   createWorkOrderUpdate = async (input: CreateWorkOrderUpdateInput) => {
     try {
-      return await this.repository.create(input);
+      const update = await this.repository.create(input);
+
+      appLogger.info("work_order_update_created", {
+        updateId: update.id,
+        workOrderId: update.workOrderId,
+      });
+
+      return update
     } catch (error) {
       if (error instanceof Error && error.message === "work order not found") {
         throw new HttpError(404, "work order not found");
@@ -45,6 +53,11 @@ export class WorkOrderUpdateService {
       throw new HttpError(404, "work order update not found");
     }
 
+    appLogger.info("work_order_update_updated", {
+      updateId: update.id,
+      workOrderId: update.workOrderId,
+    });
+
     return update;
   };
 
@@ -54,6 +67,11 @@ export class WorkOrderUpdateService {
     if (!deleted) {
       throw new HttpError(404, "work order update not found");
     }
+
+     appLogger.info("work_order_update_deleted", {
+      updateId,
+    });
+
 
     return deleted;
   };
