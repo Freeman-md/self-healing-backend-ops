@@ -1,16 +1,39 @@
 services:
   postgres:
-    image: postgres:16
-    container_name: self-healing-backend-ops-postgres
-    restart: always
+    image: postgres:16-alpine
+    container_name: managed-system-postgres
+    restart: unless-stopped
     environment:
+      POSTGRES_DB: managed_system
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: self-healing-backend-ops_db
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - managed_system_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d managed_system"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  managed-system:
+    build:
+      context: ./managed-system
+      dockerfile: ../Dockerfile.managed-system
+    container_name: managed-system-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      LOG_LEVEL: info
+      METRICS_ENABLED: "true"
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/managed_system
+    ports:
+      - "3004:3000"
 
 volumes:
-  postgres_data:
+  managed_system_postgres_data:
