@@ -51,6 +51,8 @@ services:
     environment:
       NODE_ENV: production
       MANAGED_SYSTEM_BASE_URL: http://managed-system:3000
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
 
 volumes:
   managed_system_postgres_data:

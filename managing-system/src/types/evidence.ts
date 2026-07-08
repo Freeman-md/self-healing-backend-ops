@@ -1,42 +1,25 @@
-export type RawEvidenceSource =
-  | "health"
-  | "metrics"
-  | "logs"
-  | "business-endpoint"
-  | "container";
+import { z } from "zod/v4";
 
-export type RawEvidenceStatus = "collected" | "failed";
+import {
+  evidenceSignalSchema,
+  evidenceSignalStatusSchema,
+  evidenceSnapshotSchema,
+  evidenceSnapshotStateSchema,
+  rawEvidenceSchema,
+  rawEvidenceSourceSchema,
+  rawEvidenceStatusSchema,
+} from "@/schemas/evidence.schema";
 
-export type EvidenceSignalStatus = "normal" | "warning" | "critical" | "unknown";
+export type RawEvidenceSource = z.infer<typeof rawEvidenceSourceSchema>;
 
-export type EvidenceSnapshotState = "healthy" | "degraded" | "unhealthy" | "unknown";
+export type RawEvidenceStatus = z.infer<typeof rawEvidenceStatusSchema>;
 
-export type RawEvidence = {
-  id: string;
-  source: RawEvidenceSource;
-  target: string;
-  collectedAt: string;
-  status: RawEvidenceStatus;
-  rawText?: string;
-  error?: string;
-};
+export type EvidenceSignalStatus = z.infer<typeof evidenceSignalStatusSchema>;
 
-export type EvidenceSignal = {
-  source: RawEvidenceSource;
-  name: string;
-  status: EvidenceSignalStatus;
-  value?: string | number | boolean;
-  description: string;
-};
+export type EvidenceSnapshotState = z.infer<typeof evidenceSnapshotStateSchema>;
 
-export type EvidenceSnapshot = {
-  id: string;
-  rawEvidenceIds: string[];
-  createdAt: string;
-  targetSystem: "managed-system";
-  overallState: EvidenceSnapshotState;
-  summary: string;
-  signals: EvidenceSignal[];
-  suspectedIncidentTypes: string[];
-  contradictions: string[];
-};
+export type RawEvidence = z.infer<typeof rawEvidenceSchema>;
+
+export type EvidenceSignal = z.infer<typeof evidenceSignalSchema>;
+
+export type EvidenceSnapshot = z.infer<typeof evidenceSnapshotSchema>;

@@ -8,6 +8,16 @@ export function readString(value: string | undefined, fallback: string): string 
   return fallback;
 }
 
+export function readOptionalString(value: string | undefined): string | undefined {
+  const resolvedValue = value?.trim();
+
+  if (resolvedValue) {
+    return resolvedValue;
+  }
+
+  return undefined;
+}
+
 export function readNumber(value: string | undefined, fallback: number): number {
   if (!value?.trim()) {
     return fallback;

@@ -1,5 +1,6 @@
 import { config } from "@/config";
-import { RawEvidenceCollector } from "@/modules/evidence";
+import { EvidenceNormalizer, RawEvidenceCollector } from "@/modules/evidence";
+import { canUseOpenAI } from "@/services/openai";
 
 async function main() {
   console.log({
@@ -20,6 +21,23 @@ async function main() {
       status: item.status,
       error: item.error,
     })),
+  });
+
+  if (!canUseOpenAI()) {
+    console.log({
+      event: "evidence_normalization_skipped",
+      reason: "OPENAI_API_KEY is not configured",
+    });
+
+    return;
+  }
+
+  const normalizer = new EvidenceNormalizer();
+  const snapshot = await normalizer.normalize(evidence);
+
+  console.log({
+    event: "evidence_snapshot_created",
+    snapshot,
   });
 }
 

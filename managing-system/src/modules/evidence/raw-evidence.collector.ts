@@ -54,6 +54,7 @@ export class RawEvidenceCollector {
         collectedAt,
         status: "collected",
         rawText,
+        error: null,
       };
     } catch (error) {
       return {
@@ -62,6 +63,7 @@ export class RawEvidenceCollector {
         target,
         collectedAt,
         status: "failed",
+        rawText: null,
         error: error instanceof Error ? error.message : "unknown collection error",
       };
     }
