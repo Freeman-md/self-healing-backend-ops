@@ -1,5 +1,5 @@
 import { config } from "@/config";
-import { EvidenceNormalizer, RawEvidenceCollector } from "@/modules/evidence";
+import { EvidenceNormalizer, EvidenceStore, RawEvidenceCollector } from "@/modules/evidence";
 import { canUseOpenAI } from "@/services/openai";
 
 async function main() {
@@ -34,10 +34,19 @@ async function main() {
 
   const normalizer = new EvidenceNormalizer();
   const snapshot = await normalizer.normalize(evidence);
+  const evidenceStore = new EvidenceStore();
+  const savedSnapshot = evidenceStore.saveSnapshot(snapshot);
+  evidenceStore.close();
 
   console.log({
     event: "evidence_snapshot_created",
-    snapshot,
+    snapshot: savedSnapshot,
+  });
+
+  console.log({
+    event: "evidence_snapshot_persisted",
+    snapshotId: savedSnapshot.id,
+    databasePath: config.evidenceStore.databasePath,
   });
 }
 

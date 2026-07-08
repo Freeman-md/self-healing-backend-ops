@@ -12,6 +12,9 @@ export type AppConfig = {
     apiKey?: string;
     model: string;
   };
+  evidenceStore: {
+    databasePath: string;
+  };
 };
 
 export const config: AppConfig = {
@@ -23,5 +26,11 @@ export const config: AppConfig = {
   openai: {
     apiKey: readOptionalString(process.env.OPENAI_API_KEY),
     model: readString(process.env.OPENAI_MODEL, "gpt-4.1-mini"),
+  },
+  evidenceStore: {
+    databasePath: readString(
+      process.env.EVIDENCE_STORE_DATABASE_PATH,
+      "data/managing-system.sqlite",
+    ),
   },
 };
