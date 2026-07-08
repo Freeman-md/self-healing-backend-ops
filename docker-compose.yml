@@ -34,6 +34,23 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/managed_system
     ports:
       - "3004:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  managing-system:
+    build:
+      context: ./managing-system
+      dockerfile: ../Dockerfile.managing-system
+    container_name: managing-system-app
+    depends_on:
+      managed-system:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      MANAGED_SYSTEM_BASE_URL: http://managed-system:3000
 
 volumes:
   managed_system_postgres_data:
