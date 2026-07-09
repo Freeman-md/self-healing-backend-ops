@@ -1,5 +1,6 @@
 import { config } from "@/config";
 import { EvidenceNormalizer, EvidenceStore, RawEvidenceCollector } from "@/modules/evidence";
+import { BaselineRecoveryEngine } from "@/modules/recovery";
 import { canUseOpenAI } from "@/services/openai";
 
 async function main() {
@@ -47,6 +48,14 @@ async function main() {
     event: "evidence_snapshot_persisted",
     snapshotId: savedSnapshot.id,
     databasePath: config.evidenceStore.databasePath,
+  });
+
+  const baselineRecoveryEngine = new BaselineRecoveryEngine();
+  const baselineDecision = baselineRecoveryEngine.decide(savedSnapshot);
+
+  console.log({
+    event: "baseline_recovery_decided",
+    decision: baselineDecision,
   });
 }
 
