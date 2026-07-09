@@ -1,10 +1,9 @@
 import { config } from "@/config";
-import { ActionRegistry } from "@/modules/actions";
-import { SelfHealingAgent } from "@/modules/agent";
-import { EvidenceNormalizer, EvidenceStore, RawEvidenceCollector } from "@/modules/evidence";
-import { BaselineRecoveryEngine } from "@/modules/recovery";
-import { SafetyGate } from "@/modules/safety";
+import { EvidenceNormalizer, EvidenceRepository, RawEvidenceCollector } from "@/modules/evidence";
+import { ResultsRepository } from "@/modules/results";
+import { TrialRunner } from "@/modules/trials";
 import { canUseOpenAI } from "@/services/openai";
+import { DatabaseService } from "@/shared/database/database.service";
 
 async function main() {
   console.log({
@@ -36,77 +35,59 @@ async function main() {
     return;
   }
 
-  const normalizer = new EvidenceNormalizer();
-  const snapshot = await normalizer.normalize(evidence);
-  const evidenceStore = new EvidenceStore();
-  const savedSnapshot = evidenceStore.saveSnapshot(snapshot);
-  evidenceStore.close();
+  const databaseService = new DatabaseService();
 
-  console.log({
-    event: "evidence_snapshot_created",
-    snapshot: savedSnapshot,
-  });
+  try {
+    const normalizer = new EvidenceNormalizer();
+    const snapshot = await normalizer.normalize(evidence);
+    const evidenceRepository = new EvidenceRepository(databaseService);
+    const savedSnapshot = evidenceRepository.saveSnapshot(snapshot);
 
-  console.log({
-    event: "evidence_snapshot_persisted",
-    snapshotId: savedSnapshot.id,
-    databasePath: config.evidenceStore.databasePath,
-  });
+    console.log({
+      event: "evidence_snapshot_created",
+      snapshot: savedSnapshot,
+    });
 
-  const baselineRecoveryEngine = new BaselineRecoveryEngine();
-  const baselineDecision = baselineRecoveryEngine.decide(savedSnapshot);
+    console.log({
+      event: "evidence_snapshot_persisted",
+      snapshotId: savedSnapshot.id,
+      path: config.database.path,
+    });
 
-  console.log({
-    event: "baseline_recovery_decided",
-    decision: baselineDecision,
-  });
+    const trialRunner = new TrialRunner();
+    const resultsRepository = new ResultsRepository(databaseService);
+    const scenarioId = "increment-1-core-scenario";
 
-  const actionRegistry = new ActionRegistry();
-  const safetyGate = new SafetyGate(actionRegistry);
+    const baselineRun = await trialRunner.runBaselineTrial({
+      scenarioId,
+      snapshot: savedSnapshot,
+    });
+    resultsRepository.saveTrialRecord(baselineRun.trialRecord);
+    resultsRepository.saveEvaluationSummary(baselineRun.evaluationSummary);
 
-  if (baselineDecision.status === "action_selected" && baselineDecision.selectedActionId) {
-    const selectedAction = actionRegistry.findActionById(baselineDecision.selectedActionId);
+    console.log({
+      event: "baseline_trial_recorded",
+      decision: baselineRun.baselineDecision,
+      trialRecord: baselineRun.trialRecord,
+      evaluationSummary: baselineRun.evaluationSummary,
+    });
 
-    if (!selectedAction) {
-      console.log({
-        event: "action_registry_miss",
-        actionId: baselineDecision.selectedActionId,
-      });
-    } else {
-      console.log({
-        event: "action_registry_resolved",
-        actionId: selectedAction.id,
-        handlerKey: selectedAction.handlerKey,
-        safetyRuleIds: selectedAction.safetyRuleIds,
-      });
+    const agentRun = await trialRunner.runAgentTrial({
+      scenarioId,
+      snapshot: savedSnapshot,
+    });
+    resultsRepository.saveTrialRecord(agentRun.trialRecord);
+    resultsRepository.saveEvaluationSummary(agentRun.evaluationSummary);
 
-      const safetyDecision = safetyGate.evaluate(selectedAction, {
-        evidenceSnapshot: savedSnapshot,
-        actionAttemptCounts: {
-          [selectedAction.id]: 0,
-        },
-        completedActionIds: [],
-        manualApprovalGranted: false,
-      });
-
-      console.log({
-        event: "safety_gate_decided",
-        decision: safetyDecision,
-      });
-    }
+    console.log({
+      event: "agent_trial_recorded",
+      decision: agentRun.agentDecision,
+      trialRecord: agentRun.trialRecord,
+      evaluationSummary: agentRun.evaluationSummary,
+    });
+  } finally {
+    databaseService.close();
   }
-
-  const selfHealingAgent = new SelfHealingAgent();
-  const agentDecision = await selfHealingAgent.run(savedSnapshot, {
-    actionAttemptCounts: {},
-    completedActionIds: [],
-    manualApprovalGranted: false,
-  });
-
-  console.log({
-    event: "self_healing_agent_decided",
-    decision: agentDecision,
-  });
 }
 
 main().catch((error: unknown) => {

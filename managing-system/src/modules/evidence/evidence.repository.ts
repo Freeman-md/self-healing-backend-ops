@@ -1,24 +1,18 @@
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
 
-import { config } from "@/config";
 import { evidenceSnapshotSchema } from "@/schemas";
+import { DatabaseService } from "@/shared/database/database.service";
 import type { EvidenceSnapshot } from "@/types";
 
 type EvidenceSnapshotRow = {
   snapshot_json: string;
 };
 
-export class EvidenceStore {
+export class EvidenceRepository {
   private readonly database: DatabaseSync;
 
-  constructor(databasePath = config.evidenceStore.databasePath) {
-    mkdirSync(dirname(databasePath), {
-      recursive: true,
-    });
-
-    this.database = new DatabaseSync(databasePath);
+  constructor(private readonly databaseService = new DatabaseService()) {
+    this.database = databaseService.getConnection();
     this.initialize();
   }
 
@@ -59,10 +53,6 @@ export class EvidenceStore {
     }
 
     return evidenceSnapshotSchema.parse(JSON.parse(row.snapshot_json));
-  }
-
-  close(): void {
-    this.database.close();
   }
 
   private initialize(): void {
