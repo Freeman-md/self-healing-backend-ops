@@ -1,5 +1,6 @@
 import { config } from "@/config";
 import { ActionRegistry } from "@/modules/actions";
+import { SelfHealingAgent } from "@/modules/agent";
 import { EvidenceNormalizer, EvidenceStore, RawEvidenceCollector } from "@/modules/evidence";
 import { BaselineRecoveryEngine } from "@/modules/recovery";
 import { SafetyGate } from "@/modules/safety";
@@ -60,42 +61,51 @@ async function main() {
     decision: baselineDecision,
   });
 
-  if (baselineDecision.status !== "action_selected" || !baselineDecision.selectedActionId) {
-    return;
-  }
-
   const actionRegistry = new ActionRegistry();
-  const selectedAction = actionRegistry.findActionById(baselineDecision.selectedActionId);
+  const safetyGate = new SafetyGate(actionRegistry);
 
-  if (!selectedAction) {
-    console.log({
-      event: "action_registry_miss",
-      actionId: baselineDecision.selectedActionId,
-    });
+  if (baselineDecision.status === "action_selected" && baselineDecision.selectedActionId) {
+    const selectedAction = actionRegistry.findActionById(baselineDecision.selectedActionId);
 
-    return;
+    if (!selectedAction) {
+      console.log({
+        event: "action_registry_miss",
+        actionId: baselineDecision.selectedActionId,
+      });
+    } else {
+      console.log({
+        event: "action_registry_resolved",
+        actionId: selectedAction.id,
+        handlerKey: selectedAction.handlerKey,
+        safetyRuleIds: selectedAction.safetyRuleIds,
+      });
+
+      const safetyDecision = safetyGate.evaluate(selectedAction, {
+        evidenceSnapshot: savedSnapshot,
+        actionAttemptCounts: {
+          [selectedAction.id]: 0,
+        },
+        completedActionIds: [],
+        manualApprovalGranted: false,
+      });
+
+      console.log({
+        event: "safety_gate_decided",
+        decision: safetyDecision,
+      });
+    }
   }
 
-  console.log({
-    event: "action_registry_resolved",
-    actionId: selectedAction.id,
-    handlerKey: selectedAction.handlerKey,
-    safetyRuleIds: selectedAction.safetyRuleIds,
-  });
-
-  const safetyGate = new SafetyGate(actionRegistry);
-  const safetyDecision = safetyGate.evaluate(selectedAction, {
-    evidenceSnapshot: savedSnapshot,
-    actionAttemptCounts: {
-      [selectedAction.id]: 0,
-    },
+  const selfHealingAgent = new SelfHealingAgent();
+  const agentDecision = await selfHealingAgent.run(savedSnapshot, {
+    actionAttemptCounts: {},
     completedActionIds: [],
     manualApprovalGranted: false,
   });
 
   console.log({
-    event: "safety_gate_decided",
-    decision: safetyDecision,
+    event: "self_healing_agent_decided",
+    decision: agentDecision,
   });
 }
 

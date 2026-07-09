@@ -1,4 +1,13 @@
-export type IncidentSeverity = "low" | "medium" | "high" | "critical";
+import { z } from "zod/v4";
+
+import {
+  diagnosisResultSchema,
+  incidentSeveritySchema,
+  recoveryPlanSchema,
+} from "@/schemas";
+import type { SafetyGateDecision } from "@/types/actions";
+
+export type IncidentSeverity = z.infer<typeof incidentSeveritySchema>;
 
 export type BaselineRecoveryDecisionStatus = "no_action" | "action_selected" | "escalate";
 
@@ -19,25 +28,21 @@ export type BaselineRecoveryDecision = {
   matchedRule?: BaselineRuleMatch;
 };
 
-export type DiagnosisResult = {
-  id: string;
-  evidenceSnapshotId: string;
-  createdAt: string;
-  suspectedIncidentType: string;
-  severity: IncidentSeverity;
-  confidence: number;
-  reasoningSummary: string;
-  supportingSignals: string[];
-  contradictions: string[];
-};
+export type DiagnosisResult = z.infer<typeof diagnosisResultSchema>;
 
-export type RecoveryPlan = {
-  id: string;
-  diagnosisResultId: string;
-  createdAt: string;
-  proposedActionIds: string[];
-  rationale: string;
-  expectedOutcome: string;
-  fallbackActionIds: string[];
+export type RecoveryPlan = z.infer<typeof recoveryPlanSchema>;
+
+export type SelfHealingAgentDecisionStatus = "planned" | "blocked" | "escalate" | "no_action";
+
+export type SelfHealingAgentDecision = {
+  mode: "agent";
+  snapshotId: string;
+  decidedAt: string;
+  status: SelfHealingAgentDecisionStatus;
+  reason: string;
+  diagnosisResult: DiagnosisResult;
+  recoveryPlan: RecoveryPlan;
+  selectedActionId?: string;
+  safetyGateDecision?: SafetyGateDecision;
   escalationReason?: string;
 };
