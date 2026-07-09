@@ -23,11 +23,20 @@ export type ActionExecutionStatus = "skipped" | "blocked" | "executed" | "failed
 
 export type SafetyCheckStatus = "passed" | "failed" | "not_checked";
 
+export type SafetyGateDecisionStatus = "allowed" | "blocked" | "escalate";
+
 export type SafetyRule = {
   id: string;
   description: string;
   checkType: SafetyCheckType;
   params: Record<string, unknown>;
+  onFail: SafetyRuleFailureAction;
+};
+
+export type SafetyRuleEvaluation = {
+  ruleId: string;
+  status: SafetyCheckStatus;
+  reason: string;
   onFail: SafetyRuleFailureAction;
 };
 
@@ -51,6 +60,17 @@ export type ActionDefinition = {
   riskLevel: RiskLevel;
   safetyRuleIds: string[];
   expectedOutcome: ExpectedOutcome;
+};
+
+export type SafetyGateDecision = {
+  actionDefinitionId: string;
+  checkedAt: string;
+  status: SafetyGateDecisionStatus;
+  passedRuleIds: string[];
+  failedRuleIds: string[];
+  reason: string;
+  evaluations: SafetyRuleEvaluation[];
+  escalationReason?: string;
 };
 
 export type ActionExecutionResult = {

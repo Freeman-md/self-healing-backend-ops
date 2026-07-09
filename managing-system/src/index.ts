@@ -1,6 +1,8 @@
 import { config } from "@/config";
+import { ActionRegistry } from "@/modules/actions";
 import { EvidenceNormalizer, EvidenceStore, RawEvidenceCollector } from "@/modules/evidence";
 import { BaselineRecoveryEngine } from "@/modules/recovery";
+import { SafetyGate } from "@/modules/safety";
 import { canUseOpenAI } from "@/services/openai";
 
 async function main() {
@@ -56,6 +58,44 @@ async function main() {
   console.log({
     event: "baseline_recovery_decided",
     decision: baselineDecision,
+  });
+
+  if (baselineDecision.status !== "action_selected" || !baselineDecision.selectedActionId) {
+    return;
+  }
+
+  const actionRegistry = new ActionRegistry();
+  const selectedAction = actionRegistry.findActionById(baselineDecision.selectedActionId);
+
+  if (!selectedAction) {
+    console.log({
+      event: "action_registry_miss",
+      actionId: baselineDecision.selectedActionId,
+    });
+
+    return;
+  }
+
+  console.log({
+    event: "action_registry_resolved",
+    actionId: selectedAction.id,
+    handlerKey: selectedAction.handlerKey,
+    safetyRuleIds: selectedAction.safetyRuleIds,
+  });
+
+  const safetyGate = new SafetyGate(actionRegistry);
+  const safetyDecision = safetyGate.evaluate(selectedAction, {
+    evidenceSnapshot: savedSnapshot,
+    actionAttemptCounts: {
+      [selectedAction.id]: 0,
+    },
+    completedActionIds: [],
+    manualApprovalGranted: false,
+  });
+
+  console.log({
+    event: "safety_gate_decided",
+    decision: safetyDecision,
   });
 }
 
