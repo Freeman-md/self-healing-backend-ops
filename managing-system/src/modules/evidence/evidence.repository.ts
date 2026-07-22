@@ -1,8 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
 
-import { evidenceSnapshotSchema } from "@/schemas";
-import { DatabaseService } from "@/shared/database/database.service";
-import type { EvidenceSnapshot } from "@/types";
+import { DatabaseService } from "@/infrastructure/database";
+
+import {
+  evidenceSnapshotSchema,
+  type EvidenceSnapshot,
+} from "./evidence.schema";
 
 type EvidenceSnapshotRow = {
   snapshot_json: string;

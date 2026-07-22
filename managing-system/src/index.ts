@@ -1,17 +1,24 @@
 import { config } from "@/config";
+import { DatabaseService } from "@/infrastructure/database";
+import { canUseOpenAI } from "@/infrastructure/openai";
 import {
+  ActionExecutionRepository,
   ActionExecutor,
   ActionOutcomeEvaluator,
   ActionRegistry,
 } from "@/modules/actions";
-import { SelfHealingAgent } from "@/modules/agent";
-import { EvidenceNormalizer, EvidenceRepository, RawEvidenceCollector } from "@/modules/evidence";
-import { BaselineRecoveryEngine } from "@/modules/recovery";
-import { ResultsRepository } from "@/modules/results";
+import {
+  EvidenceCollector,
+  EvidenceNormalizer,
+  EvidenceRepository,
+} from "@/modules/evidence";
+import { EvaluationRepository } from "@/modules/evaluation";
+import {
+  AgentRecoveryStrategy,
+  BaselineRecoveryStrategy,
+} from "@/modules/recovery";
 import { SafetyGate } from "@/modules/safety";
-import { TrialRunner } from "@/modules/trials";
-import { canUseOpenAI } from "@/services/openai";
-import { DatabaseService } from "@/shared/database/database.service";
+import { TrialRepository, TrialRunner } from "@/modules/trials";
 
 async function main() {
   console.log({
@@ -20,7 +27,7 @@ async function main() {
     managedSystemBaseUrl: config.managedSystem.baseUrl,
   });
 
-  const collector = new RawEvidenceCollector();
+  const collector = new EvidenceCollector();
   const evidence = await collector.collect();
 
   console.log({
@@ -62,7 +69,9 @@ async function main() {
       path: config.database.path,
     });
 
-    const resultsRepository = new ResultsRepository(databaseService);
+    const trialRepository = new TrialRepository(databaseService);
+    const evaluationRepository = new EvaluationRepository(databaseService);
+    const actionExecutionRepository = new ActionExecutionRepository(databaseService);
     const actionRegistry = new ActionRegistry();
     const safetyGate = new SafetyGate(actionRegistry);
     const actionExecutor = new ActionExecutor(
@@ -75,13 +84,13 @@ async function main() {
     );
     const trialRunner = new TrialRunner(
       {
-        baseline: new BaselineRecoveryEngine(),
-        agent: new SelfHealingAgent(),
+        baseline: new BaselineRecoveryStrategy(),
+        agent: new AgentRecoveryStrategy(),
       },
       actionRegistry,
       actionExecutor,
       evidenceRepository,
-      resultsRepository,
+      actionExecutionRepository,
     );
     const scenarioId = "increment-1-core-scenario";
 
@@ -90,8 +99,8 @@ async function main() {
       scenarioId,
       snapshot: savedSnapshot,
     });
-    resultsRepository.saveTrialRecord(baselineRun.trialRecord);
-    resultsRepository.saveEvaluationSummary(baselineRun.evaluationSummary);
+    trialRepository.save(baselineRun.trialRecord);
+    evaluationRepository.save(baselineRun.evaluationSummary);
 
     console.log({
       event: "baseline_trial_recorded",
@@ -105,8 +114,8 @@ async function main() {
       scenarioId,
       snapshot: savedSnapshot,
     });
-    resultsRepository.saveTrialRecord(agentRun.trialRecord);
-    resultsRepository.saveEvaluationSummary(agentRun.evaluationSummary);
+    trialRepository.save(agentRun.trialRecord);
+    evaluationRepository.save(agentRun.evaluationSummary);
 
     console.log({
       event: "agent_trial_recorded",

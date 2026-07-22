@@ -1,4 +1,6 @@
-import type { ActionDefinition, SafetyRule } from "@/types";
+import type { SafetyRule } from "@/modules/safety";
+
+import type { ActionDefinition } from "./action.types";
 
 const safetyRules: SafetyRule[] = [
   {
