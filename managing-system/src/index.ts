@@ -4,7 +4,9 @@ import {
   ActionOutcomeEvaluator,
   ActionRegistry,
 } from "@/modules/actions";
+import { SelfHealingAgent } from "@/modules/agent";
 import { EvidenceNormalizer, EvidenceRepository, RawEvidenceCollector } from "@/modules/evidence";
+import { BaselineRecoveryEngine } from "@/modules/recovery";
 import { ResultsRepository } from "@/modules/results";
 import { SafetyGate } from "@/modules/safety";
 import { TrialRunner } from "@/modules/trials";
@@ -72,8 +74,10 @@ async function main() {
       new ActionOutcomeEvaluator(),
     );
     const trialRunner = new TrialRunner(
-      undefined,
-      undefined,
+      {
+        baseline: new BaselineRecoveryEngine(),
+        agent: new SelfHealingAgent(),
+      },
       actionRegistry,
       actionExecutor,
       evidenceRepository,
@@ -81,7 +85,8 @@ async function main() {
     );
     const scenarioId = "increment-1-core-scenario";
 
-    const baselineRun = await trialRunner.runBaselineTrial({
+    const baselineRun = await trialRunner.runRecoveryTrial({
+      mode: "baseline",
       scenarioId,
       snapshot: savedSnapshot,
     });
@@ -90,12 +95,13 @@ async function main() {
 
     console.log({
       event: "baseline_trial_recorded",
-      decision: baselineRun.baselineDecision,
+      decision: baselineRun.recoveryDecision,
       trialRecord: baselineRun.trialRecord,
       evaluationSummary: baselineRun.evaluationSummary,
     });
 
-    const agentRun = await trialRunner.runAgentTrial({
+    const agentRun = await trialRunner.runRecoveryTrial({
+      mode: "agent",
       scenarioId,
       snapshot: savedSnapshot,
     });
@@ -104,7 +110,7 @@ async function main() {
 
     console.log({
       event: "agent_trial_recorded",
-      decision: agentRun.agentDecision,
+      decision: agentRun.recoveryDecision,
       trialRecord: agentRun.trialRecord,
       evaluationSummary: agentRun.evaluationSummary,
     });

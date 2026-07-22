@@ -1,77 +1,84 @@
 import { ActionRegistry } from "@/modules/actions";
-import type { EvidenceSnapshot, SelfHealingAgentDecision } from "@/types";
+import type {
+  EvidenceSnapshot,
+  RecoveryDecision,
+  RecoveryStrategy,
+  RecoveryStrategyContext,
+} from "@/types";
 
 import { DiagnosisAgent } from "./diagnosis-agent";
 import { RecoveryPlanner } from "./recovery-planner";
 
-type SelfHealingAgentContext = {
-  actionAttemptCounts?: Record<string, number>;
-  completedActionIds?: string[];
-  manualApprovalGranted?: boolean;
-};
+export class SelfHealingAgent implements RecoveryStrategy {
+  readonly mode = "agent" as const;
 
-export class SelfHealingAgent {
   constructor(
     private readonly diagnosisAgent = new DiagnosisAgent(),
     private readonly recoveryPlanner = new RecoveryPlanner(),
     private readonly actionRegistry = new ActionRegistry(),
   ) {}
 
-  async run(
+  async decide(
     evidenceSnapshot: EvidenceSnapshot,
-    context: SelfHealingAgentContext = {},
-  ): Promise<SelfHealingAgentDecision> {
+    _context: RecoveryStrategyContext,
+  ): Promise<RecoveryDecision> {
     const diagnosisResult = await this.diagnosisAgent.diagnose(evidenceSnapshot);
     const recoveryPlan = await this.recoveryPlanner.plan({
       evidenceSnapshot,
       diagnosisResult,
       availableActions: this.actionRegistry.listActions(),
     });
-    const selectedActionId = recoveryPlan.proposedActionIds[0] ?? recoveryPlan.fallbackActionIds[0];
+    const plannedActionIds = [
+      ...recoveryPlan.proposedActionIds,
+      ...recoveryPlan.fallbackActionIds,
+    ];
+    const unregisteredActionIds = plannedActionIds.filter(
+      (actionId) => !this.actionRegistry.findActionById(actionId),
+    );
     const decidedAt = new Date().toISOString();
 
-    if (!selectedActionId) {
-      const escalationReason = recoveryPlan.escalationReason ?? "No bounded action was proposed by the recovery planner.";
+    if (unregisteredActionIds.length > 0) {
+      const escalationReason =
+        "Recovery planner proposed unregistered actions: " +
+        unregisteredActionIds.join(", ");
 
       return {
-        mode: "agent",
+        mode: this.mode,
         snapshotId: evidenceSnapshot.id,
         decidedAt,
-        status: recoveryPlan.escalationReason ? "escalate" : "no_action",
-        reason: recoveryPlan.escalationReason
-          ? "Recovery planner could not identify a bounded action and requested escalation."
-          : "Recovery planner did not propose any bounded action.",
+        status: "escalate",
+        reason: "The recovery plan contains actions outside the bounded action registry.",
         diagnosisResult,
         recoveryPlan,
         escalationReason,
       };
     }
 
-    const selectedAction = this.actionRegistry.findActionById(selectedActionId);
+    if (plannedActionIds.length === 0) {
+      const escalationReason = recoveryPlan.escalationReason ?? undefined;
 
-    if (!selectedAction) {
       return {
-        mode: "agent",
+        mode: this.mode,
         snapshotId: evidenceSnapshot.id,
         decidedAt,
-        status: "escalate",
-        reason: "Recovery planner proposed an action that is not present in the action registry.",
+        status: escalationReason ? "escalate" : "no_action",
+        reason: escalationReason
+          ? "Recovery planner did not identify a bounded primary action and requested escalation."
+          : "Recovery planner determined that no recovery action is required.",
         diagnosisResult,
         recoveryPlan,
-        selectedActionId,
-        escalationReason: `Unregistered action proposed: ${selectedActionId}`,
+        escalationReason,
       };
     }
 
     return {
-      mode: "agent",
+      mode: this.mode,
       snapshotId: evidenceSnapshot.id,
       decidedAt,
-      status: "planned",
-      reason: "Self-healing agent produced a bounded action for execution-time safety evaluation.",
+      status: "action_selected",
+      reason: "Self-healing agent produced a bounded recovery plan for execution.",
       diagnosisResult,
       recoveryPlan,
-      selectedActionId: selectedAction.id,
     };
   }
 }

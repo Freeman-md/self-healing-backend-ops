@@ -1,9 +1,13 @@
-import type { EvidenceSnapshot } from "@/types";
+import type { EvidenceSnapshot, IncidentSeverity } from "@/types";
 
-type BaselineRule = {
+export type BaselineRule = {
   id: string;
   description: string;
-  actionId: string;
+  incidentType: string;
+  severity: IncidentSeverity;
+  proposedActionIds: string[];
+  fallbackActionIds: string[];
+  expectedOutcome: string;
   matches(snapshot: EvidenceSnapshot): { matchedSignalNames: string[]; reason: string } | null;
 };
 
@@ -18,7 +22,11 @@ function findCriticalSignal(snapshot: EvidenceSnapshot, name: string) {
 const databaseConnectivityRule: BaselineRule = {
   id: "database_connectivity_failure",
   description: "Select a fixed recovery action when database connectivity is identified as the main incident.",
-  actionId: "restart_postgres_container",
+  incidentType: "database_connectivity_failure",
+  severity: "high",
+  proposedActionIds: ["restart_postgres_container"],
+  fallbackActionIds: ["restart_managed_system_service"],
+  expectedOutcome: "Database readiness and managed-system health return to a healthy state.",
   matches(snapshot) {
     const matchedSignal = findCriticalSignal(snapshot, "database_connectivity");
 
@@ -36,7 +44,11 @@ const databaseConnectivityRule: BaselineRule = {
 const managedSystemRestartRule: BaselineRule = {
   id: "managed_system_unhealthy",
   description: "Select a fixed recovery action when the managed system is degraded or unhealthy without a more specific match.",
-  actionId: "restart_managed_system_service",
+  incidentType: "managed_system_unhealthy",
+  severity: "high",
+  proposedActionIds: ["restart_managed_system_service"],
+  fallbackActionIds: [],
+  expectedOutcome: "The managed system returns to a healthy state.",
   matches(snapshot) {
     if (snapshot.overallState === "healthy" || snapshot.overallState === "unknown") {
       return null;

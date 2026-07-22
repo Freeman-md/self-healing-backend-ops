@@ -1,16 +1,51 @@
-import type { BaselineRecoveryDecision, EvidenceSnapshot } from "@/types";
+import { randomUUID } from "node:crypto";
 
-import { baselineRules } from "./baseline-rules";
+import type {
+  DiagnosisResult,
+  EvidenceSnapshot,
+  RecoveryDecision,
+  RecoveryPlan,
+  RecoveryStrategy,
+  RecoveryStrategyContext,
+} from "@/types";
 
-export class BaselineRecoveryEngine {
-  decide(snapshot: EvidenceSnapshot): BaselineRecoveryDecision {
+import { baselineRules, type BaselineRule } from "./baseline-rules";
+
+export class BaselineRecoveryEngine implements RecoveryStrategy {
+  readonly mode = "baseline" as const;
+
+  async decide(
+    snapshot: EvidenceSnapshot,
+    _context: RecoveryStrategyContext,
+  ): Promise<RecoveryDecision> {
+    const decidedAt = new Date().toISOString();
+
     if (snapshot.overallState === "healthy") {
+      const diagnosisResult = this.buildDiagnosis(snapshot, {
+        incidentType: "no_incident",
+        severity: "low",
+        sourceIds: [],
+        supportingSignals: snapshot.signals
+          .filter((signal) => signal.status === "normal")
+          .map((signal) => signal.name),
+        reasoningSummary: "The evidence snapshot reports a healthy managed system.",
+      });
+      const recoveryPlan = this.buildRecoveryPlan(diagnosisResult, {
+        proposedActionIds: [],
+        fallbackActionIds: [],
+        rationale: "No recovery action is required for a healthy system.",
+        expectedOutcome: "The managed system remains healthy.",
+        escalationReason: null,
+      });
+
       return {
-        mode: "baseline",
+        mode: this.mode,
         snapshotId: snapshot.id,
-        decidedAt: new Date().toISOString(),
+        decidedAt,
         status: "no_action",
         reason: "Evidence snapshot is healthy, so the baseline path takes no recovery action.",
+        diagnosisResult,
+        recoveryPlan,
       };
     }
 
@@ -21,28 +56,115 @@ export class BaselineRecoveryEngine {
         continue;
       }
 
-      return {
-        mode: "baseline",
-        snapshotId: snapshot.id,
-        decidedAt: new Date().toISOString(),
-        status: "action_selected",
-        selectedActionId: rule.actionId,
-        reason: match.reason,
-        matchedRule: {
-          ruleId: rule.id,
-          matchedSignalNames: match.matchedSignalNames,
-          description: rule.description,
-        },
-      };
+      return this.buildMatchedDecision(snapshot, rule, match, decidedAt);
     }
 
+    const escalationReason = "No deterministic baseline action is available for the current evidence.";
+    const diagnosisResult = this.buildDiagnosis(snapshot, {
+      incidentType: snapshot.suspectedIncidentTypes[0] ?? "unclassified_incident",
+      severity: snapshot.overallState === "unhealthy" ? "high" : "medium",
+      sourceIds: [],
+      supportingSignals: snapshot.signals
+        .filter((signal) => signal.status !== "normal")
+        .map((signal) => signal.name),
+      reasoningSummary: "The evidence indicates an incident, but no configured baseline rule matched it.",
+    });
+    const recoveryPlan = this.buildRecoveryPlan(diagnosisResult, {
+      proposedActionIds: [],
+      fallbackActionIds: [],
+      rationale: "The deterministic baseline has no configured recovery plan for this evidence.",
+      expectedOutcome: "No autonomous baseline action is taken.",
+      escalationReason,
+    });
+
     return {
-      mode: "baseline",
+      mode: this.mode,
       snapshotId: snapshot.id,
-      decidedAt: new Date().toISOString(),
+      decidedAt,
       status: "escalate",
       reason: "No fixed baseline recovery rule matched the current evidence snapshot.",
-      escalationReason: "No deterministic baseline action is available for the current evidence.",
+      diagnosisResult,
+      recoveryPlan,
+      escalationReason,
+    };
+  }
+
+  private buildMatchedDecision(
+    snapshot: EvidenceSnapshot,
+    rule: BaselineRule,
+    match: { matchedSignalNames: string[]; reason: string },
+    decidedAt: string,
+  ): RecoveryDecision {
+    const diagnosisResult = this.buildDiagnosis(snapshot, {
+      incidentType: rule.incidentType,
+      severity: rule.severity,
+      sourceIds: [rule.id],
+      supportingSignals: match.matchedSignalNames,
+      reasoningSummary: match.reason,
+    });
+    const recoveryPlan = this.buildRecoveryPlan(diagnosisResult, {
+      proposedActionIds: rule.proposedActionIds,
+      fallbackActionIds: rule.fallbackActionIds,
+      rationale: rule.description,
+      expectedOutcome: rule.expectedOutcome,
+      escalationReason: null,
+    });
+
+    return {
+      mode: this.mode,
+      snapshotId: snapshot.id,
+      decidedAt,
+      status: "action_selected",
+      reason: match.reason,
+      diagnosisResult,
+      recoveryPlan,
+    };
+  }
+
+  private buildDiagnosis(
+    snapshot: EvidenceSnapshot,
+    input: {
+      incidentType: string;
+      severity: DiagnosisResult["severity"];
+      sourceIds: string[];
+      supportingSignals: string[];
+      reasoningSummary: string;
+    },
+  ): DiagnosisResult {
+    return {
+      id: "diagnosis-" + randomUUID(),
+      evidenceSnapshotId: snapshot.id,
+      createdAt: new Date().toISOString(),
+      method: "deterministic",
+      sourceIds: input.sourceIds,
+      suspectedIncidentType: input.incidentType,
+      severity: input.severity,
+      confidence: null,
+      reasoningSummary: input.reasoningSummary,
+      supportingSignals: input.supportingSignals,
+      contradictions: snapshot.contradictions,
+    };
+  }
+
+  private buildRecoveryPlan(
+    diagnosisResult: DiagnosisResult,
+    input: {
+      proposedActionIds: string[];
+      fallbackActionIds: string[];
+      rationale: string;
+      expectedOutcome: string;
+      escalationReason: string | null;
+    },
+  ): RecoveryPlan {
+    return {
+      id: "recovery-plan-" + randomUUID(),
+      diagnosisResultId: diagnosisResult.id,
+      createdAt: new Date().toISOString(),
+      proposedActionIds: input.proposedActionIds,
+      rationale: input.rationale,
+      expectedOutcome: input.expectedOutcome,
+      fallbackActionIds: input.fallbackActionIds,
+      escalationReason: input.escalationReason,
     };
   }
 }

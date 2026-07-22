@@ -9,7 +9,7 @@ export class DiagnosisAgent {
     const createdAt = new Date().toISOString();
     const diagnosisId = `diagnosis-${createdAt}`;
 
-    return this.openaiService.parseStructuredOutput({
+    const diagnosisResult = await this.openaiService.parseStructuredOutput({
       schema: diagnosisResultSchema,
       schemaName: "diagnosis_result",
       systemPrompt: [
@@ -23,9 +23,20 @@ export class DiagnosisAgent {
           id: diagnosisId,
           evidenceSnapshotId: evidenceSnapshot.id,
           createdAt,
+          method: "llm",
+          sourceIds: [],
         },
         evidenceSnapshot,
       }),
     });
+
+    return {
+      ...diagnosisResult,
+      id: diagnosisId,
+      evidenceSnapshotId: evidenceSnapshot.id,
+      createdAt,
+      method: "llm",
+      sourceIds: [],
+    };
   }
 }

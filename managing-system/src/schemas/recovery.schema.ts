@@ -1,14 +1,17 @@
 import { z } from "zod/v4";
 
 export const incidentSeveritySchema = z.enum(["low", "medium", "high", "critical"]);
+export const diagnosisMethodSchema = z.enum(["deterministic", "llm"]);
 
 export const diagnosisResultSchema = z.object({
   id: z.string(),
   evidenceSnapshotId: z.string(),
   createdAt: z.string(),
+  method: diagnosisMethodSchema,
+  sourceIds: z.array(z.string()),
   suspectedIncidentType: z.string(),
   severity: incidentSeveritySchema,
-  confidence: z.number().min(0).max(1),
+  confidence: z.number().min(0).max(1).nullable(),
   reasoningSummary: z.string(),
   supportingSignals: z.array(z.string()),
   contradictions: z.array(z.string()),
