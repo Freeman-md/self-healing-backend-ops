@@ -1,6 +1,12 @@
 import { config } from "@/config";
+import {
+  ActionExecutor,
+  ActionOutcomeEvaluator,
+  ActionRegistry,
+} from "@/modules/actions";
 import { EvidenceNormalizer, EvidenceRepository, RawEvidenceCollector } from "@/modules/evidence";
 import { ResultsRepository } from "@/modules/results";
+import { SafetyGate } from "@/modules/safety";
 import { TrialRunner } from "@/modules/trials";
 import { canUseOpenAI } from "@/services/openai";
 import { DatabaseService } from "@/shared/database/database.service";
@@ -54,8 +60,25 @@ async function main() {
       path: config.database.path,
     });
 
-    const trialRunner = new TrialRunner();
     const resultsRepository = new ResultsRepository(databaseService);
+    const actionRegistry = new ActionRegistry();
+    const safetyGate = new SafetyGate(actionRegistry);
+    const actionExecutor = new ActionExecutor(
+      actionRegistry,
+      safetyGate,
+      collector,
+      normalizer,
+      evidenceRepository,
+      new ActionOutcomeEvaluator(),
+    );
+    const trialRunner = new TrialRunner(
+      undefined,
+      undefined,
+      actionRegistry,
+      actionExecutor,
+      evidenceRepository,
+      resultsRepository,
+    );
     const scenarioId = "increment-1-core-scenario";
 
     const baselineRun = await trialRunner.runBaselineTrial({

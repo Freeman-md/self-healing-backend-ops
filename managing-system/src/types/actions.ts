@@ -21,6 +21,13 @@ export type OutcomeCheckType =
 
 export type ActionExecutionStatus = "skipped" | "blocked" | "executed" | "failed";
 
+export type ActionExecutionContinuation =
+  | "resolved"
+  | "continue"
+  | "blocked"
+  | "escalated"
+  | "failed";
+
 export type SafetyCheckStatus = "passed" | "failed" | "not_checked";
 
 export type SafetyGateDecisionStatus = "allowed" | "blocked" | "escalate";
@@ -88,4 +95,5 @@ export type ActionExecutionResult = {
   error?: string;
   expectedOutcomeMet?: boolean;
   outcomeSummary?: string;
+  continuation: ActionExecutionContinuation;
 };

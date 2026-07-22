@@ -1,5 +1,4 @@
 import { ActionRegistry } from "@/modules/actions";
-import { SafetyGate } from "@/modules/safety";
 import type { EvidenceSnapshot, SelfHealingAgentDecision } from "@/types";
 
 import { DiagnosisAgent } from "./diagnosis-agent";
@@ -16,7 +15,6 @@ export class SelfHealingAgent {
     private readonly diagnosisAgent = new DiagnosisAgent(),
     private readonly recoveryPlanner = new RecoveryPlanner(),
     private readonly actionRegistry = new ActionRegistry(),
-    private readonly safetyGate = new SafetyGate(actionRegistry),
   ) {}
 
   async run(
@@ -65,34 +63,15 @@ export class SelfHealingAgent {
       };
     }
 
-    const safetyGateDecision = this.safetyGate.evaluate(selectedAction, {
-      evidenceSnapshot,
-      actionAttemptCounts: context.actionAttemptCounts,
-      completedActionIds: context.completedActionIds,
-      manualApprovalGranted: context.manualApprovalGranted,
-    });
-
     return {
       mode: "agent",
       snapshotId: evidenceSnapshot.id,
       decidedAt,
-      status:
-        safetyGateDecision.status === "allowed"
-          ? "planned"
-          : safetyGateDecision.status === "blocked"
-            ? "blocked"
-            : "escalate",
-      reason:
-        safetyGateDecision.status === "allowed"
-          ? "Self-healing agent produced a bounded action that passed the safety gate."
-          : safetyGateDecision.status === "blocked"
-            ? "Self-healing agent produced an action that was blocked by the safety gate."
-            : "Self-healing agent produced an action that requires escalation after safety evaluation.",
+      status: "planned",
+      reason: "Self-healing agent produced a bounded action for execution-time safety evaluation.",
       diagnosisResult,
       recoveryPlan,
       selectedActionId: selectedAction.id,
-      safetyGateDecision,
-      escalationReason: safetyGateDecision.escalationReason,
     };
   }
 }
