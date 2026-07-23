@@ -1,15 +1,11 @@
-import { randomUUID } from "node:crypto";
-
 import type { EvidenceSnapshot } from "@/modules/evidence";
 import type {
   RecoveryDecision,
   RecoveryStrategy,
   RecoveryStrategyContext,
 } from "./recovery.types";
-import type {
-  DiagnosisResult,
-  RecoveryPlan,
-} from "./recovery.schema";
+import type { DiagnosisResult, RecoveryPlan } from "./recovery.schema";
+import { RecoveryFactory } from "./recovery.factory";
 
 import {
   findMatchingBaselineRule,
@@ -19,12 +15,13 @@ import {
 
 export class RecoveryBaselineStrategy implements RecoveryStrategy {
   readonly mode = "baseline" as const;
+
+  constructor(private readonly recoveryFactory = new RecoveryFactory()) {}
+
   async decide(
     snapshot: EvidenceSnapshot,
     _context: RecoveryStrategyContext,
   ): Promise<RecoveryDecision> {
-    const decidedAt = new Date().toISOString();
-
     if (snapshot.overallState === "healthy") {
       const diagnosisResult = this.buildDiagnosis(snapshot, {
         incidentType: "no_incident",
@@ -43,19 +40,18 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
         escalationReason: null,
       });
 
-      return {
+      return this.recoveryFactory.createRecoveryDecision({
         mode: this.mode,
-        snapshotId: snapshot.id,
-        decidedAt,
+        snapshot,
         status: "no_action",
         reason: "Evidence snapshot is healthy, so the baseline path takes no recovery action.",
         diagnosisResult,
         recoveryPlan,
-      };
+      });
     }
 
     const matched = findMatchingBaselineRule(snapshot);
-    if (matched) return this.buildMatchedDecision(snapshot, matched.rule, matched.match, decidedAt);
+    if (matched) return this.buildMatchedDecision(snapshot, matched.rule, matched.match);
 
     const escalationReason = "No deterministic baseline action is available for the current evidence.";
     const diagnosisResult = this.buildDiagnosis(snapshot, {
@@ -75,23 +71,21 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
       escalationReason,
     });
 
-    return {
+    return this.recoveryFactory.createRecoveryDecision({
       mode: this.mode,
-      snapshotId: snapshot.id,
-      decidedAt,
+      snapshot,
       status: "escalate",
       reason: "No fixed baseline recovery rule matched the current evidence snapshot.",
       diagnosisResult,
       recoveryPlan,
       escalationReason,
-    };
+    });
   }
 
   private buildMatchedDecision(
     snapshot: EvidenceSnapshot,
     rule: BaselineRule,
     match: BaselineRuleMatch,
-    decidedAt: string,
   ): RecoveryDecision {
     const diagnosisResult = this.buildDiagnosis(snapshot, {
       incidentType: rule.incidentType,
@@ -108,15 +102,14 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
       escalationReason: null,
     });
 
-    return {
+    return this.recoveryFactory.createRecoveryDecision({
       mode: this.mode,
-      snapshotId: snapshot.id,
-      decidedAt,
+      snapshot,
       status: "action_selected",
       reason: match.reason,
       diagnosisResult,
       recoveryPlan,
-    };
+    });
   }
 
   private buildDiagnosis(
@@ -129,10 +122,8 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
       reasoningSummary: string;
     },
   ): DiagnosisResult {
-    return {
-      id: "diagnosis-" + randomUUID(),
+    return this.recoveryFactory.createDiagnosisResult({
       evidenceSnapshotId: snapshot.id,
-      createdAt: new Date().toISOString(),
       method: "deterministic",
       sourceIds: input.sourceIds,
       suspectedIncidentType: input.incidentType,
@@ -141,7 +132,7 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
       reasoningSummary: input.reasoningSummary,
       supportingSignals: input.supportingSignals,
       contradictions: snapshot.contradictions,
-    };
+    });
   }
 
   private buildRecoveryPlan(
@@ -154,15 +145,13 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
       escalationReason: string | null;
     },
   ): RecoveryPlan {
-    return {
-      id: "recovery-plan-" + randomUUID(),
+    return this.recoveryFactory.createRecoveryPlan({
       diagnosisResultId: diagnosisResult.id,
-      createdAt: new Date().toISOString(),
       proposedActionIds: input.proposedActionIds,
       rationale: input.rationale,
       expectedOutcome: input.expectedOutcome,
       fallbackActionIds: input.fallbackActionIds,
       escalationReason: input.escalationReason,
-    };
+    });
   }
 }

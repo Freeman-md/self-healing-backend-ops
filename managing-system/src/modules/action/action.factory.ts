@@ -5,8 +5,12 @@ export class ActionFactory {
   createActionExecutionResult(input: Omit<ActionExecutionResult, "id">): ActionExecutionResult {
     return { ...input, id: `action-execution-${randomUUID()}` };
   }
-  createBlockedActionExecutionResult(input: Omit<ActionExecutionResult, "id" | "status" | "continuation">): ActionExecutionResult {
-    return this.createActionExecutionResult({ ...input, status: "blocked", continuation: "blocked" });
+  createBlockedActionExecutionResult(
+    input: Omit<ActionExecutionResult, "id" | "status" | "continuation"> & {
+      continuation: Extract<ActionExecutionContinuation, "blocked" | "escalated">;
+    },
+  ): ActionExecutionResult {
+    return this.createActionExecutionResult({ ...input, status: "blocked" });
   }
   createFailedActionExecutionResult(input: Omit<ActionExecutionResult, "id" | "status" | "continuation">): ActionExecutionResult {
     return this.createActionExecutionResult({ ...input, status: "failed", continuation: "failed" });

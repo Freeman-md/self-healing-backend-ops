@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { EvidenceSnapshot } from "@/modules/evidence";
-import { RecoveryBaselineStrategy, findMatchingBaselineRule } from "@/modules/recovery";
+import {
+  RecoveryBaselineStrategy,
+  findMatchingBaselineRule,
+  type RecoveryFactory,
+} from "@/modules/recovery";
 
 function createSnapshot(
   overallState: EvidenceSnapshot["overallState"],
@@ -50,4 +54,35 @@ test("baseline strategy retains healthy and unmatched escalation decisions", asy
 
   assert.equal(healthy.status, "no_action");
   assert.equal(unmatched.status, "escalate");
+});
+
+test("baseline strategy delegates deterministic construction to RecoveryFactory", async () => {
+  const calls: string[] = [];
+  const factory = {
+    createDiagnosisResult(input: Record<string, unknown>) {
+      calls.push("diagnosis");
+      return { ...input, id: "diagnosis-test", createdAt: "2026-07-23T00:00:00.000Z" };
+    },
+    createRecoveryPlan(input: Record<string, unknown>) {
+      calls.push("plan");
+      return { ...input, id: "plan-test", createdAt: "2026-07-23T00:00:00.000Z" };
+    },
+    createRecoveryDecision(input: Record<string, unknown>) {
+      calls.push("decision");
+      return {
+        ...input,
+        snapshotId: (input.snapshot as EvidenceSnapshot).id,
+        decidedAt: "2026-07-23T00:00:00.000Z",
+      };
+    },
+  } as unknown as RecoveryFactory;
+  const strategy = new RecoveryBaselineStrategy(factory);
+
+  const decision = await strategy.decide(
+    createSnapshot("unhealthy", ["database_connectivity_failure"]),
+    { actionAttemptCounts: {}, completedActionIds: [] },
+  );
+
+  assert.equal(decision.status, "action_selected");
+  assert.deepEqual(calls, ["diagnosis", "plan", "decision"]);
 });

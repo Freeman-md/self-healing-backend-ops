@@ -15,6 +15,7 @@ export type {
 } from "./recovery.types";
 export { RecoveryAgentStrategy } from "./recovery.agent.strategy";
 export { RecoveryBaselineStrategy } from "./recovery.baseline.strategy";
+export { RecoveryFactory } from "./recovery.factory";
 export {
   baselineRules,
   findMatchingBaselineRule,
