@@ -21,7 +21,7 @@ const evidenceEndpoints: EvidenceEndpoint[] = [
 ];
 
 export class EvidenceService {
-  constructor(private readonly openaiService = new OpenAIService()) {}
+  constructor(private readonly openaiService?: OpenAIService) {}
 
   async collectRawEvidence(): Promise<RawEvidence[]> {
     return Promise.all(
@@ -31,7 +31,9 @@ export class EvidenceService {
 
   async normalizeEvidence(rawEvidence: RawEvidence[]): Promise<EvidenceSnapshot> {
     const createdAt = new Date().toISOString();
-    return this.openaiService.parseStructuredOutput({
+    const openaiService = this.openaiService ?? new OpenAIService();
+
+    return openaiService.parseStructuredOutput({
       schema: evidenceSnapshotSchema,
       schemaName: "evidence_snapshot",
       systemPrompt: "Normalize raw operational evidence into a structured snapshot. Do not recommend actions.",
