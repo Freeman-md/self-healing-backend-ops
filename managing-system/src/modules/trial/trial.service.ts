@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto";
-
 import {
   ActionRepository,
   ActionService,
@@ -23,7 +21,6 @@ import {
 import { TrialFactory } from "./trial.factory";
 import type {
   RecoveryStrategies,
-  TrialContext,
   TrialRecord,
 } from "./trial.types";
 import { getOrderedRecoveryActionIds, recordActionResultInTrialContext, recordEvidenceSnapshotInTrialContext } from "./trial.helpers";
@@ -172,45 +169,6 @@ export class TrialService {
     };
   }
 
-  private getOrderedActionIds(decision: RecoveryDecision): string[] {
-    return [
-      ...new Set([
-        ...decision.recoveryPlan.proposedActionIds,
-        ...decision.recoveryPlan.fallbackActionIds,
-      ]),
-    ];
-  }
-
-  private createTrialContext(snapshot: EvidenceSnapshot): TrialContext {
-    return {
-      trialRecordId: "trial-" + randomUUID(),
-      actionAttemptCounts: {},
-      completedActionIds: [],
-      evidenceSnapshotIds: [snapshot.id],
-      selectedActionIds: [],
-      executedActionResultIds: [],
-      blockedActionIds: [],
-    };
-  }
-
-  private recordActionResult(
-    context: TrialContext,
-    actionId: string,
-    result: ActionExecutionResult,
-  ): void {
-    context.selectedActionIds.push(actionId);
-    context.actionAttemptCounts[actionId] =
-      (context.actionAttemptCounts[actionId] ?? 0) + 1;
-    this.actionPersistenceRepository.saveActionExecutionResult(result);
-
-    if (result.status === "executed") {
-      context.executedActionResultIds.push(result.id);
-      context.completedActionIds.push(actionId);
-    } else {
-      context.blockedActionIds.push(actionId);
-    }
-  }
-
   private findAfterSnapshot(
     result: ActionExecutionResult,
     fallback: EvidenceSnapshot,
@@ -223,15 +181,6 @@ export class TrialService {
       this.evidenceRepository.findEvidenceSnapshotById(result.afterEvidenceSnapshotId) ??
       fallback
     );
-  }
-
-  private recordEvidenceSnapshot(
-    context: TrialContext,
-    snapshot: EvidenceSnapshot,
-  ): void {
-    if (snapshot.id !== context.evidenceSnapshotIds.at(-1)) {
-      context.evidenceSnapshotIds.push(snapshot.id);
-    }
   }
 
 }
