@@ -7,7 +7,7 @@ import {
   type ActionExecutionResult,
 } from "@/modules/actions";
 import {
-  EvaluationSummaryFactory,
+  EvaluationFactory,
   type EvaluationSummary,
 } from "@/modules/evaluation";
 import {
@@ -46,7 +46,7 @@ export class TrialRunner {
       new ActionExecutionRepository(),
     private readonly maxRecoverySteps = 3,
     private readonly trialRecordFactory = new TrialRecordFactory(),
-    private readonly evaluationSummaryFactory = new EvaluationSummaryFactory(),
+    private readonly evaluationFactory = new EvaluationFactory(),
     private readonly trialStateFactory = new TrialStateFactory(),
   ) {}
 
@@ -162,7 +162,7 @@ export class TrialRunner {
       recoveryDecision,
       trialState,
     });
-    const evaluationSummary = this.evaluationSummaryFactory.create(
+    const evaluationSummary = this.evaluationFactory.createEvaluationSummary(
       trialRecord,
       trialState.reason,
     );

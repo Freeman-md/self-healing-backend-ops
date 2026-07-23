@@ -1,5 +1,5 @@
 export { EvaluationRepository } from "./evaluation.repository";
-export { EvaluationSummaryFactory } from "./evaluation-summary.factory";
+export { EvaluationFactory } from "./evaluation.factory";
 export type {
   ActionEffectiveness,
   EvaluationSummary,
