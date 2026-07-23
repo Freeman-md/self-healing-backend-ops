@@ -12,7 +12,7 @@ export class TrialRepository {
     this.initialize();
   }
 
-  save(trialRecord: TrialRecord): TrialRecord {
+  saveTrialRecord(trialRecord: TrialRecord): TrialRecord {
     this.database
       .prepare(
         `

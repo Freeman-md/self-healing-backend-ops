@@ -19,7 +19,7 @@ export class EvidenceRepository {
     this.initialize();
   }
 
-  saveSnapshot(snapshot: EvidenceSnapshot): EvidenceSnapshot {
+  saveEvidenceSnapshot(snapshot: EvidenceSnapshot): EvidenceSnapshot {
     this.database
       .prepare(
         `
@@ -46,7 +46,7 @@ export class EvidenceRepository {
     return snapshot;
   }
 
-  findSnapshotById(id: string): EvidenceSnapshot | null {
+  findEvidenceSnapshotById(id: string): EvidenceSnapshot | null {
     const row = this.database
       .prepare("SELECT snapshot_json FROM evidence_snapshots WHERE id = ?")
       .get(id) as EvidenceSnapshotRow | undefined;

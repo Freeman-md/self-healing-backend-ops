@@ -31,7 +31,7 @@ export type ExpectedOutcome = {
   successCriteria: OutcomeCriterion[];
 };
 
-export type ActionDefinition = {
+export type Action = {
   id: string;
   name: string;
   description: string;
@@ -43,7 +43,7 @@ export type ActionDefinition = {
 
 export type ActionExecutionResult = {
   id: string;
-  actionDefinitionId: string;
+  actionId: string;
   trialRecordId: string;
   startedAt: string;
   completedAt?: string;

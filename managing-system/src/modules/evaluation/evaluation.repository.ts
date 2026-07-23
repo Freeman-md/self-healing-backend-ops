@@ -12,7 +12,7 @@ export class EvaluationRepository {
     this.initialize();
   }
 
-  save(summary: EvaluationSummary): EvaluationSummary {
+  saveEvaluationSummary(summary: EvaluationSummary): EvaluationSummary {
     this.database
       .prepare(
         `

@@ -1,27 +1,27 @@
-import { ActionRegistry, type ActionDefinition } from "@/modules/actions";
+import { ActionRepository, type Action } from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 
 import type {
-  SafetyGateDecision,
+  SafetyDecision,
   SafetyRule,
   SafetyRuleEvaluation,
 } from "./safety.types";
 
-type SafetyGateContext = {
+type SafetyContext = {
   evidenceSnapshot: EvidenceSnapshot;
   actionAttemptCounts?: Record<string, number>;
   completedActionIds?: string[];
   manualApprovalGranted?: boolean;
 };
 
-export class SafetyGate {
-  constructor(private readonly actionRegistry = new ActionRegistry()) {}
+export class SafetyService {
+  constructor(private readonly actionRepository = new ActionRepository()) {}
 
-  evaluate(action: ActionDefinition, context: SafetyGateContext): SafetyGateDecision {
+  evaluateActionSafety(action: Action, context: SafetyContext): SafetyDecision {
     const evaluations: SafetyRuleEvaluation[] = [];
 
     for (const ruleId of action.safetyRuleIds) {
-      const rule = this.actionRegistry.findSafetyRuleById(ruleId);
+      const rule = this.actionRepository.findSafetyRuleById(ruleId);
 
       if (!rule) {
         evaluations.push({
@@ -41,7 +41,7 @@ export class SafetyGate {
 
     if (failedEvaluations.length === 0) {
       return {
-        actionDefinitionId: action.id,
+        actionId: action.id,
         checkedAt: new Date().toISOString(),
         status: "allowed",
         passedRuleIds: evaluations.map((evaluation) => evaluation.ruleId),
@@ -54,7 +54,7 @@ export class SafetyGate {
     const shouldEscalate = failedEvaluations.some((evaluation) => evaluation.onFail === "escalate");
 
     return {
-      actionDefinitionId: action.id,
+      actionId: action.id,
       checkedAt: new Date().toISOString(),
       status: shouldEscalate ? "escalate" : "blocked",
       passedRuleIds: evaluations
@@ -73,8 +73,8 @@ export class SafetyGate {
 
   private evaluateRule(
     rule: SafetyRule,
-    action: ActionDefinition,
-    context: SafetyGateContext,
+    action: Action,
+    context: SafetyContext,
   ): SafetyRuleEvaluation {
     switch (rule.checkType) {
       case "evidence_state_matches": {
@@ -157,7 +157,7 @@ export class SafetyGate {
         return {
           ruleId: rule.id,
           status: "failed",
-          reason: `Safety check type ${rule.checkType} is not implemented in the first safety-gate skeleton.`,
+          reason: `Safety check type ${rule.checkType} is not implemented.`,
           onFail: "escalate",
         };
 

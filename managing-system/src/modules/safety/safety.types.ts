@@ -9,7 +9,7 @@ export type SafetyCheckType =
 
 export type SafetyRuleFailureAction = "block" | "escalate";
 export type SafetyCheckStatus = "passed" | "failed" | "not_checked";
-export type SafetyGateDecisionStatus = "allowed" | "blocked" | "escalate";
+export type SafetyDecisionStatus = "allowed" | "blocked" | "escalate";
 
 export type SafetyRule = {
   id: string;
@@ -26,10 +26,10 @@ export type SafetyRuleEvaluation = {
   onFail: SafetyRuleFailureAction;
 };
 
-export type SafetyGateDecision = {
-  actionDefinitionId: string;
+export type SafetyDecision = {
+  actionId: string;
   checkedAt: string;
-  status: SafetyGateDecisionStatus;
+  status: SafetyDecisionStatus;
   passedRuleIds: string[];
   failedRuleIds: string[];
   reason: string;

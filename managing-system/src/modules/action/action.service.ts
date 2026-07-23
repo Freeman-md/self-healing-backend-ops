@@ -1,20 +1,21 @@
 import { randomUUID } from "node:crypto";
 
 import {
-  EvidenceCollector,
-  EvidenceNormalizer,
+  EvidenceService,
   EvidenceRepository,
   type EvidenceSnapshot,
 } from "@/modules/evidence";
-import { SafetyGate } from "@/modules/safety";
+import { OpenAIService } from "@/infrastructure/openai";
+import { evidenceSnapshotSchema } from "@/modules/evidence";
+import { actionOutcomeEvaluationSchema } from "./action.schema";
+import { SafetyService } from "@/modules/safety";
 import type {
-  ActionDefinition,
+  Action,
   ActionExecutionResult,
 } from "./action.types";
 
 import { findActionHandler } from "./handlers/handler-registry";
-import { ActionOutcomeEvaluator } from "./action-outcome-evaluator.service";
-import { ActionRegistry } from "./action-registry";
+import { ActionRepository } from "./action.repository";
 
 type ActionExecutionContext = {
   trialRecordId: string;
@@ -23,23 +24,21 @@ type ActionExecutionContext = {
   manualApprovalGranted?: boolean;
 };
 
-export class ActionExecutor {
+export class ActionService {
   constructor(
-    private readonly actionRegistry = new ActionRegistry(),
-    private readonly safetyGate = new SafetyGate(actionRegistry),
-    private readonly evidenceCollector = new EvidenceCollector(),
-    private readonly evidenceNormalizer = new EvidenceNormalizer(),
+    private readonly actionRepository = new ActionRepository(),
+    private readonly safetyService = new SafetyService(actionRepository),
+    private readonly evidenceService = new EvidenceService(),
     private readonly evidenceRepository = new EvidenceRepository(),
-    private readonly outcomeEvaluator = new ActionOutcomeEvaluator(),
   ) {}
 
-  async execute(
-    action: ActionDefinition,
+  async executeAction(
+    action: Action,
     beforeEvidenceSnapshot: EvidenceSnapshot,
     context: ActionExecutionContext,
   ): Promise<ActionExecutionResult> {
     const startedAt = new Date().toISOString();
-    const safetyDecision = this.safetyGate.evaluate(action, {
+    const safetyDecision = this.safetyService.evaluateActionSafety(action, {
       evidenceSnapshot: beforeEvidenceSnapshot,
       actionAttemptCounts: context.actionAttemptCounts,
       completedActionIds: context.completedActionIds,
@@ -49,7 +48,7 @@ export class ActionExecutor {
     if (safetyDecision.status !== "allowed") {
       return {
         id: `action-execution-${randomUUID()}`,
-        actionDefinitionId: action.id,
+        actionId: action.id,
         trialRecordId: context.trialRecordId,
         startedAt,
         completedAt: new Date().toISOString(),
@@ -67,7 +66,7 @@ export class ActionExecutor {
     if (!handler) {
       return {
         id: `action-execution-${randomUUID()}`,
-        actionDefinitionId: action.id,
+        actionId: action.id,
         trialRecordId: context.trialRecordId,
         startedAt,
         completedAt: new Date().toISOString(),
@@ -82,17 +81,16 @@ export class ActionExecutor {
 
     try {
       const handlerResult = await handler({ action, trialRecordId: context.trialRecordId });
-      const freshRawEvidence = await this.evidenceCollector.collect();
-      const freshEvidenceSnapshot = await this.evidenceNormalizer.normalize(freshRawEvidence);
-      const savedSnapshot = this.evidenceRepository.saveSnapshot(freshEvidenceSnapshot);
-      const outcome = await this.outcomeEvaluator.evaluate({
+      const freshEvidenceSnapshot = await this.evidenceService.collectAndNormalize();
+      const savedSnapshot = this.evidenceRepository.saveEvidenceSnapshot(freshEvidenceSnapshot);
+      const outcome = await this.evaluateActionOutcome({
         expectedOutcome: action.expectedOutcome,
         evidenceSnapshot: savedSnapshot,
       });
 
       return {
         id: `action-execution-${randomUUID()}`,
-        actionDefinitionId: action.id,
+        actionId: action.id,
         trialRecordId: context.trialRecordId,
         startedAt,
         completedAt: new Date().toISOString(),
@@ -109,7 +107,7 @@ export class ActionExecutor {
     } catch (error) {
       return {
         id: `action-execution-${randomUUID()}`,
-        actionDefinitionId: action.id,
+        actionId: action.id,
         trialRecordId: context.trialRecordId,
         startedAt,
         completedAt: new Date().toISOString(),
@@ -121,5 +119,15 @@ export class ActionExecutor {
         continuation: "failed",
       };
     }
+  }
+
+  async evaluateActionOutcome(input: { expectedOutcome: Action["expectedOutcome"]; evidenceSnapshot: EvidenceSnapshot }) {
+    const parsedSnapshot = evidenceSnapshotSchema.parse(input.evidenceSnapshot);
+    return new OpenAIService().parseStructuredOutput({
+      schema: actionOutcomeEvaluationSchema,
+      schemaName: "action_outcome_evaluation",
+      systemPrompt: "Evaluate the expected outcome against the fresh evidence. Do not invent evidence.",
+      userPrompt: JSON.stringify(input),
+    });
   }
 }

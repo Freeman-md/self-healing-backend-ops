@@ -2,16 +2,16 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  ActionRegistry,
+  ActionRepository,
   type ActionExecutionResult,
-} from "@/modules/actions";
+} from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 import {
-  BaselineRecoveryStrategy,
+  RecoveryBaselineStrategy,
   type RecoveryDecision,
   type RecoveryStrategy,
 } from "@/modules/recovery";
-import { TrialRunner } from "@/modules/trials";
+import { TrialService } from "@/modules/trial";
 
 function createSnapshot(
   id: string,
@@ -88,7 +88,7 @@ function createResult(input: {
 }): ActionExecutionResult {
   return {
     id: input.id,
-    actionDefinitionId: input.actionId,
+    actionId: input.actionId,
     trialRecordId: input.trialRecordId,
     startedAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),
@@ -104,7 +104,7 @@ function createResult(input: {
 }
 
 test("baseline produces deterministic diagnosis and ordered recovery plan", async () => {
-  const engine = new BaselineRecoveryStrategy();
+  const engine = new RecoveryBaselineStrategy();
   const snapshot = createSnapshot(
     "snapshot-database-failure",
     "unhealthy",
@@ -128,7 +128,7 @@ test("baseline produces deterministic diagnosis and ordered recovery plan", asyn
 });
 
 test("baseline returns no action for healthy evidence", async () => {
-  const engine = new BaselineRecoveryStrategy();
+  const engine = new RecoveryBaselineStrategy();
   const decision = await engine.decide(createSnapshot("snapshot-healthy", "healthy"), {
     actionAttemptCounts: {},
     completedActionIds: [],
@@ -139,7 +139,7 @@ test("baseline returns no action for healthy evidence", async () => {
 });
 
 test("baseline escalates when no deterministic rule matches", async () => {
-  const engine = new BaselineRecoveryStrategy();
+  const engine = new RecoveryBaselineStrategy();
   const decision = await engine.decide(
     createSnapshot("snapshot-unknown", "unknown", ["unusual_incident"]),
     {
@@ -179,11 +179,11 @@ test("trial runner executes proposed then fallback action with reassessment", as
   ]);
   let executionCount = 0;
 
-  const runner = new TrialRunner(
+  const runner = new TrialService(
     { baseline: strategy, agent: strategy },
-    new ActionRegistry(),
+    new ActionRepository(),
     {
-      async execute(action, _snapshot, context) {
+      async executeAction(action, _snapshot, context) {
         executedActionIds.push(action.id);
         executionCount += 1;
 
@@ -200,12 +200,12 @@ test("trial runner executes proposed then fallback action with reassessment", as
       },
     },
     {
-      findSnapshotById(id) {
+      findEvidenceSnapshotById(id) {
         return snapshots.get(id) ?? null;
       },
     },
     {
-      save(result) {
+      saveActionExecutionResult(result) {
         savedResults.push(result);
         return result;
       },
@@ -246,11 +246,11 @@ test("trial runner escalates when the action limit is reached", async () => {
     },
   };
 
-  const runner = new TrialRunner(
+  const runner = new TrialService(
     { baseline: strategy, agent: strategy },
-    new ActionRegistry(),
+    new ActionRepository(),
     {
-      async execute(action, _snapshot, context) {
+      async executeAction(action, _snapshot, context) {
         return createResult({
           id: "result-limit",
           trialRecordId: context.trialRecordId,
@@ -261,12 +261,12 @@ test("trial runner escalates when the action limit is reached", async () => {
       },
     },
     {
-      findSnapshotById() {
+      findEvidenceSnapshotById() {
         return nextSnapshot;
       },
     },
     {
-      save(result) {
+      saveActionExecutionResult(result) {
         return result;
       },
     },
@@ -299,22 +299,22 @@ test("trial runner fails before execution for an unregistered action", async () 
   };
   let executionCalled = false;
 
-  const runner = new TrialRunner(
+  const runner = new TrialService(
     { baseline: strategy, agent: strategy },
-    new ActionRegistry(),
+    new ActionRepository(),
     {
-      async execute() {
+      async executeAction() {
         executionCalled = true;
         throw new Error("executor should not be called");
       },
     },
     {
-      findSnapshotById() {
+      findEvidenceSnapshotById() {
         return null;
       },
     },
     {
-      save(result) {
+      saveActionExecutionResult(result) {
         return result;
       },
     },

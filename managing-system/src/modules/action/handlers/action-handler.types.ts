@@ -1,7 +1,7 @@
-import type { ActionDefinition } from "../action.types";
+import type { Action } from "../action.types";
 
 export type ActionHandlerInput = {
-  action: ActionDefinition;
+  action: Action;
   trialRecordId: string;
 };
 

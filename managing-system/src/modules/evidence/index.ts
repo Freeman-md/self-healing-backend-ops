@@ -1,6 +1,5 @@
 export { EvidenceRepository } from "./evidence.repository";
-export { EvidenceCollector } from "./evidence-collector.service";
-export { EvidenceNormalizer } from "./evidence-normalizer.service";
+export { EvidenceService } from "./evidence.service";
 export {
   evidenceSnapshotSchema,
   type EvidenceSignal,

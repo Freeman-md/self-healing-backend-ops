@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { TrialRecord } from "@/modules/trials";
+import type { TrialRecord } from "@/modules/trial";
 
 import type { EvaluationSummary } from "./evaluation.types";
 

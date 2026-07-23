@@ -1,6 +1,6 @@
 import type { EvidenceSnapshot } from "@/modules/evidence";
 
-import type { IncidentSeverity } from "../../recovery.schema";
+import type { IncidentSeverity } from "./recovery.schema";
 
 export type BaselineRule = {
   id: string;
@@ -66,3 +66,14 @@ const managedSystemRestartRule: BaselineRule = {
 };
 
 export const baselineRules = [databaseConnectivityRule, managedSystemRestartRule];
+
+export class RecoveryBaselineService {
+  listRules(): BaselineRule[] { return baselineRules; }
+  findMatchingRule(snapshot: EvidenceSnapshot): { rule: BaselineRule; match: { matchedSignalNames: string[]; reason: string } } | null {
+    for (const rule of baselineRules) {
+      const match = rule.matches(snapshot);
+      if (match) return { rule, match };
+    }
+    return null;
+  }
+}

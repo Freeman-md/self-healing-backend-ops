@@ -1,24 +1,14 @@
 import { config } from "@/config";
 import { DatabaseService } from "@/infrastructure/database";
 import { canUseOpenAI } from "@/infrastructure/openai";
-import {
-  ActionExecutionRepository,
-  ActionExecutor,
-  ActionOutcomeEvaluator,
-  ActionRegistry,
-} from "@/modules/actions";
-import {
-  EvidenceCollector,
-  EvidenceNormalizer,
-  EvidenceRepository,
-} from "@/modules/evidence";
+import { ActionRepository, ActionService } from "@/modules/action";
+import { EvidenceService, EvidenceRepository } from "@/modules/evidence";
 import { EvaluationRepository } from "@/modules/evaluation";
 import {
-  AgentRecoveryStrategy,
-  BaselineRecoveryStrategy,
+  RecoveryAgentStrategy,
+  RecoveryBaselineStrategy,
 } from "@/modules/recovery";
-import { SafetyGate } from "@/modules/safety";
-import { TrialRepository, TrialRunner } from "@/modules/trials";
+import { TrialRepository, TrialService } from "@/modules/trial";
 
 async function main() {
   console.log({
@@ -27,8 +17,8 @@ async function main() {
     managedSystemBaseUrl: config.managedSystem.baseUrl,
   });
 
-  const collector = new EvidenceCollector();
-  const evidence = await collector.collect();
+  const evidenceService = new EvidenceService();
+  const evidence = await evidenceService.collectRawEvidence();
 
   console.log({
     event: "raw_evidence_collected",
@@ -53,10 +43,9 @@ async function main() {
   const databaseService = new DatabaseService();
 
   try {
-    const normalizer = new EvidenceNormalizer();
-    const snapshot = await normalizer.normalize(evidence);
+    const snapshot = await evidenceService.normalizeEvidence(evidence);
     const evidenceRepository = new EvidenceRepository(databaseService);
-    const savedSnapshot = evidenceRepository.saveSnapshot(snapshot);
+    const savedSnapshot = evidenceRepository.saveEvidenceSnapshot(snapshot);
 
     console.log({
       event: "evidence_snapshot_created",
@@ -71,26 +60,16 @@ async function main() {
 
     const trialRepository = new TrialRepository(databaseService);
     const evaluationRepository = new EvaluationRepository(databaseService);
-    const actionExecutionRepository = new ActionExecutionRepository(databaseService);
-    const actionRegistry = new ActionRegistry();
-    const safetyGate = new SafetyGate(actionRegistry);
-    const actionExecutor = new ActionExecutor(
-      actionRegistry,
-      safetyGate,
-      collector,
-      normalizer,
-      evidenceRepository,
-      new ActionOutcomeEvaluator(),
-    );
-    const trialRunner = new TrialRunner(
+    const actionRepository = new ActionRepository(databaseService);
+    const actionService = new ActionService(actionRepository, undefined, evidenceService, evidenceRepository);
+    const trialRunner = new TrialService(
       {
-        baseline: new BaselineRecoveryStrategy(),
-        agent: new AgentRecoveryStrategy(),
+        baseline: new RecoveryBaselineStrategy(),
+        agent: new RecoveryAgentStrategy(),
       },
-      actionRegistry,
-      actionExecutor,
+      actionRepository,
+      actionService,
       evidenceRepository,
-      actionExecutionRepository,
     );
     const scenarioId = "increment-1-core-scenario";
 
@@ -99,8 +78,8 @@ async function main() {
       scenarioId,
       snapshot: savedSnapshot,
     });
-    trialRepository.save(baselineRun.trialRecord);
-    evaluationRepository.save(baselineRun.evaluationSummary);
+    trialRepository.saveTrialRecord(baselineRun.trialRecord);
+    evaluationRepository.saveEvaluationSummary(baselineRun.evaluationSummary);
 
     console.log({
       event: "baseline_trial_recorded",
@@ -114,8 +93,8 @@ async function main() {
       scenarioId,
       snapshot: savedSnapshot,
     });
-    trialRepository.save(agentRun.trialRecord);
-    evaluationRepository.save(agentRun.evaluationSummary);
+    trialRepository.saveTrialRecord(agentRun.trialRecord);
+    evaluationRepository.saveEvaluationSummary(agentRun.evaluationSummary);
 
     console.log({
       event: "agent_trial_recorded",
