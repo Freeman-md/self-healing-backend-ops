@@ -2,6 +2,11 @@ import type { EvidenceSnapshot } from "@/modules/evidence";
 
 import type { IncidentSeverity } from "./recovery.schema";
 
+export type BaselineRuleMatch = {
+  matchedSignalNames: string[];
+  reason: string;
+};
+
 export type BaselineRule = {
   id: string;
   description: string;
@@ -10,10 +15,10 @@ export type BaselineRule = {
   proposedActionIds: string[];
   fallbackActionIds: string[];
   expectedOutcome: string;
-  matches(snapshot: EvidenceSnapshot): { matchedSignalNames: string[]; reason: string } | null;
+  matches(snapshot: EvidenceSnapshot): BaselineRuleMatch | null;
 };
 
-function hasSuspectedIncident(snapshot: EvidenceSnapshot, incidentType: string) {
+function hasSuspectedIncident(snapshot: EvidenceSnapshot, incidentType: string): boolean {
   return snapshot.suspectedIncidentTypes.some((item) => item === incidentType);
 }
 
@@ -65,15 +70,21 @@ const managedSystemRestartRule: BaselineRule = {
   },
 };
 
-export const baselineRules = [databaseConnectivityRule, managedSystemRestartRule];
+export const baselineRules: BaselineRule[] = [
+  databaseConnectivityRule,
+  managedSystemRestartRule,
+];
 
-export class RecoveryBaselineService {
-  listRules(): BaselineRule[] { return baselineRules; }
-  findMatchingRule(snapshot: EvidenceSnapshot): { rule: BaselineRule; match: { matchedSignalNames: string[]; reason: string } } | null {
-    for (const rule of baselineRules) {
-      const match = rule.matches(snapshot);
-      if (match) return { rule, match };
+export function findMatchingBaselineRule(
+  evidenceSnapshot: EvidenceSnapshot,
+): { rule: BaselineRule; match: BaselineRuleMatch } | null {
+  for (const rule of baselineRules) {
+    const match = rule.matches(evidenceSnapshot);
+
+    if (match) {
+      return { rule, match };
     }
-    return null;
   }
+
+  return null;
 }

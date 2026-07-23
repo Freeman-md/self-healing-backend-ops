@@ -14,7 +14,6 @@ import type {
   ActionExecutionResult,
 } from "./action.types";
 
-import { findActionHandler } from "./handlers/handler-registry";
 import { ActionRepository } from "./action.repository";
 
 type ActionExecutionContext = {
@@ -61,7 +60,7 @@ export class ActionService {
       };
     }
 
-    const handler = findActionHandler(action.handlerKey);
+    const handler = this.actionRepository.findActionHandler(action.handlerKey);
 
     if (!handler) {
       return {

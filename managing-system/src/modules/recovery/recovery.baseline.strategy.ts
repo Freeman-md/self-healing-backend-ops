@@ -11,12 +11,14 @@ import type {
   RecoveryPlan,
 } from "./recovery.schema";
 
-import { RecoveryBaselineService, type BaselineRule } from "./recovery.baseline.service";
+import {
+  findMatchingBaselineRule,
+  type BaselineRule,
+  type BaselineRuleMatch,
+} from "./recovery.baseline.rules";
 
 export class RecoveryBaselineStrategy implements RecoveryStrategy {
   readonly mode = "baseline" as const;
-  constructor(private readonly baselineService = new RecoveryBaselineService()) {}
-
   async decide(
     snapshot: EvidenceSnapshot,
     _context: RecoveryStrategyContext,
@@ -52,7 +54,7 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
       };
     }
 
-    const matched = this.baselineService.findMatchingRule(snapshot);
+    const matched = findMatchingBaselineRule(snapshot);
     if (matched) return this.buildMatchedDecision(snapshot, matched.rule, matched.match, decidedAt);
 
     const escalationReason = "No deterministic baseline action is available for the current evidence.";
@@ -88,7 +90,7 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
   private buildMatchedDecision(
     snapshot: EvidenceSnapshot,
     rule: BaselineRule,
-    match: { matchedSignalNames: string[]; reason: string },
+    match: BaselineRuleMatch,
     decidedAt: string,
   ): RecoveryDecision {
     const diagnosisResult = this.buildDiagnosis(snapshot, {
