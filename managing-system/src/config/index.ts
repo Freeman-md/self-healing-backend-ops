@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { readBoolean, readNumber, readOptionalString, readString } from "./helpers";
+import { readBoolean, readNumber, readOptionalEnum, readOptionalString, readString } from "./helpers";
 
 export type AppConfig = {
   environment: string;
@@ -20,6 +20,10 @@ export type AppConfig = {
     dockerTimeoutMs: number;
     postActionHealthTimeoutMs: number;
     postActionHealthPollIntervalMs: number;
+  };
+  trial: {
+    recoveryMode?: "baseline" | "agent";
+    scenarioId?: "S1" | "S2" | "S3";
   };
 };
 
@@ -47,5 +51,9 @@ export const config: AppConfig = {
       process.env.POST_ACTION_HEALTH_POLL_INTERVAL_MS,
       1000,
     ),
+  },
+  trial: {
+    recoveryMode: readOptionalEnum(process.env.RECOVERY_MODE, ["baseline", "agent"], "RECOVERY_MODE"),
+    scenarioId: readOptionalEnum(process.env.SCENARIO_ID, ["S1", "S2", "S3"], "SCENARIO_ID"),
   },
 };

@@ -10,7 +10,7 @@ import {
 
 function createSnapshot(
   overallState: EvidenceSnapshot["overallState"],
-  suspectedIncidentTypes: string[] = [],
+  suspectedIncidentTypes: EvidenceSnapshot["suspectedIncidentTypes"] = [],
 ): EvidenceSnapshot {
   return {
     id: `snapshot-${overallState}`,
@@ -23,9 +23,11 @@ function createSnapshot(
       ? [{
         source: "health",
         name: "database_connectivity",
+        code: "database_connectivity",
         status: "critical",
         value: false,
         description: "Database connectivity failed.",
+        method: "deterministic",
       }]
       : [],
     suspectedIncidentTypes,
@@ -48,7 +50,7 @@ test("baseline strategy retains healthy and unmatched escalation decisions", asy
 
   const healthy = await strategy.decide(createSnapshot("healthy"), context);
   const unmatched = await strategy.decide(
-    createSnapshot("unknown", ["unusual_incident"]),
+    createSnapshot("unknown", ["unclassified"]),
     context,
   );
 

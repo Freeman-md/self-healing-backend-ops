@@ -25,7 +25,14 @@ async function main() {
 
   const databaseService = new DatabaseService();
   const evidenceRepository = new EvidenceRepository(databaseService);
-  const evidenceService = new EvidenceService(evidenceRepository);
+  const containerRuntime = new DockerContainerRuntimeService();
+  const evidenceService = new EvidenceService(
+    evidenceRepository,
+    undefined,
+    undefined,
+    undefined,
+    containerRuntime,
+  );
 
   try {
     const evidence = await evidenceService.collectRawEvidence();
@@ -66,7 +73,6 @@ async function main() {
 
     const trialRepository = new TrialRepository(databaseService);
     const evaluationRepository = new EvaluationRepository(databaseService);
-    const containerRuntime = new DockerContainerRuntimeService();
     const actionRepository = new ActionRepository(databaseService, containerRuntime);
     const safetyService = new SafetyService();
     const actionService = new ActionService(
@@ -91,34 +97,33 @@ async function main() {
       evidenceService,
       evaluationService,
     );
-    const scenarioId = "increment-1-core-scenario";
-
-    const baselineRun = await trialService.runRecoveryTrial({
-      mode: "baseline",
+    const { recoveryMode, scenarioId } = resolveControlledTrialInput();
+    const trialRun = await trialService.runRecoveryTrial({
+      mode: recoveryMode,
       scenarioId,
       snapshot: savedSnapshot,
     });
     console.log({
-      event: "baseline_trial_recorded",
-      decision: baselineRun.recoveryDecision,
-      trialRecord: baselineRun.trialRecord,
-      evaluationSummary: baselineRun.evaluationSummary,
-    });
-
-    const agentRun = await trialService.runRecoveryTrial({
-      mode: "agent",
+      event: "controlled_trial_recorded",
+      recoveryMode,
       scenarioId,
-      snapshot: savedSnapshot,
-    });
-    console.log({
-      event: "agent_trial_recorded",
-      decision: agentRun.recoveryDecision,
-      trialRecord: agentRun.trialRecord,
-      evaluationSummary: agentRun.evaluationSummary,
+      decision: trialRun.recoveryDecision,
+      trialRecord: trialRun.trialRecord,
+      evaluationSummary: trialRun.evaluationSummary,
     });
   } finally {
     databaseService.close();
   }
+}
+
+function resolveControlledTrialInput(): {
+  recoveryMode: "baseline" | "agent";
+  scenarioId: "S1" | "S2" | "S3";
+} {
+  if (!config.trial.recoveryMode || !config.trial.scenarioId) {
+    throw new Error("RECOVERY_MODE and SCENARIO_ID are required for controlled trials.");
+  }
+  return { recoveryMode: config.trial.recoveryMode, scenarioId: config.trial.scenarioId };
 }
 
 main().catch((error: unknown) => {

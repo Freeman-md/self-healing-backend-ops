@@ -58,6 +58,8 @@ services:
       DOCKER_ACTION_TIMEOUT_MS: "10000"
       POST_ACTION_HEALTH_TIMEOUT_MS: "30000"
       POST_ACTION_HEALTH_POLL_INTERVAL_MS: "1000"
+      RECOVERY_MODE: ${RECOVERY_MODE:-}
+      SCENARIO_ID: ${SCENARIO_ID:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - managing_system_data:/managing-system/data

@@ -27,7 +27,7 @@ test("raw evidence collection runs without constructing an OpenAI client", async
       "http://localhost:3004/health",
       "http://localhost:3004/metrics",
     ]);
-    assert.deepEqual(evidence.map((item) => item.status), ["collected", "collected"]);
+    assert.deepEqual(evidence.map((item) => item.status), ["collected", "collected", "failed", "failed"]);
   } finally {
     globalThis.fetch = originalFetch;
   }

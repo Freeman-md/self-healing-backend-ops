@@ -3,6 +3,9 @@ import type { DatabaseSync } from "node:sqlite";
 import { DatabaseService } from "@/infrastructure/database";
 
 import type { TrialRecord } from "./trial.types";
+import { parseStoredTrialRecord } from "./trial.helpers";
+
+type TrialRecordRow = { trial_record_json: string };
 
 export class TrialRepository {
   private readonly database: DatabaseSync;
@@ -46,6 +49,11 @@ export class TrialRepository {
       );
 
     return trialRecord;
+  }
+
+  findTrialRecordById(trialRecordId: string): TrialRecord | null {
+    const row = this.database.prepare("SELECT trial_record_json FROM trial_records WHERE id = ?").get(trialRecordId) as TrialRecordRow | undefined;
+    return row ? parseStoredTrialRecord(JSON.parse(row.trial_record_json)) : null;
   }
 
   private initialize(): void {

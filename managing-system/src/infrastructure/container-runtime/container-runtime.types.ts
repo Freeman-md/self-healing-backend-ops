@@ -5,3 +5,11 @@ export type ContainerRestartResult = {
   containerName: string;
   output: string;
 };
+
+export type ContainerState = "running" | "stopped" | "exited" | "restarting" | "unknown";
+
+export type ContainerStateResult = {
+  target: ContainerRuntimeTarget;
+  containerName: string;
+  state: ContainerState;
+};

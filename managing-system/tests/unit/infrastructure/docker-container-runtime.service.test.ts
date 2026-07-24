@@ -47,3 +47,19 @@ test("Docker runtime terminates a timed-out process", async () => {
   await assert.rejects(runtime.restartTarget("managed-system"), /timed out/);
   assert.equal(killed, true);
 });
+
+test("Docker runtime performs bounded fixed-target read-only inspection", async () => {
+  const calls: Array<{ file: string; args: readonly string[] }> = [];
+  const runtime = new DockerContainerRuntimeService(
+    { dockerEnabled: false, dockerTimeoutMs: 50 },
+    (file, args, callback) => {
+      calls.push({ file, args });
+      queueMicrotask(() => callback(null, "running\n", ""));
+      return { kill() { return true; } } as never;
+    },
+  );
+  const state = await runtime.inspectTarget("managed-system");
+  assert.deepEqual(state, { target: "managed-system", containerName: "managed-system-app", state: "running" });
+  assert.deepEqual(calls, [{ file: "docker", args: ["inspect", "--format", "{{.State.Status}}", "managed-system-app"] }]);
+  await assert.rejects(runtime.inspectTarget("unknown" as never), /Unsupported/);
+});

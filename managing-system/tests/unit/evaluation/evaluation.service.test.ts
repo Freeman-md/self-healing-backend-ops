@@ -12,11 +12,13 @@ const trialRecord = {
   startedAt: "2026-07-24T00:00:00.000Z",
   evidenceSnapshotIds: [],
   selectedActionIds: [],
+  actionExecutionResultIds: [],
   executedActionResultIds: [],
   blockedActionIds: [],
+  failedActionIds: [],
   status: "resolved",
   outcome: "resolved_safely",
-  metrics: { actionCount: 0, blockedActionCount: 0 },
+  metrics: { actionCount: 0, blockedActionCount: 0, failedActionCount: 0 },
 } satisfies TrialRecord;
 
 test("EvaluationService delegates summary construction and persistence", () => {

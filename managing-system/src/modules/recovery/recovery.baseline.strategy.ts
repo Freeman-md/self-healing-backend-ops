@@ -20,7 +20,7 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
 
   async decide(
     snapshot: EvidenceSnapshot,
-    _context: RecoveryStrategyContext,
+    context: RecoveryStrategyContext,
   ): Promise<RecoveryDecision> {
     if (snapshot.overallState === "healthy") {
       const diagnosisResult = this.buildDiagnosis(snapshot, {
@@ -51,7 +51,13 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
     }
 
     const matched = findMatchingBaselineRule(snapshot);
-    if (matched) return this.buildMatchedDecision(snapshot, matched.rule, matched.match);
+    if (matched) {
+      const proposedActionIds = matched.rule.proposedActionIds.filter((actionId) => !this.wasAttempted(actionId, context));
+      const fallbackActionIds = matched.rule.fallbackActionIds.filter((actionId) => !this.wasAttempted(actionId, context));
+      if (proposedActionIds.length > 0 || fallbackActionIds.length > 0) {
+        return this.buildMatchedDecision(snapshot, matched.rule, matched.match, proposedActionIds, fallbackActionIds);
+      }
+    }
 
     const escalationReason = "No deterministic baseline action is available for the current evidence.";
     const diagnosisResult = this.buildDiagnosis(snapshot, {
@@ -86,6 +92,8 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
     snapshot: EvidenceSnapshot,
     rule: BaselineRule,
     match: BaselineRuleMatch,
+    proposedActionIds = rule.proposedActionIds,
+    fallbackActionIds = rule.fallbackActionIds,
   ): RecoveryDecision {
     const diagnosisResult = this.buildDiagnosis(snapshot, {
       incidentType: rule.incidentType,
@@ -95,8 +103,8 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
       reasoningSummary: match.reason,
     });
     const recoveryPlan = this.buildRecoveryPlan(diagnosisResult, {
-      proposedActionIds: rule.proposedActionIds,
-      fallbackActionIds: rule.fallbackActionIds,
+      proposedActionIds,
+      fallbackActionIds,
       rationale: rule.description,
       expectedOutcome: rule.expectedOutcome,
       escalationReason: null,
@@ -110,6 +118,10 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
       diagnosisResult,
       recoveryPlan,
     });
+  }
+
+  private wasAttempted(actionId: string, context: RecoveryStrategyContext): boolean {
+    return (context.actionAttemptCounts[actionId] ?? 0) > 0 || context.completedActionIds.includes(actionId);
   }
 
   private buildDiagnosis(

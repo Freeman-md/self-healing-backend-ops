@@ -1,6 +1,12 @@
 import { config } from "@/config";
+import type { IContainerStateReader } from "@/infrastructure/container-runtime";
 import { OpenAIService } from "@/infrastructure/openai";
-import { evidenceSnapshotSchema, type EvidenceSnapshot } from "./evidence.schema";
+import {
+  evidenceSnapshotSchema,
+  type EvidenceSignal,
+  type EvidenceSnapshot,
+  type IncidentTypeCode,
+} from "./evidence.schema";
 import { EvidenceRepository } from "./evidence.repository";
 import { EvidenceFactory } from "./evidence.factory";
 
@@ -22,6 +28,8 @@ type EvidenceServiceOptions = {
   sleep?: (milliseconds: number) => Promise<void>;
   now?: () => number;
 };
+
+type ContainerStateReader = Pick<IContainerStateReader, "inspectTarget">;
 
 type EvidenceEndpoint = {
   source: Extract<RawEvidenceSource, "health" | "metrics">;
@@ -48,19 +56,26 @@ export class EvidenceService {
     private readonly openaiService?: OpenAIService,
     private readonly evidenceFactory = new EvidenceFactory(),
     private readonly options: EvidenceServiceOptions = {},
+    private readonly containerStateReader?: ContainerStateReader,
   ) {}
 
   async collectRawEvidence(): Promise<RawEvidence[]> {
-    return Promise.all(
+    const endpointEvidence = await Promise.all(
       evidenceEndpoints.map((endpoint) => this.collectFromEndpoint(endpoint)),
     );
+    const containerEvidence = await Promise.all([
+      this.collectContainerState("managed-system"),
+      this.collectContainerState("postgres"),
+    ]);
+
+    return [...endpointEvidence, ...containerEvidence];
   }
 
   async normalizeEvidence(rawEvidence: RawEvidence[]): Promise<EvidenceSnapshot> {
     const createdAt = new Date().toISOString();
     const openaiService = this.openaiService ?? new OpenAIService();
 
-    return openaiService.parseStructuredOutput({
+    const llmSnapshot = await openaiService.parseStructuredOutput({
       schema: evidenceSnapshotSchema,
       schemaName: "evidence_snapshot",
       systemPrompt: "Normalize raw operational evidence into a structured snapshot. Do not recommend actions.",
@@ -69,6 +84,21 @@ export class EvidenceService {
         rawEvidence,
       }),
     });
+
+    const deterministicSignals = this.deriveDeterministicSignals(rawEvidence);
+    const deterministicCodes = new Set(deterministicSignals.map((signal) => signal.code));
+    const supplementarySignals = llmSnapshot.signals.map((signal) => ({
+      ...signal,
+      code: deterministicCodes.has(signal.code) ? "unknown" as const : signal.code,
+      method: "llm" as const,
+    }));
+    const snapshot = evidenceSnapshotSchema.parse({
+      ...llmSnapshot,
+      signals: [...deterministicSignals, ...supplementarySignals],
+      suspectedIncidentTypes: this.deriveIncidentCodes(deterministicSignals),
+    });
+
+    return snapshot;
   }
 
   async collectAndNormalize(): Promise<EvidenceSnapshot> {
@@ -167,6 +197,99 @@ export class EvidenceService {
         error: error instanceof Error ? error.message : "unknown collection error",
       });
     }
+  }
+
+  private async collectContainerState(
+    target: "managed-system" | "postgres",
+  ): Promise<RawEvidence> {
+    const collectedAt = new Date().toISOString();
+    const containerName = target === "managed-system" ? "managed-system-app" : "managed-system-postgres";
+    if (!this.containerStateReader) {
+      return this.evidenceFactory.createFailedRawEvidence({
+        source: "container",
+        target: containerName,
+        collectedAt,
+        rawText: null,
+        error: "Container state reader is unavailable.",
+      });
+    }
+
+    try {
+      const result = await this.containerStateReader.inspectTarget(target);
+      return this.evidenceFactory.createCollectedRawEvidence({
+        source: "container",
+        target: result.containerName,
+        collectedAt,
+        rawText: result.state,
+      });
+    } catch (error) {
+      return this.evidenceFactory.createFailedRawEvidence({
+        source: "container",
+        target: containerName,
+        collectedAt,
+        rawText: null,
+        error: error instanceof Error ? error.message : "Container inspection failed.",
+      });
+    }
+  }
+
+  private deriveDeterministicSignals(rawEvidence: RawEvidence[]): EvidenceSignal[] {
+    const health = rawEvidence.find((item) => item.source === "health");
+    const metrics = rawEvidence.find((item) => item.source === "metrics");
+    const managedContainer = rawEvidence.find((item) => item.source === "container" && item.target === "managed-system-app");
+    const postgresContainer = rawEvidence.find((item) => item.source === "container" && item.target === "managed-system-postgres");
+    const healthBody = this.parseJson(health?.rawText);
+    const healthStatus = this.readStringProperty(healthBody, "status");
+    const databaseStatus = this.readNestedStringProperty(healthBody, "checks", "database", "status");
+
+    return [
+      this.createDeterministicSignal("managed_system_reachability", "health", health?.status === "collected" ? "normal" : "critical", health?.status === "collected", "Managed-system health endpoint reachability."),
+      this.createDeterministicSignal("managed_system_health", "health", healthStatus === "healthy" ? "normal" : healthStatus ? "critical" : "unknown", healthStatus ?? null, "Managed-system reported health status."),
+      this.createDeterministicSignal("database_connectivity", "health", databaseStatus === "healthy" ? "normal" : databaseStatus === "unhealthy" ? "critical" : "unknown", databaseStatus ?? null, "Database connectivity status reported by the managed system."),
+      this.createDeterministicSignal("metrics_availability", "metrics", metrics?.status === "collected" ? "normal" : "critical", metrics?.status === "collected", "Metrics endpoint availability."),
+      this.createContainerSignal("managed_system_container_state", managedContainer, "Managed-system application container state."),
+      this.createContainerSignal("postgres_container_state", postgresContainer, "PostgreSQL container state."),
+    ];
+  }
+
+  private createContainerSignal(code: Extract<EvidenceSignal["code"], "managed_system_container_state" | "postgres_container_state">, evidence: RawEvidence | undefined, description: string): EvidenceSignal {
+    const state = evidence?.status === "collected" ? evidence.rawText : null;
+    const status = state === "running" ? "normal" : state === "stopped" || state === "exited" ? "critical" : state === "restarting" ? "warning" : "unknown";
+    return this.createDeterministicSignal(code, "container", status, state, description);
+  }
+
+  private createDeterministicSignal(code: EvidenceSignal["code"], source: EvidenceSignal["source"], status: EvidenceSignal["status"], value: EvidenceSignal["value"], description: string): EvidenceSignal {
+    return { code, source, name: code, status, value, description, method: "deterministic" };
+  }
+
+  private deriveIncidentCodes(signals: EvidenceSignal[]): IncidentTypeCode[] {
+    const signal = (code: EvidenceSignal["code"]) => signals.find((item) => item.code === code);
+    const incidentCodes: IncidentTypeCode[] = [];
+    if (signal("postgres_container_state")?.status === "critical") incidentCodes.push("postgres_unavailable");
+    if (signal("database_connectivity")?.status === "critical") incidentCodes.push("database_connectivity_failure");
+    if (signal("managed_system_reachability")?.status === "critical") incidentCodes.push("managed_system_unreachable");
+    if (signal("managed_system_health")?.status === "critical") incidentCodes.push("managed_system_service_down");
+    return incidentCodes.length > 0 ? incidentCodes : ["unclassified"];
+  }
+
+  private parseJson(rawText: string | null | undefined): unknown {
+    if (!rawText) return null;
+    try { return JSON.parse(rawText); } catch { return null; }
+  }
+
+  private readStringProperty(value: unknown, key: string): string | null {
+    if (typeof value !== "object" || value === null || !(key in value)) return null;
+    const property = (value as Record<string, unknown>)[key];
+    return typeof property === "string" ? property : null;
+  }
+
+  private readNestedStringProperty(value: unknown, ...keys: string[]): string | null {
+    let current: unknown = value;
+    for (const key of keys) {
+      if (typeof current !== "object" || current === null || !(key in current)) return null;
+      current = (current as Record<string, unknown>)[key];
+    }
+    return typeof current === "string" ? current : null;
   }
 
   private buildTargetUrl(path: string): string {

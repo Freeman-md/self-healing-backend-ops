@@ -17,7 +17,7 @@ import { TrialService, type TrialRecord } from "@/modules/trial";
 function createSnapshot(
   id: string,
   overallState: EvidenceSnapshot["overallState"],
-  incidentTypes: string[] = [],
+  incidentTypes: EvidenceSnapshot["suspectedIncidentTypes"] = [],
 ): EvidenceSnapshot {
   return {
     id,
@@ -32,9 +32,11 @@ function createSnapshot(
             {
               source: "health",
               name: "database_connectivity",
+              code: "database_connectivity",
               status: "critical",
               value: false,
               description: "Database connectivity failed.",
+              method: "deterministic",
             },
           ]
         : [],
@@ -142,7 +144,7 @@ test("baseline returns no action for healthy evidence", async () => {
 test("baseline escalates when no deterministic rule matches", async () => {
   const engine = new RecoveryBaselineStrategy();
   const decision = await engine.decide(
-    createSnapshot("snapshot-unknown", "unknown", ["unusual_incident"]),
+    createSnapshot("snapshot-unknown", "unknown", ["unclassified"]),
     {
       actionAttemptCounts: {},
       completedActionIds: [],

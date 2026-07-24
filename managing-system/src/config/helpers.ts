@@ -47,3 +47,14 @@ export function readBoolean(value: string | undefined, fallback: boolean): boole
 
   throw new Error("Configuration boolean value must be explicitly true or false.");
 }
+
+export function readOptionalEnum<T extends string>(
+  value: string | undefined,
+  allowedValues: readonly T[],
+  name: string,
+): T | undefined {
+  const resolvedValue = readOptionalString(value);
+  if (!resolvedValue) return undefined;
+  if ((allowedValues as readonly string[]).includes(resolvedValue)) return resolvedValue as T;
+  throw new Error(`${name} must be one of: ${allowedValues.join(", ")}.`);
+}

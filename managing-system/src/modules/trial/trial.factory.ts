@@ -7,7 +7,7 @@ import type { TrialContext, TrialRecord, TrialState } from "./trial.types";
 
 export class TrialFactory {
   createTrialContext(snapshot: EvidenceSnapshot): TrialContext {
-    return { trialRecordId: `trial-${randomUUID()}`, actionAttemptCounts: {}, completedActionIds: [], evidenceSnapshotIds: [snapshot.id], selectedActionIds: [], executedActionResultIds: [], blockedActionIds: [] };
+    return { trialRecordId: `trial-${randomUUID()}`, actionAttemptCounts: {}, completedActionIds: [], evidenceSnapshotIds: [snapshot.id], selectedActionIds: [], actionExecutionResultIds: [], executedActionResultIds: [], blockedActionIds: [], failedActionIds: [] };
   }
 
   createTrialStateFromDecision(decision: RecoveryDecision, snapshot: EvidenceSnapshot): TrialState {
@@ -47,16 +47,17 @@ export class TrialFactory {
       diagnosisResultId: input.recoveryDecision.diagnosisResult.id,
       recoveryPlanId: input.recoveryDecision.recoveryPlan.id,
       selectedActionIds: input.context.selectedActionIds,
+      actionExecutionResultIds: input.context.actionExecutionResultIds,
       executedActionResultIds: input.context.executedActionResultIds,
       blockedActionIds: input.context.blockedActionIds,
+      failedActionIds: input.context.failedActionIds,
       status: input.trialState.status,
       outcome: input.trialState.outcome,
       escalationReason: input.trialState.escalationReason,
       metrics: {
-        actionCount:
-          input.context.executedActionResultIds.length +
-          input.context.blockedActionIds.length,
+        actionCount: input.context.actionExecutionResultIds.length,
         blockedActionCount: input.context.blockedActionIds.length,
+        failedActionCount: input.context.failedActionIds.length,
         timeToRecoveryMs:
           input.trialState.status === "resolved"
             ? new Date(input.completedAt).getTime() -
