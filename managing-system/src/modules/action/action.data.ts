@@ -1,8 +1,50 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
 import type { SafetyRule } from "@/modules/safety";
 
-import type { ActionDefinition } from "./action.types";
+import type { Action } from "./action.types";
 
-const safetyRules: SafetyRule[] = [
+export type ActionHandlerInput = {
+  action: Action;
+  trialRecordId: string;
+};
+
+export type ActionHandlerResult = {
+  output: string;
+};
+
+export type ActionHandler = (
+  input: ActionHandlerInput,
+) => Promise<ActionHandlerResult>;
+
+const execFileAsync = promisify(execFile);
+
+export type ProcessExecutor = (
+  command: string,
+  arguments_: string[],
+) => Promise<ActionHandlerResult>;
+
+const executeDockerProcess: ProcessExecutor = async (command, arguments_) => {
+  const { stdout, stderr } = await execFileAsync(command, arguments_);
+
+  return {
+    output: [stdout, stderr].filter(Boolean).join("\n").trim(),
+  };
+}
+
+export function createActionHandlers(
+  executeProcess: ProcessExecutor = executeDockerProcess,
+): Record<string, ActionHandler> {
+  return {
+    restart_managed_system_service: async () =>
+      executeProcess("docker", ["restart", "managed-system-app"]),
+    restart_postgres_container: async () =>
+      executeProcess("docker", ["restart", "managed-system-postgres"]),
+  };
+}
+
+export const predefinedSafetyRules: SafetyRule[] = [
   {
     id: "allow_only_when_system_not_healthy",
     description: "Only allow this recovery action when the managed system is degraded or unhealthy.",
@@ -23,7 +65,7 @@ const safetyRules: SafetyRule[] = [
   },
 ];
 
-const actions: ActionDefinition[] = [
+export const predefinedActions: Action[] = [
   {
     id: "restart_postgres_container",
     name: "Restart PostgreSQL container",
@@ -68,20 +110,4 @@ const actions: ActionDefinition[] = [
   },
 ];
 
-export class ActionRegistry {
-  listActions(): ActionDefinition[] {
-    return actions;
-  }
-
-  listSafetyRules(): SafetyRule[] {
-    return safetyRules;
-  }
-
-  findActionById(actionId: string): ActionDefinition | null {
-    return actions.find((action) => action.id === actionId) ?? null;
-  }
-
-  findSafetyRuleById(ruleId: string): SafetyRule | null {
-    return safetyRules.find((rule) => rule.id === ruleId) ?? null;
-  }
-}
+export const actionHandlers = createActionHandlers();

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { ActionRegistry, type ActionExecutionResult } from "@/modules/actions";
+import { ActionRepository, type ActionExecutionResult } from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 import type {
   RecoveryDecision,
   RecoveryMode,
   RecoveryStrategy,
 } from "@/modules/recovery";
-import { TrialRunner } from "@/modules/trials";
+import { TrialService } from "@/modules/trial";
 
 function createHealthySnapshot(): EvidenceSnapshot {
   return {
@@ -67,16 +67,16 @@ function createStrategy(mode: RecoveryMode): RecoveryStrategy {
 test("baseline and agent strategies produce separate comparable trial records", async () => {
   const baseline = createStrategy("baseline");
   const agent = createStrategy("agent");
-  const runner = new TrialRunner(
+  const runner = new TrialService(
     { baseline, agent },
-    new ActionRegistry(),
+    new ActionRepository(),
     {
-      async execute(): Promise<ActionExecutionResult> {
+      async executeAction(): Promise<ActionExecutionResult> {
         throw new Error("No action should execute for healthy evidence.");
       },
     },
-    { findSnapshotById: () => null },
-    { save: (result) => result },
+    { findEvidenceSnapshotById: () => null },
+    { saveActionExecutionResult: (result: ActionExecutionResult) => result },
   );
   const snapshot = createHealthySnapshot();
 

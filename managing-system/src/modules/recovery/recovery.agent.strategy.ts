@@ -1,39 +1,37 @@
-import { ActionRegistry } from "@/modules/actions";
+import { ActionRepository } from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 import type {
   RecoveryDecision,
   RecoveryStrategy,
   RecoveryStrategyContext,
-} from "../../recovery.types";
+} from "./recovery.types";
 
-import { DiagnosisService } from "./diagnosis.service";
-import { RecoveryPlannerService } from "./recovery-planner.service";
+import { RecoveryAgentService } from "./recovery.agent.service";
 
-export class AgentRecoveryStrategy implements RecoveryStrategy {
+export class RecoveryAgentStrategy implements RecoveryStrategy {
   readonly mode = "agent" as const;
 
   constructor(
-    private readonly diagnosisService = new DiagnosisService(),
-    private readonly recoveryPlanner = new RecoveryPlannerService(),
-    private readonly actionRegistry = new ActionRegistry(),
+    private readonly recoveryAgentService = new RecoveryAgentService(),
+    private readonly actionRepository = new ActionRepository(),
   ) {}
 
   async decide(
     evidenceSnapshot: EvidenceSnapshot,
     _context: RecoveryStrategyContext,
   ): Promise<RecoveryDecision> {
-    const diagnosisResult = await this.diagnosisService.diagnose(evidenceSnapshot);
-    const recoveryPlan = await this.recoveryPlanner.plan({
+    const diagnosisResult = await this.recoveryAgentService.diagnoseEvidence(evidenceSnapshot);
+    const recoveryPlan = await this.recoveryAgentService.createRecoveryPlan({
       evidenceSnapshot,
       diagnosisResult,
-      availableActions: this.actionRegistry.listActions(),
+      availableActions: this.actionRepository.listActions(),
     });
     const plannedActionIds = [
       ...recoveryPlan.proposedActionIds,
       ...recoveryPlan.fallbackActionIds,
     ];
     const unregisteredActionIds = plannedActionIds.filter(
-      (actionId) => !this.actionRegistry.findActionById(actionId),
+      (actionId) => !this.actionRepository.findActionById(actionId),
     );
     const decidedAt = new Date().toISOString();
 

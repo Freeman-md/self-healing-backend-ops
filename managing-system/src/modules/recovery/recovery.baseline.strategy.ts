@@ -1,27 +1,27 @@
-import { randomUUID } from "node:crypto";
-
 import type { EvidenceSnapshot } from "@/modules/evidence";
 import type {
   RecoveryDecision,
   RecoveryStrategy,
   RecoveryStrategyContext,
-} from "../../recovery.types";
-import type {
-  DiagnosisResult,
-  RecoveryPlan,
-} from "../../recovery.schema";
+} from "./recovery.types";
+import type { DiagnosisResult, RecoveryPlan } from "./recovery.schema";
+import { RecoveryFactory } from "./recovery.factory";
 
-import { baselineRules, type BaselineRule } from "./baseline-rules";
+import {
+  findMatchingBaselineRule,
+  type BaselineRule,
+  type BaselineRuleMatch,
+} from "./recovery.baseline.rules";
 
-export class BaselineRecoveryStrategy implements RecoveryStrategy {
+export class RecoveryBaselineStrategy implements RecoveryStrategy {
   readonly mode = "baseline" as const;
+
+  constructor(private readonly recoveryFactory = new RecoveryFactory()) {}
 
   async decide(
     snapshot: EvidenceSnapshot,
     _context: RecoveryStrategyContext,
   ): Promise<RecoveryDecision> {
-    const decidedAt = new Date().toISOString();
-
     if (snapshot.overallState === "healthy") {
       const diagnosisResult = this.buildDiagnosis(snapshot, {
         incidentType: "no_incident",
@@ -40,26 +40,18 @@ export class BaselineRecoveryStrategy implements RecoveryStrategy {
         escalationReason: null,
       });
 
-      return {
+      return this.recoveryFactory.createRecoveryDecision({
         mode: this.mode,
-        snapshotId: snapshot.id,
-        decidedAt,
+        snapshot,
         status: "no_action",
         reason: "Evidence snapshot is healthy, so the baseline path takes no recovery action.",
         diagnosisResult,
         recoveryPlan,
-      };
+      });
     }
 
-    for (const rule of baselineRules) {
-      const match = rule.matches(snapshot);
-
-      if (!match) {
-        continue;
-      }
-
-      return this.buildMatchedDecision(snapshot, rule, match, decidedAt);
-    }
+    const matched = findMatchingBaselineRule(snapshot);
+    if (matched) return this.buildMatchedDecision(snapshot, matched.rule, matched.match);
 
     const escalationReason = "No deterministic baseline action is available for the current evidence.";
     const diagnosisResult = this.buildDiagnosis(snapshot, {
@@ -79,23 +71,21 @@ export class BaselineRecoveryStrategy implements RecoveryStrategy {
       escalationReason,
     });
 
-    return {
+    return this.recoveryFactory.createRecoveryDecision({
       mode: this.mode,
-      snapshotId: snapshot.id,
-      decidedAt,
+      snapshot,
       status: "escalate",
       reason: "No fixed baseline recovery rule matched the current evidence snapshot.",
       diagnosisResult,
       recoveryPlan,
       escalationReason,
-    };
+    });
   }
 
   private buildMatchedDecision(
     snapshot: EvidenceSnapshot,
     rule: BaselineRule,
-    match: { matchedSignalNames: string[]; reason: string },
-    decidedAt: string,
+    match: BaselineRuleMatch,
   ): RecoveryDecision {
     const diagnosisResult = this.buildDiagnosis(snapshot, {
       incidentType: rule.incidentType,
@@ -112,15 +102,14 @@ export class BaselineRecoveryStrategy implements RecoveryStrategy {
       escalationReason: null,
     });
 
-    return {
+    return this.recoveryFactory.createRecoveryDecision({
       mode: this.mode,
-      snapshotId: snapshot.id,
-      decidedAt,
+      snapshot,
       status: "action_selected",
       reason: match.reason,
       diagnosisResult,
       recoveryPlan,
-    };
+    });
   }
 
   private buildDiagnosis(
@@ -133,10 +122,8 @@ export class BaselineRecoveryStrategy implements RecoveryStrategy {
       reasoningSummary: string;
     },
   ): DiagnosisResult {
-    return {
-      id: "diagnosis-" + randomUUID(),
+    return this.recoveryFactory.createDiagnosisResult({
       evidenceSnapshotId: snapshot.id,
-      createdAt: new Date().toISOString(),
       method: "deterministic",
       sourceIds: input.sourceIds,
       suspectedIncidentType: input.incidentType,
@@ -145,7 +132,7 @@ export class BaselineRecoveryStrategy implements RecoveryStrategy {
       reasoningSummary: input.reasoningSummary,
       supportingSignals: input.supportingSignals,
       contradictions: snapshot.contradictions,
-    };
+    });
   }
 
   private buildRecoveryPlan(
@@ -158,15 +145,13 @@ export class BaselineRecoveryStrategy implements RecoveryStrategy {
       escalationReason: string | null;
     },
   ): RecoveryPlan {
-    return {
-      id: "recovery-plan-" + randomUUID(),
+    return this.recoveryFactory.createRecoveryPlan({
       diagnosisResultId: diagnosisResult.id,
-      createdAt: new Date().toISOString(),
       proposedActionIds: input.proposedActionIds,
       rationale: input.rationale,
       expectedOutcome: input.expectedOutcome,
       fallbackActionIds: input.fallbackActionIds,
       escalationReason: input.escalationReason,
-    };
+    });
   }
 }

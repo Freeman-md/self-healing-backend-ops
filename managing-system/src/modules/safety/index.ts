@@ -1,9 +1,9 @@
-export { SafetyGate } from "./safety-gate.service";
+export { SafetyService } from "./safety.service";
 export type {
   SafetyCheckStatus,
   SafetyCheckType,
-  SafetyGateDecision,
-  SafetyGateDecisionStatus,
+  SafetyDecision,
+  SafetyDecisionStatus,
   SafetyRule,
   SafetyRuleEvaluation,
   SafetyRuleFailureAction,

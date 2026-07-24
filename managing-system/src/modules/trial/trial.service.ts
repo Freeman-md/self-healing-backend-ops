@@ -1,13 +1,10 @@
-import { randomUUID } from "node:crypto";
-
 import {
-  ActionExecutionRepository,
-  ActionExecutor,
-  ActionRegistry,
+  ActionRepository,
+  ActionService,
   type ActionExecutionResult,
-} from "@/modules/actions";
+} from "@/modules/action";
 import {
-  EvaluationSummaryFactory,
+  EvaluationFactory,
   type EvaluationSummary,
 } from "@/modules/evaluation";
 import {
@@ -15,39 +12,36 @@ import {
   type EvidenceSnapshot,
 } from "@/modules/evidence";
 import {
-  AgentRecoveryStrategy,
-  BaselineRecoveryStrategy,
+  RecoveryAgentStrategy,
+  RecoveryBaselineStrategy,
   type RecoveryDecision,
   type RecoveryMode,
 } from "@/modules/recovery";
 
-import { TrialRecordFactory } from "./trial-record.factory";
-import { TrialStateFactory } from "./trial-state.factory";
+import { TrialFactory } from "./trial.factory";
 import type {
   RecoveryStrategies,
-  TrialContext,
   TrialRecord,
 } from "./trial.types";
+import { getOrderedRecoveryActionIds, recordActionResultInTrialContext, recordEvidenceSnapshotInTrialContext } from "./trial.helpers";
 
-type ActionExecutorPort = Pick<ActionExecutor, "execute">;
-type EvidenceRepositoryPort = Pick<EvidenceRepository, "findSnapshotById">;
-type ActionExecutionRepositoryPort = Pick<ActionExecutionRepository, "save">;
+type ActionServicePort = Pick<ActionService, "executeAction">;
+type EvidenceRepositoryPort = Pick<EvidenceRepository, "findEvidenceSnapshotById">;
+type ActionRepositoryPort = Pick<ActionRepository, "saveActionExecutionResult" | "findActionById">;
 
-export class TrialRunner {
+export class TrialService {
   constructor(
     private readonly strategies: RecoveryStrategies = {
-      baseline: new BaselineRecoveryStrategy(),
-      agent: new AgentRecoveryStrategy(),
+      baseline: new RecoveryBaselineStrategy(),
+      agent: new RecoveryAgentStrategy(),
     },
-    private readonly actionRegistry = new ActionRegistry(),
-    private readonly actionExecutor: ActionExecutorPort = new ActionExecutor(),
+    private readonly actionRepository: ActionRepositoryPort = new ActionRepository(),
+    private readonly actionService: ActionServicePort = new ActionService(),
     private readonly evidenceRepository: EvidenceRepositoryPort = new EvidenceRepository(),
-    private readonly actionExecutionRepository: ActionExecutionRepositoryPort =
-      new ActionExecutionRepository(),
+    private readonly actionPersistenceRepository: Pick<ActionRepository, "saveActionExecutionResult"> = new ActionRepository(),
     private readonly maxRecoverySteps = 3,
-    private readonly trialRecordFactory = new TrialRecordFactory(),
-    private readonly evaluationSummaryFactory = new EvaluationSummaryFactory(),
-    private readonly trialStateFactory = new TrialStateFactory(),
+    private readonly trialFactory = new TrialFactory(),
+    private readonly evaluationFactory = new EvaluationFactory(),
   ) {}
 
   async runRecoveryTrial(input: {
@@ -60,11 +54,11 @@ export class TrialRunner {
     recoveryDecision: RecoveryDecision;
   }> {
     const startedAt = new Date().toISOString();
-    const context = this.createTrialContext(input.snapshot);
+    const context = this.trialFactory.createTrialContext(input.snapshot);
     const strategy = this.strategies[input.mode];
     let currentSnapshot = input.snapshot;
     let recoveryDecision = await strategy.decide(currentSnapshot, context);
-    let trialState = this.trialStateFactory.fromDecision(
+    let trialState = this.trialFactory.createTrialStateFromDecision(
       recoveryDecision,
       currentSnapshot,
     );
@@ -74,7 +68,7 @@ export class TrialRunner {
       recoveryDecision.status === "action_selected" &&
       executedSteps < this.maxRecoverySteps
     ) {
-      const plannedActionIds = this.getOrderedActionIds(recoveryDecision);
+      const plannedActionIds = getOrderedRecoveryActionIds(recoveryDecision);
 
       if (plannedActionIds.length === 0) {
         trialState = {
@@ -92,7 +86,7 @@ export class TrialRunner {
           break;
         }
 
-        const action = this.actionRegistry.findActionById(actionId);
+        const action = this.actionRepository.findActionById(actionId);
 
         if (!action) {
           trialState = {
@@ -104,17 +98,18 @@ export class TrialRunner {
           break;
         }
 
-        const result = await this.actionExecutor.execute(action, currentSnapshot, {
+        const result = await this.actionService.executeAction(action, currentSnapshot, {
           trialRecordId: context.trialRecordId,
           actionAttemptCounts: context.actionAttemptCounts,
           completedActionIds: context.completedActionIds,
         });
 
         executedSteps += 1;
-        this.recordActionResult(context, action.id, result);
+        recordActionResultInTrialContext(context, action.id, result);
+        this.actionPersistenceRepository.saveActionExecutionResult(result);
         currentSnapshot = this.findAfterSnapshot(result, currentSnapshot);
-        this.recordEvidenceSnapshot(context, currentSnapshot);
-        trialState = this.trialStateFactory.fromExecutionResult(result);
+        recordEvidenceSnapshotInTrialContext(context, currentSnapshot);
+        trialState = this.trialFactory.createTrialStateFromActionResult(result);
 
         if (result.continuation !== "continue") {
           shouldReplan = false;
@@ -144,14 +139,14 @@ export class TrialRunner {
       }
 
       recoveryDecision = await strategy.decide(currentSnapshot, context);
-      trialState = this.trialStateFactory.fromDecision(
+      trialState = this.trialFactory.createTrialStateFromDecision(
         recoveryDecision,
         currentSnapshot,
       );
     }
 
     const completedAt = new Date().toISOString();
-    const trialRecord = this.trialRecordFactory.create({
+    const trialRecord = this.trialFactory.createTrialRecord({
       scenarioId: input.scenarioId,
       recoveryMode: input.mode,
       startedAt,
@@ -162,7 +157,7 @@ export class TrialRunner {
       recoveryDecision,
       trialState,
     });
-    const evaluationSummary = this.evaluationSummaryFactory.create(
+    const evaluationSummary = this.evaluationFactory.createEvaluationSummary(
       trialRecord,
       trialState.reason,
     );
@@ -174,45 +169,6 @@ export class TrialRunner {
     };
   }
 
-  private getOrderedActionIds(decision: RecoveryDecision): string[] {
-    return [
-      ...new Set([
-        ...decision.recoveryPlan.proposedActionIds,
-        ...decision.recoveryPlan.fallbackActionIds,
-      ]),
-    ];
-  }
-
-  private createTrialContext(snapshot: EvidenceSnapshot): TrialContext {
-    return {
-      trialRecordId: "trial-" + randomUUID(),
-      actionAttemptCounts: {},
-      completedActionIds: [],
-      evidenceSnapshotIds: [snapshot.id],
-      selectedActionIds: [],
-      executedActionResultIds: [],
-      blockedActionIds: [],
-    };
-  }
-
-  private recordActionResult(
-    context: TrialContext,
-    actionId: string,
-    result: ActionExecutionResult,
-  ): void {
-    context.selectedActionIds.push(actionId);
-    context.actionAttemptCounts[actionId] =
-      (context.actionAttemptCounts[actionId] ?? 0) + 1;
-    this.actionExecutionRepository.save(result);
-
-    if (result.status === "executed") {
-      context.executedActionResultIds.push(result.id);
-      context.completedActionIds.push(actionId);
-    } else {
-      context.blockedActionIds.push(actionId);
-    }
-  }
-
   private findAfterSnapshot(
     result: ActionExecutionResult,
     fallback: EvidenceSnapshot,
@@ -222,18 +178,9 @@ export class TrialRunner {
     }
 
     return (
-      this.evidenceRepository.findSnapshotById(result.afterEvidenceSnapshotId) ??
+      this.evidenceRepository.findEvidenceSnapshotById(result.afterEvidenceSnapshotId) ??
       fallback
     );
-  }
-
-  private recordEvidenceSnapshot(
-    context: TrialContext,
-    snapshot: EvidenceSnapshot,
-  ): void {
-    if (snapshot.id !== context.evidenceSnapshotIds.at(-1)) {
-      context.evidenceSnapshotIds.push(snapshot.id);
-    }
   }
 
 }

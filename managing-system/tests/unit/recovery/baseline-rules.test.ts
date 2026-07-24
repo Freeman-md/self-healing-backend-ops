@@ -1,0 +1,88 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
+import type { EvidenceSnapshot } from "@/modules/evidence";
+import {
+  RecoveryBaselineStrategy,
+  findMatchingBaselineRule,
+  type RecoveryFactory,
+} from "@/modules/recovery";
+
+function createSnapshot(
+  overallState: EvidenceSnapshot["overallState"],
+  suspectedIncidentTypes: string[] = [],
+): EvidenceSnapshot {
+  return {
+    id: `snapshot-${overallState}`,
+    rawEvidenceIds: [],
+    createdAt: new Date().toISOString(),
+    targetSystem: "managed-system",
+    overallState,
+    summary: overallState,
+    signals: suspectedIncidentTypes.includes("database_connectivity_failure")
+      ? [{
+        source: "health",
+        name: "database_connectivity",
+        status: "critical",
+        value: false,
+        description: "Database connectivity failed.",
+      }]
+      : [],
+    suspectedIncidentTypes,
+    contradictions: [],
+  };
+}
+
+test("baseline rules select the PostgreSQL restart with the existing fallback", () => {
+  const match = findMatchingBaselineRule(
+    createSnapshot("unhealthy", ["database_connectivity_failure"]),
+  );
+
+  assert.deepEqual(match?.rule.proposedActionIds, ["restart_postgres_container"]);
+  assert.deepEqual(match?.rule.fallbackActionIds, ["restart_managed_system_service"]);
+});
+
+test("baseline strategy retains healthy and unmatched escalation decisions", async () => {
+  const strategy = new RecoveryBaselineStrategy();
+  const context = { actionAttemptCounts: {}, completedActionIds: [] };
+
+  const healthy = await strategy.decide(createSnapshot("healthy"), context);
+  const unmatched = await strategy.decide(
+    createSnapshot("unknown", ["unusual_incident"]),
+    context,
+  );
+
+  assert.equal(healthy.status, "no_action");
+  assert.equal(unmatched.status, "escalate");
+});
+
+test("baseline strategy delegates deterministic construction to RecoveryFactory", async () => {
+  const calls: string[] = [];
+  const factory = {
+    createDiagnosisResult(input: Record<string, unknown>) {
+      calls.push("diagnosis");
+      return { ...input, id: "diagnosis-test", createdAt: "2026-07-23T00:00:00.000Z" };
+    },
+    createRecoveryPlan(input: Record<string, unknown>) {
+      calls.push("plan");
+      return { ...input, id: "plan-test", createdAt: "2026-07-23T00:00:00.000Z" };
+    },
+    createRecoveryDecision(input: Record<string, unknown>) {
+      calls.push("decision");
+      return {
+        ...input,
+        snapshotId: (input.snapshot as EvidenceSnapshot).id,
+        decidedAt: "2026-07-23T00:00:00.000Z",
+      };
+    },
+  } as unknown as RecoveryFactory;
+  const strategy = new RecoveryBaselineStrategy(factory);
+
+  const decision = await strategy.decide(
+    createSnapshot("unhealthy", ["database_connectivity_failure"]),
+    { actionAttemptCounts: {}, completedActionIds: [] },
+  );
+
+  assert.equal(decision.status, "action_selected");
+  assert.deepEqual(calls, ["diagnosis", "plan", "decision"]);
+});

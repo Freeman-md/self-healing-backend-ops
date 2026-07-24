@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 
-import type { TrialRecord } from "@/modules/trials";
+import type { TrialRecord } from "@/modules/trial";
 
 import type { EvaluationSummary } from "./evaluation.types";
 
-export class EvaluationSummaryFactory {
-  create(trialRecord: TrialRecord, summaryReason: string): EvaluationSummary {
+export class EvaluationFactory {
+  createEvaluationSummary(trialRecord: TrialRecord, summaryReason: string): EvaluationSummary {
     return {
       id: `evaluation-${randomUUID()}`,
       trialRecordId: trialRecord.id,

@@ -1,13 +1,12 @@
-export { ActionExecutionRepository } from "./action-execution.repository";
-export { ActionExecutor } from "./action-executor.service";
-export { ActionOutcomeEvaluator } from "./action-outcome-evaluator.service";
-export { ActionRegistry } from "./action-registry";
+export { ActionRepository } from "./action.repository";
+export { ActionService } from "./action.service";
+export { ActionFactory } from "./action.factory";
 export {
   actionOutcomeEvaluationSchema,
   type ActionOutcomeEvaluation,
 } from "./action.schema";
 export type {
-  ActionDefinition,
+  Action,
   ActionExecutionContinuation,
   ActionExecutionResult,
   ActionExecutionStatus,
