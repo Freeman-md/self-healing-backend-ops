@@ -2,6 +2,7 @@ import { config } from "@/config";
 import { OpenAIService } from "@/infrastructure/openai";
 import { evidenceSnapshotSchema, type EvidenceSnapshot } from "./evidence.schema";
 import { EvidenceRepository } from "./evidence.repository";
+import { EvidenceFactory } from "./evidence.factory";
 
 import type { RawEvidence, RawEvidenceSource } from "./evidence.schema";
 
@@ -28,6 +29,7 @@ export class EvidenceService {
       "saveEvidenceSnapshot" | "findEvidenceSnapshotById"
     >,
     private readonly openaiService?: OpenAIService,
+    private readonly evidenceFactory = new EvidenceFactory(),
   ) {}
 
   async collectRawEvidence(): Promise<RawEvidence[]> {
@@ -75,44 +77,33 @@ export class EvidenceService {
       const rawText = await response.text();
 
       if (!response.ok) {
-        return {
-          id: this.buildEvidenceId(endpoint.source, collectedAt),
+        return this.evidenceFactory.createFailedRawEvidence({
           source: endpoint.source,
           target,
           collectedAt,
-          status: "failed",
           rawText,
           error: `request failed with status ${response.status}`,
-        };
+        });
       }
 
-      return {
-        id: this.buildEvidenceId(endpoint.source, collectedAt),
+      return this.evidenceFactory.createCollectedRawEvidence({
         source: endpoint.source,
         target,
         collectedAt,
-        status: "collected",
         rawText,
-        error: null,
-      };
+      });
     } catch (error) {
-      return {
-        id: this.buildEvidenceId(endpoint.source, collectedAt),
+      return this.evidenceFactory.createFailedRawEvidence({
         source: endpoint.source,
         target,
         collectedAt,
-        status: "failed",
         rawText: null,
         error: error instanceof Error ? error.message : "unknown collection error",
-      };
+      });
     }
   }
 
   private buildTargetUrl(path: string): string {
     return new URL(path, config.managedSystem.baseUrl).toString();
-  }
-
-  private buildEvidenceId(source: RawEvidenceSource, collectedAt: string): string {
-    return `raw-${source}-${collectedAt}`;
   }
 }

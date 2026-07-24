@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  managed-system:
+    name: Managed system
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: managed-system
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/managed_system
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: managed-system/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Build
+        run: npm run build
+
+  managing-system:
+    name: Managing system
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: managing-system
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: managing-system/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run test:types
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
