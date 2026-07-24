@@ -37,7 +37,10 @@ const databaseConnectivityRule: BaselineRule = {
   incidentType: "database_connectivity_failure",
   severity: "high",
   proposedActionIds: ["restart_postgres_container"],
-  fallbackActionIds: ["restart_managed_system_service"],
+  // A database restart must be assessed before any application recovery is
+  // considered. A later decision may select the application restart only from
+  // fresh evidence that matches its own rule.
+  fallbackActionIds: [],
   expectedOutcome: "Database readiness and managed-system health return to a healthy state.",
   matches(snapshot) {
     if (!isCritical(snapshot, "postgres_container_state") && !isCritical(snapshot, "database_connectivity")) return null;

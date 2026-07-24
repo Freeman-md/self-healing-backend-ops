@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  ActionRepository,
   type Action,
   type ActionExecutionResult,
 } from "@/modules/action";
@@ -106,6 +105,21 @@ function createResult(input: {
   };
 }
 
+function createAction(id: string): Action {
+  return {
+    id,
+    name: id,
+    description: "Test action.",
+    handlerKey: id,
+    riskLevel: "low",
+    safetyRuleIds: [],
+    expectedOutcome: {
+      description: "Test outcome.",
+      successCriteria: [],
+    },
+  };
+}
+
 test("baseline produces deterministic diagnosis and ordered recovery plan", async () => {
   const engine = new RecoveryBaselineStrategy();
   const snapshot = createSnapshot(
@@ -156,7 +170,7 @@ test("baseline escalates when no deterministic rule matches", async () => {
   assert.equal(decision.diagnosisResult.method, "deterministic");
 });
 
-test("trial runner executes proposed then fallback action with reassessment", async () => {
+test("trial runner requires fresh evidence and a re-decision before a subsequent action", async () => {
   const initialSnapshot = createSnapshot(
     "snapshot-unhealthy",
     "unhealthy",
@@ -167,14 +181,21 @@ test("trial runner executes proposed then fallback action with reassessment", as
   const strategy: RecoveryStrategy = {
     mode: "baseline",
     async decide(snapshot) {
+      decisionSnapshotIds.push(snapshot.id);
+      if (snapshot.id === initialSnapshot.id) {
+        return createDecision({
+          snapshot,
+          actionIds: ["restart_postgres_container"],
+        });
+      }
       return createDecision({
         snapshot,
-        actionIds: ["restart_postgres_container"],
-        fallbackActionIds: ["restart_managed_system_service"],
+        actionIds: ["restart_managed_system_service"],
       });
     },
   };
   const executedActionIds: string[] = [];
+  const decisionSnapshotIds: string[] = [];
   const savedResults: ActionExecutionResult[] = [];
   const snapshots = new Map([
     [intermediateSnapshot.id, intermediateSnapshot],
@@ -186,7 +207,7 @@ test("trial runner executes proposed then fallback action with reassessment", as
     { baseline: strategy, agent: strategy },
     { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
     {
-      findActionById: (actionId: string) => new ActionRepository().findActionById(actionId),
+      findActionById: (actionId: string) => createAction(actionId),
       async executeAction(action: Action, _snapshot: EvidenceSnapshot, context: { trialRecordId: string }) {
         executedActionIds.push(action.id);
         executionCount += 1;
@@ -229,6 +250,10 @@ test("trial runner executes proposed then fallback action with reassessment", as
     "restart_postgres_container",
     "restart_managed_system_service",
   ]);
+  assert.deepEqual(decisionSnapshotIds, [
+    initialSnapshot.id,
+    intermediateSnapshot.id,
+  ]);
   assert.equal(savedResults.length, 2);
   assert.equal(result.trialRecord.status, "resolved");
   assert.equal(result.trialRecord.finalEvidenceSnapshotId, healthySnapshot.id);
@@ -256,7 +281,7 @@ test("trial runner escalates when the action limit is reached", async () => {
     { baseline: strategy, agent: strategy },
     { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
     {
-      findActionById: (actionId: string) => new ActionRepository().findActionById(actionId),
+      findActionById: (actionId: string) => createAction(actionId),
       async executeAction(action: Action, _snapshot: EvidenceSnapshot, context: { trialRecordId: string }) {
         return createResult({
           id: "result-limit",

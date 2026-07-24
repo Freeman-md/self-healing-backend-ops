@@ -6,6 +6,7 @@ import {
   type Action,
 } from "@/modules/action";
 import { createActionHandlers } from "@/modules/action/action.data";
+import { DatabaseService } from "@/infrastructure/database";
 import type { IContainerRuntime } from "@/infrastructure/container-runtime";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 import { ActionService } from "@/modules/action/action.service";
@@ -16,8 +17,9 @@ const actionHandlerInput = {
 };
 
 test("action repository resolves the predefined action and safety-rule catalogue", () => {
+  const databaseService = new DatabaseService(":memory:");
   const repository = new ActionRepository(
-    undefined,
+    databaseService,
     {
       restartTarget: async () => ({ target: "managed-system", containerName: "managed-system-app", output: "" }),
     },
@@ -41,6 +43,7 @@ test("action repository resolves the predefined action and safety-rule catalogue
     typeof repository.findActionHandler("restart_managed_system_service"),
     "function",
   );
+  databaseService.close();
 });
 
 test("action handlers use only their allowlisted runtime targets", async () => {

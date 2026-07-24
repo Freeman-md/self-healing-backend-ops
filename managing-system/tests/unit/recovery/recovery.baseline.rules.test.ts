@@ -35,13 +35,13 @@ function createSnapshot(
   };
 }
 
-test("baseline rules select the PostgreSQL restart with the existing fallback", () => {
+test("baseline rules select only the PostgreSQL restart for database evidence", () => {
   const match = findMatchingBaselineRule(
     createSnapshot("unhealthy", ["database_connectivity_failure"]),
   );
 
   assert.deepEqual(match?.rule.proposedActionIds, ["restart_postgres_container"]);
-  assert.deepEqual(match?.rule.fallbackActionIds, ["restart_managed_system_service"]);
+  assert.deepEqual(match?.rule.fallbackActionIds, []);
 });
 
 test("baseline strategy retains healthy and unmatched escalation decisions", async () => {
