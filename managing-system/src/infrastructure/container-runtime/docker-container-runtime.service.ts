@@ -53,7 +53,7 @@ export class DockerContainerRuntimeService implements IContainerRuntime {
   }
 
   private resolveContainerName(target: ContainerRuntimeTarget): string {
-    if (!(target in containerNames)) {
+    if (!Object.hasOwn(containerNames, target)) {
       throw new Error(`Unsupported container runtime target: ${String(target)}.`);
     }
 

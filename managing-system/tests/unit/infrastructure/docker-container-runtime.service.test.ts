@@ -23,7 +23,7 @@ test("Docker runtime maps fixed targets through argument-based execution", async
   ]);
 });
 
-test("Docker runtime rejects disabled and unsupported targets before process execution", async () => {
+test("Docker runtime rejects disabled, unknown and inherited targets before process execution", async () => {
   let invoked = false;
   const executeFile: ExecFileImplementation = () => {
     invoked = true;
@@ -33,6 +33,7 @@ test("Docker runtime rejects disabled and unsupported targets before process exe
   await assert.rejects(disabled.restartTarget("managed-system"), /disabled/);
   const enabled = new DockerContainerRuntimeService({ dockerEnabled: true, dockerTimeoutMs: 10 }, executeFile);
   await assert.rejects(enabled.restartTarget("unknown" as never), /Unsupported/);
+  await assert.rejects(enabled.restartTarget("toString" as never), /Unsupported/);
   assert.equal(invoked, false);
 });
 
