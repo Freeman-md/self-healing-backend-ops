@@ -1,48 +1,49 @@
 import {
-  ActionRepository,
   ActionService,
   type ActionExecutionResult,
 } from "@/modules/action";
 import {
-  EvaluationFactory,
+  EvaluationService,
   type EvaluationSummary,
 } from "@/modules/evaluation";
 import {
-  EvidenceRepository,
+  EvidenceService,
   type EvidenceSnapshot,
 } from "@/modules/evidence";
-import {
-  RecoveryAgentStrategy,
-  RecoveryBaselineStrategy,
-  type RecoveryDecision,
-  type RecoveryMode,
-} from "@/modules/recovery";
+import type { RecoveryDecision, RecoveryMode } from "@/modules/recovery";
 
 import { TrialFactory } from "./trial.factory";
+import { TrialRepository } from "./trial.repository";
 import type {
   RecoveryStrategies,
   TrialRecord,
 } from "./trial.types";
 import { getOrderedRecoveryActionIds, recordActionResultInTrialContext, recordEvidenceSnapshotInTrialContext } from "./trial.helpers";
 
-type ActionServicePort = Pick<ActionService, "executeAction">;
-type EvidenceRepositoryPort = Pick<EvidenceRepository, "findEvidenceSnapshotById">;
-type ActionRepositoryPort = Pick<ActionRepository, "saveActionExecutionResult" | "findActionById">;
+type TrialActionService = Pick<
+  ActionService,
+  "executeAction" | "findActionById" | "saveActionExecutionResult"
+>;
+type TrialEvidenceService = Pick<EvidenceService, "findEvidenceSnapshotById">;
+type TrialEvaluationService = Pick<
+  EvaluationService,
+  "createEvaluationSummary" | "saveEvaluationSummary"
+>;
 
 export class TrialService {
   constructor(
-    private readonly strategies: RecoveryStrategies = {
-      baseline: new RecoveryBaselineStrategy(),
-      agent: new RecoveryAgentStrategy(),
-    },
-    private readonly actionRepository: ActionRepositoryPort = new ActionRepository(),
-    private readonly actionService: ActionServicePort = new ActionService(),
-    private readonly evidenceRepository: EvidenceRepositoryPort = new EvidenceRepository(),
-    private readonly actionPersistenceRepository: Pick<ActionRepository, "saveActionExecutionResult"> = new ActionRepository(),
+    private readonly strategies: RecoveryStrategies,
+    private readonly trialRepository: TrialRepository,
+    private readonly actionService: TrialActionService,
+    private readonly evidenceService: TrialEvidenceService,
+    private readonly evaluationService: TrialEvaluationService,
     private readonly maxRecoverySteps = 3,
     private readonly trialFactory = new TrialFactory(),
-    private readonly evaluationFactory = new EvaluationFactory(),
   ) {}
+
+  saveTrialRecord(trialRecord: TrialRecord): TrialRecord {
+    return this.trialRepository.saveTrialRecord(trialRecord);
+  }
 
   async runRecoveryTrial(input: {
     mode: RecoveryMode;
@@ -86,7 +87,7 @@ export class TrialService {
           break;
         }
 
-        const action = this.actionRepository.findActionById(actionId);
+        const action = this.actionService.findActionById(actionId);
 
         if (!action) {
           trialState = {
@@ -106,7 +107,7 @@ export class TrialService {
 
         executedSteps += 1;
         recordActionResultInTrialContext(context, action.id, result);
-        this.actionPersistenceRepository.saveActionExecutionResult(result);
+        this.actionService.saveActionExecutionResult(result);
         currentSnapshot = this.findAfterSnapshot(result, currentSnapshot);
         recordEvidenceSnapshotInTrialContext(context, currentSnapshot);
         trialState = this.trialFactory.createTrialStateFromActionResult(result);
@@ -157,10 +158,12 @@ export class TrialService {
       recoveryDecision,
       trialState,
     });
-    const evaluationSummary = this.evaluationFactory.createEvaluationSummary(
+    const evaluationSummary = this.evaluationService.createEvaluationSummary(
       trialRecord,
       trialState.reason,
     );
+    this.saveTrialRecord(trialRecord);
+    this.evaluationService.saveEvaluationSummary(evaluationSummary);
 
     return {
       trialRecord,
@@ -178,7 +181,7 @@ export class TrialService {
     }
 
     return (
-      this.evidenceRepository.findEvidenceSnapshotById(result.afterEvidenceSnapshotId) ??
+      this.evidenceService.findEvidenceSnapshotById(result.afterEvidenceSnapshotId) ??
       fallback
     );
   }

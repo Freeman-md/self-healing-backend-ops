@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   ActionRepository,
+  type Action,
   type ActionExecutionResult,
 } from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
@@ -11,7 +12,7 @@ import {
   type RecoveryDecision,
   type RecoveryStrategy,
 } from "@/modules/recovery";
-import { TrialService } from "@/modules/trial";
+import { TrialService, type TrialRecord } from "@/modules/trial";
 
 function createSnapshot(
   id: string,
@@ -181,9 +182,10 @@ test("trial runner executes proposed then fallback action with reassessment", as
 
   const runner = new TrialService(
     { baseline: strategy, agent: strategy },
-    new ActionRepository(),
+    { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
     {
-      async executeAction(action, _snapshot, context) {
+      findActionById: (actionId: string) => new ActionRepository().findActionById(actionId),
+      async executeAction(action: Action, _snapshot: EvidenceSnapshot, context: { trialRecordId: string }) {
         executedActionIds.push(action.id);
         executionCount += 1;
 
@@ -198,18 +200,20 @@ test("trial runner executes proposed then fallback action with reassessment", as
           continuation: executionCount === 1 ? "continue" : "resolved",
         });
       },
-    },
+      saveActionExecutionResult(result: ActionExecutionResult) {
+        savedResults.push(result);
+        return result;
+      },
+    } as never,
     {
       findEvidenceSnapshotById(id) {
         return snapshots.get(id) ?? null;
       },
     },
     {
-      saveActionExecutionResult(result) {
-        savedResults.push(result);
-        return result;
-      },
-    },
+      createEvaluationSummary: () => ({}),
+      saveEvaluationSummary: (summary: unknown) => summary,
+    } as never,
     3,
   );
 
@@ -248,9 +252,10 @@ test("trial runner escalates when the action limit is reached", async () => {
 
   const runner = new TrialService(
     { baseline: strategy, agent: strategy },
-    new ActionRepository(),
+    { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
     {
-      async executeAction(action, _snapshot, context) {
+      findActionById: (actionId: string) => new ActionRepository().findActionById(actionId),
+      async executeAction(action: Action, _snapshot: EvidenceSnapshot, context: { trialRecordId: string }) {
         return createResult({
           id: "result-limit",
           trialRecordId: context.trialRecordId,
@@ -259,17 +264,19 @@ test("trial runner escalates when the action limit is reached", async () => {
           continuation: "continue",
         });
       },
-    },
+      saveActionExecutionResult(result: ActionExecutionResult) {
+        return result;
+      },
+    } as never,
     {
       findEvidenceSnapshotById() {
         return nextSnapshot;
       },
     },
     {
-      saveActionExecutionResult(result) {
-        return result;
-      },
-    },
+      createEvaluationSummary: () => ({}),
+      saveEvaluationSummary: (summary: unknown) => summary,
+    } as never,
     1,
   );
 
@@ -301,23 +308,26 @@ test("trial runner fails before execution for an unregistered action", async () 
 
   const runner = new TrialService(
     { baseline: strategy, agent: strategy },
-    new ActionRepository(),
+    { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
     {
+      findActionById: () => null,
       async executeAction() {
         executionCalled = true;
         throw new Error("executor should not be called");
       },
-    },
+      saveActionExecutionResult(result: ActionExecutionResult) {
+        return result;
+      },
+    } as never,
     {
       findEvidenceSnapshotById() {
         return null;
       },
     },
     {
-      saveActionExecutionResult(result) {
-        return result;
-      },
-    },
+      createEvaluationSummary: () => ({}),
+      saveEvaluationSummary: (summary: unknown) => summary,
+    } as never,
   );
 
   const result = await runner.runRecoveryTrial({

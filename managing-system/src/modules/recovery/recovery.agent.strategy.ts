@@ -1,4 +1,4 @@
-import { ActionRepository } from "@/modules/action";
+import { ActionService } from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 import type {
   RecoveryDecision,
@@ -13,7 +13,7 @@ export class RecoveryAgentStrategy implements RecoveryStrategy {
 
   constructor(
     private readonly recoveryAgentService = new RecoveryAgentService(),
-    private readonly actionRepository = new ActionRepository(),
+    private readonly actionService: Pick<ActionService, "listActions" | "findActionById">,
   ) {}
 
   async decide(
@@ -24,14 +24,14 @@ export class RecoveryAgentStrategy implements RecoveryStrategy {
     const recoveryPlan = await this.recoveryAgentService.createRecoveryPlan({
       evidenceSnapshot,
       diagnosisResult,
-      availableActions: this.actionRepository.listActions(),
+      availableActions: this.actionService.listActions(),
     });
     const plannedActionIds = [
       ...recoveryPlan.proposedActionIds,
       ...recoveryPlan.fallbackActionIds,
     ];
     const unregisteredActionIds = plannedActionIds.filter(
-      (actionId) => !this.actionRepository.findActionById(actionId),
+      (actionId) => !this.actionService.findActionById(actionId),
     );
     const decidedAt = new Date().toISOString();
 

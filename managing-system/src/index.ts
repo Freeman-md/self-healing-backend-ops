@@ -3,12 +3,17 @@ import { DatabaseService } from "@/infrastructure/database";
 import { canUseOpenAI } from "@/infrastructure/openai";
 import { ActionRepository, ActionService } from "@/modules/action";
 import { EvidenceService, EvidenceRepository } from "@/modules/evidence";
-import { EvaluationRepository } from "@/modules/evaluation";
+import {
+  EvaluationFactory,
+  EvaluationRepository,
+  EvaluationService,
+} from "@/modules/evaluation";
 import {
   RecoveryAgentStrategy,
   RecoveryBaselineStrategy,
 } from "@/modules/recovery";
 import { TrialRepository, TrialService } from "@/modules/trial";
+import { SafetyService } from "@/modules/safety";
 
 async function main() {
   console.log({
@@ -17,35 +22,35 @@ async function main() {
     managedSystemBaseUrl: config.managedSystem.baseUrl,
   });
 
-  const evidenceService = new EvidenceService();
-  const evidence = await evidenceService.collectRawEvidence();
-
-  console.log({
-    event: "raw_evidence_collected",
-    evidence: evidence.map((item) => ({
-      id: item.id,
-      source: item.source,
-      target: item.target,
-      status: item.status,
-      error: item.error,
-    })),
-  });
-
-  if (!canUseOpenAI()) {
-    console.log({
-      event: "evidence_normalization_skipped",
-      reason: "OPENAI_API_KEY is not configured",
-    });
-
-    return;
-  }
-
   const databaseService = new DatabaseService();
+  const evidenceRepository = new EvidenceRepository(databaseService);
+  const evidenceService = new EvidenceService(evidenceRepository);
 
   try {
+    const evidence = await evidenceService.collectRawEvidence();
+
+    console.log({
+      event: "raw_evidence_collected",
+      evidence: evidence.map((item) => ({
+        id: item.id,
+        source: item.source,
+        target: item.target,
+        status: item.status,
+        error: item.error,
+      })),
+    });
+
+    if (!canUseOpenAI()) {
+      console.log({
+        event: "evidence_normalization_skipped",
+        reason: "OPENAI_API_KEY is not configured",
+      });
+
+      return;
+    }
+
     const snapshot = await evidenceService.normalizeEvidence(evidence);
-    const evidenceRepository = new EvidenceRepository(databaseService);
-    const savedSnapshot = evidenceRepository.saveEvidenceSnapshot(snapshot);
+    const savedSnapshot = evidenceService.saveEvidenceSnapshot(snapshot);
 
     console.log({
       event: "evidence_snapshot_created",
@@ -61,26 +66,33 @@ async function main() {
     const trialRepository = new TrialRepository(databaseService);
     const evaluationRepository = new EvaluationRepository(databaseService);
     const actionRepository = new ActionRepository(databaseService);
-    const actionService = new ActionService(actionRepository, undefined, evidenceService, evidenceRepository);
-    const trialRunner = new TrialService(
+    const safetyService = new SafetyService();
+    const actionService = new ActionService(
+      actionRepository,
+      safetyService,
+      evidenceService,
+    );
+    const evaluationService = new EvaluationService(
+      new EvaluationFactory(),
+      evaluationRepository,
+    );
+    const trialService = new TrialService(
       {
         baseline: new RecoveryBaselineStrategy(),
-        agent: new RecoveryAgentStrategy(),
+        agent: new RecoveryAgentStrategy(undefined, actionService),
       },
-      actionRepository,
+      trialRepository,
       actionService,
-      evidenceRepository,
+      evidenceService,
+      evaluationService,
     );
     const scenarioId = "increment-1-core-scenario";
 
-    const baselineRun = await trialRunner.runRecoveryTrial({
+    const baselineRun = await trialService.runRecoveryTrial({
       mode: "baseline",
       scenarioId,
       snapshot: savedSnapshot,
     });
-    trialRepository.saveTrialRecord(baselineRun.trialRecord);
-    evaluationRepository.saveEvaluationSummary(baselineRun.evaluationSummary);
-
     console.log({
       event: "baseline_trial_recorded",
       decision: baselineRun.recoveryDecision,
@@ -88,14 +100,11 @@ async function main() {
       evaluationSummary: baselineRun.evaluationSummary,
     });
 
-    const agentRun = await trialRunner.runRecoveryTrial({
+    const agentRun = await trialService.runRecoveryTrial({
       mode: "agent",
       scenarioId,
       snapshot: savedSnapshot,
     });
-    trialRepository.saveTrialRecord(agentRun.trialRecord);
-    evaluationRepository.saveEvaluationSummary(agentRun.evaluationSummary);
-
     console.log({
       event: "agent_trial_recorded",
       decision: agentRun.recoveryDecision,
