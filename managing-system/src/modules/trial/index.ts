@@ -6,6 +6,7 @@ export {
   parseStoredTrialRecord,
   recordActionResultInTrialContext,
   recordEvidenceSnapshotInTrialContext,
+  recordRecoveryDecisionInTrialContext,
 } from "./trial.helpers";
 export type {
   RecoveryStrategies,

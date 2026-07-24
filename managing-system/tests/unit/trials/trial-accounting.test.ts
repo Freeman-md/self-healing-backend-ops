@@ -23,6 +23,9 @@ test("trial accounting preserves result status semantics", () => {
     actionAttemptCounts: {},
     completedActionIds: [],
     evidenceSnapshotIds: [],
+    recoveryDecisionIds: [],
+    diagnosisResultIds: [],
+    recoveryPlanIds: [],
     selectedActionIds: [],
     actionExecutionResultIds: [],
     executedActionResultIds: [],
@@ -58,5 +61,8 @@ test("stored historical trial records receive additive defaults", () => {
   });
   assert.deepEqual(record.actionExecutionResultIds, []);
   assert.deepEqual(record.failedActionIds, []);
+  assert.deepEqual(record.recoveryDecisionIds, []);
+  assert.deepEqual(record.diagnosisResultIds, []);
+  assert.deepEqual(record.recoveryPlanIds, []);
   assert.equal(record.metrics.failedActionCount, 0);
 });

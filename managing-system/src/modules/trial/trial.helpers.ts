@@ -21,6 +21,9 @@ export function parseStoredTrialRecord(value: unknown): TrialRecord {
     recoveryMode: record.recoveryMode,
     startedAt: record.startedAt,
     evidenceSnapshotIds: record.evidenceSnapshotIds ?? [],
+    recoveryDecisionIds: record.recoveryDecisionIds ?? [],
+    diagnosisResultIds: record.diagnosisResultIds ?? [],
+    recoveryPlanIds: record.recoveryPlanIds ?? [],
     selectedActionIds: record.selectedActionIds ?? [],
     actionExecutionResultIds: record.actionExecutionResultIds ?? [],
     executedActionResultIds: record.executedActionResultIds ?? [],
@@ -35,6 +38,15 @@ export function parseStoredTrialRecord(value: unknown): TrialRecord {
       failedActionCount: record.metrics.failedActionCount ?? 0,
     },
   };
+}
+
+export function recordRecoveryDecisionInTrialContext(
+  context: TrialContext,
+  decision: RecoveryDecision,
+): void {
+  context.recoveryDecisionIds.push(decision.id);
+  context.diagnosisResultIds.push(decision.diagnosisResult.id);
+  context.recoveryPlanIds.push(decision.recoveryPlan.id);
 }
 
 export function getOrderedRecoveryActionIds(decision: RecoveryDecision): string[] {

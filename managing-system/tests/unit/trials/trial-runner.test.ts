@@ -50,6 +50,7 @@ function createDecision(input: {
   fallbackActionIds?: string[];
 }): RecoveryDecision {
   return {
+    id: `recovery-decision-${input.snapshot.id}`,
     mode: "baseline",
     snapshotId: input.snapshot.id,
     decidedAt: new Date().toISOString(),
@@ -116,6 +117,21 @@ function createAction(id: string): Action {
     expectedOutcome: {
       description: "Test outcome.",
       successCriteria: [],
+    },
+  };
+}
+
+function createRecoveryService() {
+  const history = new Map<string, RecoveryDecision[]>();
+  return {
+    recordRecoveryDecision(input: { trialRecordId: string; recoveryDecision: RecoveryDecision }) {
+      const decisions = history.get(input.trialRecordId) ?? [];
+      decisions.push(input.recoveryDecision);
+      history.set(input.trialRecordId, decisions);
+      return input.recoveryDecision;
+    },
+    findRecoveryDecisionHistory(trialRecordId: string) {
+      return history.get(trialRecordId) ?? [];
     },
   };
 }
@@ -237,6 +253,7 @@ test("trial runner requires fresh evidence and a re-decision before a subsequent
       createEvaluationSummary: () => ({}),
       saveEvaluationSummary: (summary: unknown) => summary,
     } as never,
+    createRecoveryService() as never,
     3,
   );
 
@@ -262,6 +279,99 @@ test("trial runner requires fresh evidence and a re-decision before a subsequent
     intermediateSnapshot.id,
     healthySnapshot.id,
   ]);
+});
+
+test("trial runner persists each decision before actions and retains final compatibility references", async () => {
+  const initialSnapshot = createSnapshot("snapshot-history-initial", "unhealthy");
+  const nextSnapshot = createSnapshot("snapshot-history-next", "healthy");
+  const persistedDecisionIds: string[] = [];
+  const persistedDecisions: RecoveryDecision[] = [];
+  const strategy: RecoveryStrategy = {
+    mode: "baseline",
+    async decide(snapshot) {
+      return createDecision({
+        snapshot,
+        actionIds: snapshot.id === initialSnapshot.id ? ["restart_postgres_container"] : [],
+      });
+    },
+  };
+  const recoveryService = {
+    recordRecoveryDecision(input: { recoveryDecision: RecoveryDecision }) {
+      persistedDecisionIds.push(input.recoveryDecision.id);
+      persistedDecisions.push(input.recoveryDecision);
+      return input.recoveryDecision;
+    },
+    findRecoveryDecisionHistory() {
+      return persistedDecisions;
+    },
+  };
+  let actionExecutedAfterPersistence = false;
+
+  const runner = new TrialService(
+    { baseline: strategy, agent: strategy },
+    { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
+    {
+      findActionById: (actionId: string) => createAction(actionId),
+      async executeAction(action: Action, _snapshot: EvidenceSnapshot, context: { trialRecordId: string }) {
+        actionExecutedAfterPersistence = persistedDecisionIds.length === 1;
+        return createResult({
+          id: "result-history",
+          trialRecordId: context.trialRecordId,
+          actionId: action.id,
+          afterSnapshotId: nextSnapshot.id,
+          continuation: "resolved",
+        });
+      },
+      saveActionExecutionResult(result: ActionExecutionResult) { return result; },
+    } as never,
+    { findEvidenceSnapshotById: () => nextSnapshot },
+    { createEvaluationSummary: () => ({}), saveEvaluationSummary: (summary: unknown) => summary } as never,
+    recoveryService as never,
+    3,
+  );
+
+  const result = await runner.runRecoveryTrial({
+    mode: "baseline",
+    scenarioId: "history-scenario",
+    snapshot: initialSnapshot,
+  });
+
+  assert.equal(actionExecutedAfterPersistence, true);
+  assert.equal(persistedDecisionIds.length, 1);
+  assert.deepEqual(result.trialRecord.recoveryDecisionIds, persistedDecisionIds);
+  assert.deepEqual(result.trialRecord.diagnosisResultIds, ["diagnosis-test"]);
+  assert.deepEqual(result.trialRecord.recoveryPlanIds, ["recovery-plan-test"]);
+  assert.equal(result.trialRecord.diagnosisResultId, "diagnosis-test");
+  assert.equal(result.trialRecord.recoveryPlanId, "recovery-plan-test");
+  assert.deepEqual(result.recoveryDecisions, persistedDecisions);
+});
+
+test("trial runner prevents action execution when decision persistence fails", async () => {
+  const snapshot = createSnapshot("snapshot-persistence-failure", "unhealthy");
+  const strategy: RecoveryStrategy = {
+    mode: "baseline",
+    async decide() { return createDecision({ snapshot, actionIds: ["restart_postgres_container"] }); },
+  };
+  let actionExecuted = false;
+  const runner = new TrialService(
+    { baseline: strategy, agent: strategy },
+    { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
+    {
+      findActionById: (actionId: string) => createAction(actionId),
+      async executeAction() { actionExecuted = true; throw new Error("must not execute"); },
+      saveActionExecutionResult: (result: ActionExecutionResult) => result,
+    } as never,
+    { findEvidenceSnapshotById: () => null },
+    { createEvaluationSummary: () => ({}), saveEvaluationSummary: (summary: unknown) => summary } as never,
+    { recordRecoveryDecision() { throw new Error("persistence unavailable"); }, findRecoveryDecisionHistory() { return []; } } as never,
+    3,
+  );
+
+  await assert.rejects(
+    runner.runRecoveryTrial({ mode: "baseline", scenarioId: "persistence-failure", snapshot }),
+    /persistence unavailable/,
+  );
+  assert.equal(actionExecuted, false);
 });
 
 test("trial runner escalates when the action limit is reached", async () => {
@@ -304,6 +414,7 @@ test("trial runner escalates when the action limit is reached", async () => {
       createEvaluationSummary: () => ({}),
       saveEvaluationSummary: (summary: unknown) => summary,
     } as never,
+    createRecoveryService() as never,
     1,
   );
 
@@ -355,6 +466,7 @@ test("trial runner fails before execution for an unregistered action", async () 
       createEvaluationSummary: () => ({}),
       saveEvaluationSummary: (summary: unknown) => summary,
     } as never,
+    createRecoveryService() as never,
   );
 
   const result = await runner.runRecoveryTrial({

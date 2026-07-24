@@ -7,6 +7,7 @@ export type RecoveryMode = "baseline" | "agent";
 export type RecoveryDecisionStatus = "no_action" | "action_selected" | "escalate";
 
 export type RecoveryDecision = {
+  id: string;
   mode: RecoveryMode;
   snapshotId: string;
   decidedAt: string;

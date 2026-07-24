@@ -12,6 +12,8 @@ import {
 import {
   RecoveryAgentStrategy,
   RecoveryBaselineStrategy,
+  RecoveryRepository,
+  RecoveryService,
 } from "@/modules/recovery";
 import { TrialRepository, TrialService } from "@/modules/trial";
 import { SafetyService } from "@/modules/safety";
@@ -72,6 +74,8 @@ async function main() {
     });
 
     const trialRepository = new TrialRepository(databaseService);
+    const recoveryRepository = new RecoveryRepository(databaseService);
+    const recoveryService = new RecoveryService(recoveryRepository);
     const evaluationRepository = new EvaluationRepository(databaseService);
     const actionRepository = new ActionRepository(databaseService, containerRuntime);
     const safetyService = new SafetyService();
@@ -96,6 +100,7 @@ async function main() {
       actionService,
       evidenceService,
       evaluationService,
+      recoveryService,
     );
     const { recoveryMode, scenarioId } = resolveControlledTrialInput();
     const trialRun = await trialService.runRecoveryTrial({
@@ -108,6 +113,7 @@ async function main() {
       recoveryMode,
       scenarioId,
       decision: trialRun.recoveryDecision,
+      recoveryDecisions: trialRun.recoveryDecisions,
       trialRecord: trialRun.trialRecord,
       evaluationSummary: trialRun.evaluationSummary,
     });

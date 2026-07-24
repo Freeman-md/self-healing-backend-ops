@@ -11,6 +11,6 @@ export class RecoveryFactory {
     return { ...input, id: `recovery-plan-${randomUUID()}`, createdAt: new Date().toISOString() };
   }
   createRecoveryDecision(input: { mode: RecoveryMode; snapshot: EvidenceSnapshot; status: RecoveryDecisionStatus; reason: string; diagnosisResult: DiagnosisResult; recoveryPlan: RecoveryPlan; escalationReason?: string }): RecoveryDecision {
-    return { mode: input.mode, snapshotId: input.snapshot.id, decidedAt: new Date().toISOString(), status: input.status, reason: input.reason, diagnosisResult: input.diagnosisResult, recoveryPlan: input.recoveryPlan, escalationReason: input.escalationReason };
+    return { id: `recovery-decision-${randomUUID()}`, mode: input.mode, snapshotId: input.snapshot.id, decidedAt: new Date().toISOString(), status: input.status, reason: input.reason, diagnosisResult: input.diagnosisResult, recoveryPlan: input.recoveryPlan, escalationReason: input.escalationReason };
   }
 }

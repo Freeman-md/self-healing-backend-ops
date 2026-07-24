@@ -7,7 +7,7 @@ import type { TrialContext, TrialRecord, TrialState } from "./trial.types";
 
 export class TrialFactory {
   createTrialContext(snapshot: EvidenceSnapshot): TrialContext {
-    return { trialRecordId: `trial-${randomUUID()}`, actionAttemptCounts: {}, completedActionIds: [], evidenceSnapshotIds: [snapshot.id], selectedActionIds: [], actionExecutionResultIds: [], executedActionResultIds: [], blockedActionIds: [], failedActionIds: [] };
+    return { trialRecordId: `trial-${randomUUID()}`, actionAttemptCounts: {}, completedActionIds: [], evidenceSnapshotIds: [snapshot.id], recoveryDecisionIds: [], diagnosisResultIds: [], recoveryPlanIds: [], selectedActionIds: [], actionExecutionResultIds: [], executedActionResultIds: [], blockedActionIds: [], failedActionIds: [] };
   }
 
   createTrialStateFromDecision(decision: RecoveryDecision, snapshot: EvidenceSnapshot): TrialState {
@@ -44,6 +44,9 @@ export class TrialFactory {
       initialEvidenceSnapshotId: input.initialSnapshot.id,
       finalEvidenceSnapshotId: input.finalSnapshot.id,
       evidenceSnapshotIds: input.context.evidenceSnapshotIds,
+      recoveryDecisionIds: input.context.recoveryDecisionIds,
+      diagnosisResultIds: input.context.diagnosisResultIds,
+      recoveryPlanIds: input.context.recoveryPlanIds,
       diagnosisResultId: input.recoveryDecision.diagnosisResult.id,
       recoveryPlanId: input.recoveryDecision.recoveryPlan.id,
       selectedActionIds: input.context.selectedActionIds,
