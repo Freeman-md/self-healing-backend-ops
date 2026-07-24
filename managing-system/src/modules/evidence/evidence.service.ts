@@ -6,6 +6,23 @@ import { EvidenceFactory } from "./evidence.factory";
 
 import type { RawEvidence, RawEvidenceSource } from "./evidence.schema";
 
+export type ManagedSystemHealthWaitResult = {
+  healthy: boolean;
+  attempts: number;
+  startedAt: string;
+  completedAt: string;
+  lastStatusCode: number | null;
+  lastError: string | null;
+};
+
+type EvidenceServiceOptions = {
+  healthTimeoutMs?: number;
+  healthPollIntervalMs?: number;
+  fetchImplementation?: typeof fetch;
+  sleep?: (milliseconds: number) => Promise<void>;
+  now?: () => number;
+};
+
 type EvidenceEndpoint = {
   source: Extract<RawEvidenceSource, "health" | "metrics">;
   path: string;
@@ -30,6 +47,7 @@ export class EvidenceService {
     >,
     private readonly openaiService?: OpenAIService,
     private readonly evidenceFactory = new EvidenceFactory(),
+    private readonly options: EvidenceServiceOptions = {},
   ) {}
 
   async collectRawEvidence(): Promise<RawEvidence[]> {
@@ -57,6 +75,45 @@ export class EvidenceService {
     return this.normalizeEvidence(await this.collectRawEvidence());
   }
 
+  async waitForManagedSystemHealth(): Promise<ManagedSystemHealthWaitResult> {
+    const startedAt = new Date().toISOString();
+    const startedAtMs = this.now();
+    const timeoutMs = this.options.healthTimeoutMs ?? config.actions.postActionHealthTimeoutMs;
+    const pollIntervalMs = this.options.healthPollIntervalMs ?? config.actions.postActionHealthPollIntervalMs;
+    let attempts = 0;
+    let lastStatusCode: number | null = null;
+    let lastError: string | null = null;
+
+    while (this.now() - startedAtMs <= timeoutMs) {
+      attempts += 1;
+      try {
+        const response = await this.fetchImplementation()(this.buildTargetUrl("/health"), {
+          signal: AbortSignal.timeout(config.managedSystem.requestTimeoutMs),
+        });
+        lastStatusCode = response.status;
+        const body: unknown = await response.json();
+        const isHealthy = typeof body === "object" && body !== null &&
+          "status" in body && body.status === "healthy";
+
+        if (response.ok && isHealthy) {
+          return { healthy: true, attempts, startedAt, completedAt: new Date().toISOString(), lastStatusCode, lastError: null };
+        }
+
+        lastError = response.ok ? "health response did not report healthy" : `request failed with status ${response.status}`;
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : "unknown health polling error";
+      }
+
+      if (this.now() - startedAtMs >= timeoutMs) {
+        break;
+      }
+
+      await this.sleep(pollIntervalMs);
+    }
+
+    return { healthy: false, attempts, startedAt, completedAt: new Date().toISOString(), lastStatusCode, lastError };
+  }
+
   saveEvidenceSnapshot(snapshot: EvidenceSnapshot): EvidenceSnapshot {
     return this.evidenceRepository.saveEvidenceSnapshot(snapshot);
   }
@@ -70,7 +127,7 @@ export class EvidenceService {
     const target = this.buildTargetUrl(endpoint.path);
 
     try {
-      const response = await fetch(target, {
+      const response = await this.fetchImplementation()(target, {
         signal: AbortSignal.timeout(config.managedSystem.requestTimeoutMs),
       });
 
@@ -105,5 +162,17 @@ export class EvidenceService {
 
   private buildTargetUrl(path: string): string {
     return new URL(path, config.managedSystem.baseUrl).toString();
+  }
+
+  private fetchImplementation(): typeof fetch {
+    return this.options.fetchImplementation ?? fetch;
+  }
+
+  private sleep(milliseconds: number): Promise<void> {
+    return this.options.sleep?.(milliseconds) ?? new Promise((resolve) => setTimeout(resolve, milliseconds));
+  }
+
+  private now(): number {
+    return this.options.now?.() ?? Date.now();
   }
 }

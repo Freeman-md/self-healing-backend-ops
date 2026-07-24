@@ -1,5 +1,6 @@
 import { config } from "@/config";
 import { DatabaseService } from "@/infrastructure/database";
+import { DockerContainerRuntimeService } from "@/infrastructure/container-runtime";
 import { canUseOpenAI } from "@/infrastructure/openai";
 import { ActionRepository, ActionService } from "@/modules/action";
 import { EvidenceService, EvidenceRepository } from "@/modules/evidence";
@@ -65,12 +66,16 @@ async function main() {
 
     const trialRepository = new TrialRepository(databaseService);
     const evaluationRepository = new EvaluationRepository(databaseService);
-    const actionRepository = new ActionRepository(databaseService);
+    const containerRuntime = new DockerContainerRuntimeService();
+    const actionRepository = new ActionRepository(databaseService, containerRuntime);
     const safetyService = new SafetyService();
     const actionService = new ActionService(
       actionRepository,
       safetyService,
       evidenceService,
+      undefined,
+      undefined,
+      config.actions.dockerEnabled,
     );
     const evaluationService = new EvaluationService(
       new EvaluationFactory(),

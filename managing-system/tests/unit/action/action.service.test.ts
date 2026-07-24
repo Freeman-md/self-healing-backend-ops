@@ -96,6 +96,8 @@ test("ActionService routes every execution result path through ActionFactory", a
     blockedSafetyService as never,
     {} as never,
     factory,
+    undefined,
+    true,
   ).executeAction(action, snapshot, context);
 
   await new ActionService(
@@ -103,6 +105,8 @@ test("ActionService routes every execution result path through ActionFactory", a
     allowedSafetyService as never,
     {} as never,
     factory,
+    undefined,
+    true,
   ).executeAction(action, snapshot, context);
 
   await new ActionService(
@@ -110,12 +114,15 @@ test("ActionService routes every execution result path through ActionFactory", a
     allowedSafetyService as never,
     {} as never,
     factory,
+    undefined,
+    true,
   ).executeAction(action, snapshot, context);
 
   await new ActionService(
     { findActionHandler: () => async () => ({ output: "restarted" }) } as never,
     allowedSafetyService as never,
     {
+      waitForManagedSystemHealth: async () => ({ healthy: true }),
       collectAndNormalize: async () => snapshot,
       saveEvidenceSnapshot: () => snapshot,
     } as never,
@@ -131,6 +138,7 @@ test("ActionService routes every execution result path through ActionFactory", a
         };
       },
     } as never,
+    true,
   ).executeAction(action, snapshot, context);
 
   assert.deepEqual(constructedPaths, ["blocked", "failed", "failed", "successful"]);
@@ -197,6 +205,7 @@ test("ActionService resolves safety rules and persists post-action evidence thro
       },
     } as never,
     {
+      waitForManagedSystemHealth: async () => ({ healthy: true }),
       async collectAndNormalize() {
         return snapshot;
       },
@@ -217,10 +226,55 @@ test("ActionService resolves safety rules and persists post-action evidence thro
         };
       },
     } as never,
+    true,
   );
 
   await service.executeAction(actionWithRule, snapshot, { trialRecordId: "trial-test" });
 
   assert.deepEqual(evaluatedRules, [["healthy_only"]]);
   assert.equal(persistedSnapshot, snapshot);
+});
+
+test("ActionService blocks disabled Docker execution after safety without invoking a handler", async () => {
+  let handlerInvoked = false;
+  const service = new ActionService(
+    { findActionHandler: () => async () => { handlerInvoked = true; return { output: "unexpected" }; } } as never,
+    { evaluateActionSafety: () => ({ status: "allowed" as const, failedRuleIds: [] }) } as never,
+    {} as never,
+    new ActionFactory(),
+    undefined,
+    false,
+  );
+
+  const result = await service.executeAction(action, snapshot, { trialRecordId: "trial-disabled" });
+
+  assert.equal(result.status, "blocked");
+  assert.equal(result.safetyCheckStatus, "passed");
+  assert.equal(result.continuation, "blocked");
+  assert.equal(handlerInvoked, false);
+});
+
+test("ActionService saves fresh evidence after readiness polling times out", async () => {
+  let savedSnapshot: EvidenceSnapshot | undefined;
+  const service = new ActionService(
+    { findActionHandler: () => async () => ({ output: "restarted" }) } as never,
+    { evaluateActionSafety: () => ({ status: "allowed" as const, failedRuleIds: [] }) } as never,
+    {
+      waitForManagedSystemHealth: async () => ({ healthy: false }),
+      collectAndNormalize: async () => snapshot,
+      saveEvidenceSnapshot: (candidate: EvidenceSnapshot) => {
+        savedSnapshot = candidate;
+        return candidate;
+      },
+    } as never,
+    new ActionFactory(),
+    { async parseStructuredOutput() { return { expectedOutcomeMet: false, outcomeSummary: "not recovered", matchedCriterionIds: [], unmetCriterionIds: [], continuation: "continue" as const }; } } as never,
+    true,
+  );
+
+  const result = await service.executeAction(action, snapshot, { trialRecordId: "trial-timeout" });
+
+  assert.equal(savedSnapshot, snapshot);
+  assert.equal(result.afterEvidenceSnapshotId, snapshot.id);
+  assert.equal(result.continuation, "continue");
 });

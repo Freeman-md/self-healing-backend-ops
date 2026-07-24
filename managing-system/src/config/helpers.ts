@@ -25,9 +25,25 @@ export function readNumber(value: string | undefined, fallback: number): number 
 
   const parsedValue = Number(value);
 
-  if (Number.isNaN(parsedValue)) {
-    return fallback;
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    throw new Error("Configuration value must be a positive finite number.");
   }
 
   return parsedValue;
+}
+
+export function readBoolean(value: string | undefined, fallback: boolean): boolean {
+  if (!value?.trim()) {
+    return fallback;
+  }
+
+  if (value === "true") {
+    return true;
+  }
+
+  if (value === "false") {
+    return false;
+  }
+
+  throw new Error("Configuration boolean value must be explicitly true or false.");
 }

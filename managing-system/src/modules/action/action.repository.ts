@@ -1,10 +1,11 @@
 import type { SafetyRule } from "@/modules/safety";
 import type { DatabaseSync } from "node:sqlite";
 import { DatabaseService } from "@/infrastructure/database";
+import type { IContainerRuntime } from "@/infrastructure/container-runtime";
 
 import type { Action, ActionExecutionResult } from "./action.types";
 import {
-  actionHandlers,
+  createActionHandlers,
   predefinedActions,
   predefinedSafetyRules,
   type ActionHandler,
@@ -12,8 +13,12 @@ import {
 
 export class ActionRepository {
   private readonly database: DatabaseSync;
+  private readonly actionHandlers: Record<string, ActionHandler>;
 
-  constructor(databaseService = new DatabaseService()) {
+  constructor(
+    databaseService = new DatabaseService(),
+    containerRuntime?: IContainerRuntime,
+  ) {
     this.database = databaseService.getConnection();
     this.database.exec(`
       CREATE TABLE IF NOT EXISTS action_execution_results (
@@ -25,6 +30,7 @@ export class ActionRepository {
       CREATE INDEX IF NOT EXISTS idx_action_execution_results_trial_record_id
         ON action_execution_results(trial_record_id);
     `);
+    this.actionHandlers = containerRuntime ? createActionHandlers(containerRuntime) : {};
   }
 
   listActions(): Action[] {
@@ -44,7 +50,7 @@ export class ActionRepository {
   }
 
   findActionHandler(handlerKey: string): ActionHandler | null {
-    return actionHandlers[handlerKey] ?? null;
+    return this.actionHandlers[handlerKey] ?? null;
   }
 
   saveActionExecutionResult(result: ActionExecutionResult): ActionExecutionResult {

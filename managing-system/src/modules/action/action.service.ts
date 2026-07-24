@@ -2,6 +2,7 @@ import {
   EvidenceService,
   type EvidenceSnapshot,
 } from "@/modules/evidence";
+import { config } from "@/config";
 import { OpenAIService } from "@/infrastructure/openai";
 import { evidenceSnapshotSchema } from "@/modules/evidence";
 import { actionOutcomeEvaluationSchema } from "./action.schema";
@@ -28,6 +29,7 @@ export class ActionService {
     private readonly evidenceService: EvidenceService,
     private readonly actionFactory = new ActionFactory(),
     private readonly openaiService?: OpenAIService,
+    private readonly dockerActionsEnabled = config.actions.dockerEnabled,
   ) {}
 
   listActions(): Action[] {
@@ -78,6 +80,20 @@ export class ActionService {
       });
     }
 
+    if (!this.dockerActionsEnabled) {
+      return this.actionFactory.createBlockedActionExecutionResult({
+        actionId: action.id,
+        trialRecordId: context.trialRecordId,
+        startedAt,
+        completedAt: new Date().toISOString(),
+        safetyCheckStatus: "passed",
+        failedSafetyRuleIds: [],
+        beforeEvidenceSnapshotId: beforeEvidenceSnapshot.id,
+        error: "Docker action execution is disabled.",
+        continuation: "blocked",
+      });
+    }
+
     const handler = this.actionRepository.findActionHandler(action.handlerKey);
 
     if (!handler) {
@@ -95,6 +111,7 @@ export class ActionService {
 
     try {
       const handlerResult = await handler({ action, trialRecordId: context.trialRecordId });
+      await this.evidenceService.waitForManagedSystemHealth();
       const freshEvidenceSnapshot = await this.evidenceService.collectAndNormalize();
       const savedSnapshot = this.evidenceService.saveEvidenceSnapshot(freshEvidenceSnapshot);
       const outcome = await this.evaluateActionOutcome({

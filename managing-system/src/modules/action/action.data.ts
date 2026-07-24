@@ -1,6 +1,4 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
+import type { IContainerRuntime } from "@/infrastructure/container-runtime";
 import type { SafetyRule } from "@/modules/safety";
 
 import type { Action } from "./action.types";
@@ -18,29 +16,18 @@ export type ActionHandler = (
   input: ActionHandlerInput,
 ) => Promise<ActionHandlerResult>;
 
-const execFileAsync = promisify(execFile);
-
-export type ProcessExecutor = (
-  command: string,
-  arguments_: string[],
-) => Promise<ActionHandlerResult>;
-
-const executeDockerProcess: ProcessExecutor = async (command, arguments_) => {
-  const { stdout, stderr } = await execFileAsync(command, arguments_);
-
-  return {
-    output: [stdout, stderr].filter(Boolean).join("\n").trim(),
-  };
-}
-
 export function createActionHandlers(
-  executeProcess: ProcessExecutor = executeDockerProcess,
+  containerRuntime: IContainerRuntime,
 ): Record<string, ActionHandler> {
   return {
-    restart_managed_system_service: async () =>
-      executeProcess("docker", ["restart", "managed-system-app"]),
-    restart_postgres_container: async () =>
-      executeProcess("docker", ["restart", "managed-system-postgres"]),
+    restart_managed_system_service: async () => {
+      const result = await containerRuntime.restartTarget("managed-system");
+      return { output: result.output };
+    },
+    restart_postgres_container: async () => {
+      const result = await containerRuntime.restartTarget("postgres");
+      return { output: result.output };
+    },
   };
 }
 
@@ -109,5 +96,3 @@ export const predefinedActions: Action[] = [
     },
   },
 ];
-
-export const actionHandlers = createActionHandlers();

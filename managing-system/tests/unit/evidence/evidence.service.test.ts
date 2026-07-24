@@ -59,3 +59,54 @@ test("EvidenceService persists and retrieves snapshots through its injected repo
   assert.equal(service.saveEvidenceSnapshot(snapshot), snapshot);
   assert.equal(service.findEvidenceSnapshotById(snapshot.id), snapshot);
 });
+
+test("health polling stops as soon as the managed system reports healthy", async () => {
+  let fetchCount = 0;
+  const service = new EvidenceService(
+    { saveEvidenceSnapshot: (snapshot) => snapshot, findEvidenceSnapshotById: () => null },
+    undefined,
+    undefined,
+    {
+      healthTimeoutMs: 100,
+      healthPollIntervalMs: 10,
+      fetchImplementation: async () => {
+        fetchCount += 1;
+        return new Response(JSON.stringify({ status: "healthy" }), { status: 200 });
+      },
+    },
+  );
+
+  const result = await service.waitForManagedSystemHealth();
+  assert.equal(result.healthy, true);
+  assert.equal(result.attempts, 1);
+  assert.equal(fetchCount, 1);
+});
+
+test("health polling retries failures and returns the final observation at its deadline", async () => {
+  let now = 0;
+  let fetchCount = 0;
+  const service = new EvidenceService(
+    { saveEvidenceSnapshot: (snapshot) => snapshot, findEvidenceSnapshotById: () => null },
+    undefined,
+    undefined,
+    {
+      healthTimeoutMs: 20,
+      healthPollIntervalMs: 10,
+      now: () => now,
+      sleep: async (milliseconds) => { now += milliseconds; },
+      fetchImplementation: async () => {
+        fetchCount += 1;
+        if (fetchCount === 1) {
+          throw new Error("connection refused");
+        }
+        return new Response(JSON.stringify({ status: "unhealthy" }), { status: 503 });
+      },
+    },
+  );
+
+  const result = await service.waitForManagedSystemHealth();
+  assert.equal(result.healthy, false);
+  assert.equal(result.attempts, 3);
+  assert.equal(result.lastStatusCode, 503);
+  assert.match(result.lastError ?? "", /503/);
+});
