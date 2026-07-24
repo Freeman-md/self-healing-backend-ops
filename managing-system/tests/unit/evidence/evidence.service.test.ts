@@ -106,7 +106,48 @@ test("health polling retries failures and returns the final observation at its d
 
   const result = await service.waitForManagedSystemHealth();
   assert.equal(result.healthy, false);
-  assert.equal(result.attempts, 3);
+  assert.equal(result.attempts, 2);
   assert.equal(result.lastStatusCode, 503);
   assert.match(result.lastError ?? "", /503/);
+});
+
+test("health polling caps each request signal to the remaining total health budget", async () => {
+  const originalAbortSignalTimeout = AbortSignal.timeout;
+  const requestedTimeouts: number[] = [];
+  let now = 0;
+  let fetchCount = 0;
+
+  AbortSignal.timeout = (milliseconds) => {
+    requestedTimeouts.push(milliseconds);
+    return new AbortController().signal;
+  };
+
+  try {
+    const service = new EvidenceService(
+      { saveEvidenceSnapshot: (snapshot) => snapshot, findEvidenceSnapshotById: () => null },
+      undefined,
+      undefined,
+      {
+        healthTimeoutMs: 20,
+        healthPollIntervalMs: 10,
+        now: () => now,
+        sleep: async (milliseconds) => { now += milliseconds; },
+        fetchImplementation: async () => {
+          fetchCount += 1;
+          if (fetchCount === 1) {
+            throw new Error("connection refused");
+          }
+
+          return new Response(JSON.stringify({ status: "healthy" }), { status: 200 });
+        },
+      },
+    );
+
+    const result = await service.waitForManagedSystemHealth();
+
+    assert.equal(result.healthy, true);
+    assert.deepEqual(requestedTimeouts, [20, 10]);
+  } finally {
+    AbortSignal.timeout = originalAbortSignalTimeout;
+  }
 });

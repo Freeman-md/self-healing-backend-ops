@@ -80,15 +80,23 @@ export class EvidenceService {
     const startedAtMs = this.now();
     const timeoutMs = this.options.healthTimeoutMs ?? config.actions.postActionHealthTimeoutMs;
     const pollIntervalMs = this.options.healthPollIntervalMs ?? config.actions.postActionHealthPollIntervalMs;
+    const deadlineMs = startedAtMs + timeoutMs;
     let attempts = 0;
     let lastStatusCode: number | null = null;
     let lastError: string | null = null;
 
-    while (this.now() - startedAtMs <= timeoutMs) {
+    while (true) {
+      const remainingHealthBudgetMs = deadlineMs - this.now();
+      if (remainingHealthBudgetMs <= 0) {
+        break;
+      }
+
       attempts += 1;
       try {
         const response = await this.fetchImplementation()(this.buildTargetUrl("/health"), {
-          signal: AbortSignal.timeout(config.managedSystem.requestTimeoutMs),
+          signal: AbortSignal.timeout(
+            Math.min(config.managedSystem.requestTimeoutMs, remainingHealthBudgetMs),
+          ),
         });
         lastStatusCode = response.status;
         const body: unknown = await response.json();
@@ -104,11 +112,12 @@ export class EvidenceService {
         lastError = error instanceof Error ? error.message : "unknown health polling error";
       }
 
-      if (this.now() - startedAtMs >= timeoutMs) {
+      const remainingSleepBudgetMs = deadlineMs - this.now();
+      if (remainingSleepBudgetMs <= 0) {
         break;
       }
 
-      await this.sleep(pollIntervalMs);
+      await this.sleep(Math.min(pollIntervalMs, remainingSleepBudgetMs));
     }
 
     return { healthy: false, attempts, startedAt, completedAt: new Date().toISOString(), lastStatusCode, lastError };
