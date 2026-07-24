@@ -17,6 +17,26 @@ export const evidenceSignalStatusSchema = z.enum([
   "unknown",
 ]);
 
+export const evidenceSignalCodeSchema = z.enum([
+  "managed_system_reachability",
+  "managed_system_health",
+  "managed_system_container_state",
+  "database_connectivity",
+  "postgres_container_state",
+  "metrics_availability",
+  "configuration_validity",
+  "unknown",
+]);
+
+export const incidentTypeCodeSchema = z.enum([
+  "managed_system_unreachable",
+  "managed_system_service_down",
+  "database_connectivity_failure",
+  "postgres_unavailable",
+  "bad_runtime_configuration",
+  "unclassified",
+]);
+
 export const evidenceSnapshotStateSchema = z.enum([
   "healthy",
   "degraded",
@@ -37,9 +57,11 @@ export const rawEvidenceSchema = z.object({
 export const evidenceSignalSchema = z.object({
   source: rawEvidenceSourceSchema,
   name: z.string(),
+  code: evidenceSignalCodeSchema.default("unknown"),
   status: evidenceSignalStatusSchema,
   value: z.union([z.string(), z.number(), z.boolean()]).nullable(),
   description: z.string(),
+  method: z.enum(["deterministic", "llm"]).default("llm"),
 });
 
 export const evidenceSnapshotSchema = z.object({
@@ -50,13 +72,15 @@ export const evidenceSnapshotSchema = z.object({
   overallState: evidenceSnapshotStateSchema,
   summary: z.string(),
   signals: z.array(evidenceSignalSchema),
-  suspectedIncidentTypes: z.array(z.string()),
+  suspectedIncidentTypes: z.array(incidentTypeCodeSchema).default([]),
   contradictions: z.array(z.string()),
 });
 
 export type RawEvidenceSource = z.infer<typeof rawEvidenceSourceSchema>;
 export type RawEvidenceStatus = z.infer<typeof rawEvidenceStatusSchema>;
 export type EvidenceSignalStatus = z.infer<typeof evidenceSignalStatusSchema>;
+export type EvidenceSignalCode = z.infer<typeof evidenceSignalCodeSchema>;
+export type IncidentTypeCode = z.infer<typeof incidentTypeCodeSchema>;
 export type EvidenceSnapshotState = z.infer<typeof evidenceSnapshotStateSchema>;
 export type RawEvidence = z.infer<typeof rawEvidenceSchema>;
 export type EvidenceSignal = z.infer<typeof evidenceSignalSchema>;

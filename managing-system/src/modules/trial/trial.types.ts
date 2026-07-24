@@ -9,9 +9,14 @@ export type RecoveryStrategies = Record<RecoveryMode, RecoveryStrategy>;
 export type TrialContext = RecoveryStrategyContext & {
   trialRecordId: string;
   evidenceSnapshotIds: string[];
+  recoveryDecisionIds: string[];
+  diagnosisResultIds: string[];
+  recoveryPlanIds: string[];
   selectedActionIds: string[];
+  actionExecutionResultIds: string[];
   executedActionResultIds: string[];
   blockedActionIds: string[];
+  failedActionIds: string[];
 };
 
 export type TrialStatus = "started" | "resolved" | "unresolved" | "escalated" | "failed";
@@ -33,6 +38,7 @@ export type TrialState = {
 export type TrialMetrics = {
   actionCount: number;
   blockedActionCount: number;
+  failedActionCount: number;
   timeToRecoveryMs?: number;
   timeToEscalationMs?: number;
 };
@@ -46,11 +52,16 @@ export type TrialRecord = {
   initialEvidenceSnapshotId?: string;
   finalEvidenceSnapshotId?: string;
   evidenceSnapshotIds: string[];
+  recoveryDecisionIds: string[];
+  diagnosisResultIds: string[];
+  recoveryPlanIds: string[];
   diagnosisResultId?: string;
   recoveryPlanId?: string;
   selectedActionIds: string[];
+  actionExecutionResultIds: string[];
   executedActionResultIds: string[];
   blockedActionIds: string[];
+  failedActionIds: string[];
   status: TrialStatus;
   outcome: TrialOutcome;
   escalationReason?: string;

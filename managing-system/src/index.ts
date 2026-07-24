@@ -1,5 +1,6 @@
 import { config } from "@/config";
 import { DatabaseService } from "@/infrastructure/database";
+import { DockerContainerRuntimeService } from "@/infrastructure/container-runtime";
 import { canUseOpenAI } from "@/infrastructure/openai";
 import { ActionRepository, ActionService } from "@/modules/action";
 import { EvidenceService, EvidenceRepository } from "@/modules/evidence";
@@ -11,6 +12,8 @@ import {
 import {
   RecoveryAgentStrategy,
   RecoveryBaselineStrategy,
+  RecoveryRepository,
+  RecoveryService,
 } from "@/modules/recovery";
 import { TrialRepository, TrialService } from "@/modules/trial";
 import { SafetyService } from "@/modules/safety";
@@ -24,7 +27,14 @@ async function main() {
 
   const databaseService = new DatabaseService();
   const evidenceRepository = new EvidenceRepository(databaseService);
-  const evidenceService = new EvidenceService(evidenceRepository);
+  const containerRuntime = new DockerContainerRuntimeService();
+  const evidenceService = new EvidenceService(
+    evidenceRepository,
+    undefined,
+    undefined,
+    undefined,
+    containerRuntime,
+  );
 
   try {
     const evidence = await evidenceService.collectRawEvidence();
@@ -64,13 +74,18 @@ async function main() {
     });
 
     const trialRepository = new TrialRepository(databaseService);
+    const recoveryRepository = new RecoveryRepository(databaseService);
+    const recoveryService = new RecoveryService(recoveryRepository);
     const evaluationRepository = new EvaluationRepository(databaseService);
-    const actionRepository = new ActionRepository(databaseService);
+    const actionRepository = new ActionRepository(databaseService, containerRuntime);
     const safetyService = new SafetyService();
     const actionService = new ActionService(
       actionRepository,
       safetyService,
       evidenceService,
+      undefined,
+      undefined,
+      config.actions.dockerEnabled,
     );
     const evaluationService = new EvaluationService(
       new EvaluationFactory(),
@@ -85,35 +100,36 @@ async function main() {
       actionService,
       evidenceService,
       evaluationService,
+      recoveryService,
     );
-    const scenarioId = "increment-1-core-scenario";
-
-    const baselineRun = await trialService.runRecoveryTrial({
-      mode: "baseline",
+    const { recoveryMode, scenarioId } = resolveControlledTrialInput();
+    const trialRun = await trialService.runRecoveryTrial({
+      mode: recoveryMode,
       scenarioId,
       snapshot: savedSnapshot,
     });
     console.log({
-      event: "baseline_trial_recorded",
-      decision: baselineRun.recoveryDecision,
-      trialRecord: baselineRun.trialRecord,
-      evaluationSummary: baselineRun.evaluationSummary,
-    });
-
-    const agentRun = await trialService.runRecoveryTrial({
-      mode: "agent",
+      event: "controlled_trial_recorded",
+      recoveryMode,
       scenarioId,
-      snapshot: savedSnapshot,
-    });
-    console.log({
-      event: "agent_trial_recorded",
-      decision: agentRun.recoveryDecision,
-      trialRecord: agentRun.trialRecord,
-      evaluationSummary: agentRun.evaluationSummary,
+      decision: trialRun.recoveryDecision,
+      recoveryDecisions: trialRun.recoveryDecisions,
+      trialRecord: trialRun.trialRecord,
+      evaluationSummary: trialRun.evaluationSummary,
     });
   } finally {
     databaseService.close();
   }
+}
+
+function resolveControlledTrialInput(): {
+  recoveryMode: "baseline" | "agent";
+  scenarioId: "S1" | "S2" | "S3";
+} {
+  if (!config.trial.recoveryMode || !config.trial.scenarioId) {
+    throw new Error("RECOVERY_MODE and SCENARIO_ID are required for controlled trials.");
+  }
+  return { recoveryMode: config.trial.recoveryMode, scenarioId: config.trial.scenarioId };
 }
 
 main().catch((error: unknown) => {

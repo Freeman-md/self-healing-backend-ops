@@ -7,6 +7,7 @@ import type {
 } from "./recovery.types";
 
 import { RecoveryAgentService } from "./recovery.agent.service";
+import { RecoveryFactory } from "./recovery.factory";
 
 export class RecoveryAgentStrategy implements RecoveryStrategy {
   readonly mode = "agent" as const;
@@ -14,6 +15,7 @@ export class RecoveryAgentStrategy implements RecoveryStrategy {
   constructor(
     private readonly recoveryAgentService = new RecoveryAgentService(),
     private readonly actionService: Pick<ActionService, "listActions" | "findActionById">,
+    private readonly recoveryFactory = new RecoveryFactory(),
   ) {}
 
   async decide(
@@ -33,32 +35,28 @@ export class RecoveryAgentStrategy implements RecoveryStrategy {
     const unregisteredActionIds = plannedActionIds.filter(
       (actionId) => !this.actionService.findActionById(actionId),
     );
-    const decidedAt = new Date().toISOString();
-
     if (unregisteredActionIds.length > 0) {
       const escalationReason =
         "Recovery planner proposed unregistered actions: " +
         unregisteredActionIds.join(", ");
 
-      return {
+      return this.recoveryFactory.createRecoveryDecision({
         mode: this.mode,
-        snapshotId: evidenceSnapshot.id,
-        decidedAt,
+        snapshot: evidenceSnapshot,
         status: "escalate",
         reason: "The recovery plan contains actions outside the bounded action registry.",
         diagnosisResult,
         recoveryPlan,
         escalationReason,
-      };
+      });
     }
 
     if (plannedActionIds.length === 0) {
       const escalationReason = recoveryPlan.escalationReason ?? undefined;
 
-      return {
+      return this.recoveryFactory.createRecoveryDecision({
         mode: this.mode,
-        snapshotId: evidenceSnapshot.id,
-        decidedAt,
+        snapshot: evidenceSnapshot,
         status: escalationReason ? "escalate" : "no_action",
         reason: escalationReason
           ? "Recovery planner did not identify a bounded primary action and requested escalation."
@@ -66,17 +64,16 @@ export class RecoveryAgentStrategy implements RecoveryStrategy {
         diagnosisResult,
         recoveryPlan,
         escalationReason,
-      };
+      });
     }
 
-    return {
+    return this.recoveryFactory.createRecoveryDecision({
       mode: this.mode,
-      snapshotId: evidenceSnapshot.id,
-      decidedAt,
+      snapshot: evidenceSnapshot,
       status: "action_selected",
       reason: "Self-healing agent produced a bounded recovery plan for execution.",
       diagnosisResult,
       recoveryPlan,
-    };
+    });
   }
 }

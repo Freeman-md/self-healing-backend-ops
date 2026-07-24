@@ -1,7 +1,13 @@
 export { TrialFactory } from "./trial.factory";
 export { TrialRepository } from "./trial.repository";
 export { TrialService } from "./trial.service";
-export { getOrderedRecoveryActionIds, recordActionResultInTrialContext, recordEvidenceSnapshotInTrialContext } from "./trial.helpers";
+export {
+  getOrderedRecoveryActionIds,
+  parseStoredTrialRecord,
+  recordActionResultInTrialContext,
+  recordEvidenceSnapshotInTrialContext,
+  recordRecoveryDecisionInTrialContext,
+} from "./trial.helpers";
 export type {
   RecoveryStrategies,
   TrialContext,

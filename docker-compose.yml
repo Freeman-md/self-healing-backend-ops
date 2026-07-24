@@ -54,7 +54,14 @@ services:
       MANAGING_SYSTEM_DATABASE_PATH: /managing-system/data/managing-system.sqlite
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      DOCKER_ACTIONS_ENABLED: "true"
+      DOCKER_ACTION_TIMEOUT_MS: "10000"
+      POST_ACTION_HEALTH_TIMEOUT_MS: "30000"
+      POST_ACTION_HEALTH_POLL_INTERVAL_MS: "1000"
+      RECOVERY_MODE: ${RECOVERY_MODE:-}
+      SCENARIO_ID: ${SCENARIO_ID:-}
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - managing_system_data:/managing-system/data
 
 volumes:

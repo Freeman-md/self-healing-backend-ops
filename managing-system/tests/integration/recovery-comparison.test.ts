@@ -31,6 +31,7 @@ function createStrategy(mode: RecoveryMode): RecoveryStrategy {
       const diagnosisResultId = `diagnosis-${mode}`;
 
       return {
+        id: `recovery-decision-${mode}`,
         mode,
         snapshotId: snapshot.id,
         decidedAt: new Date().toISOString(),
@@ -81,6 +82,14 @@ test("baseline and agent strategies produce separate comparable trial records", 
     {
       createEvaluationSummary: () => ({}),
       saveEvaluationSummary: (summary: unknown) => summary,
+    } as never,
+    {
+      recordRecoveryDecision(input: { trialRecordId: string; recoveryDecision: RecoveryDecision }) {
+        return input.recoveryDecision;
+      },
+      findRecoveryDecisionHistory() {
+        return [];
+      },
     } as never,
   );
   const snapshot = createHealthySnapshot();

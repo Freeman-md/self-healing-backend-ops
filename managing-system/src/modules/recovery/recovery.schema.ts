@@ -28,6 +28,18 @@ export const recoveryPlanSchema = z.object({
   escalationReason: z.string().nullable(),
 });
 
+export const recoveryDecisionSchema = z.object({
+  id: z.string(),
+  mode: z.enum(["baseline", "agent"]),
+  snapshotId: z.string(),
+  decidedAt: z.string(),
+  status: z.enum(["no_action", "action_selected", "escalate"]),
+  reason: z.string(),
+  diagnosisResult: diagnosisResultSchema,
+  recoveryPlan: recoveryPlanSchema,
+  escalationReason: z.string().optional(),
+});
+
 export type IncidentSeverity = z.infer<typeof incidentSeveritySchema>;
 export type DiagnosisMethod = z.infer<typeof diagnosisMethodSchema>;
 export type DiagnosisResult = z.infer<typeof diagnosisResultSchema>;

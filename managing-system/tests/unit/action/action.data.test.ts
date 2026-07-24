@@ -6,6 +6,8 @@ import {
   type Action,
 } from "@/modules/action";
 import { createActionHandlers } from "@/modules/action/action.data";
+import { DatabaseService } from "@/infrastructure/database";
+import type { IContainerRuntime } from "@/infrastructure/container-runtime";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 import { ActionService } from "@/modules/action/action.service";
 
@@ -15,7 +17,13 @@ const actionHandlerInput = {
 };
 
 test("action repository resolves the predefined action and safety-rule catalogue", () => {
-  const repository = new ActionRepository();
+  const databaseService = new DatabaseService(":memory:");
+  const repository = new ActionRepository(
+    databaseService,
+    {
+      restartTarget: async () => ({ target: "managed-system", containerName: "managed-system-app", output: "" }),
+    },
+  );
 
   assert.equal(repository.listActions().length, 2);
   assert.equal(repository.listSafetyRules().length, 2);
@@ -35,28 +43,22 @@ test("action repository resolves the predefined action and safety-rule catalogue
     typeof repository.findActionHandler("restart_managed_system_service"),
     "function",
   );
+  databaseService.close();
 });
 
-test("action handlers restart only their allowlisted Docker targets", async () => {
-  const executedProcesses: Array<{ command: string; arguments_: string[] }> = [];
-  const handlers = createActionHandlers(async (command, arguments_) => {
-    executedProcesses.push({ command, arguments_ });
-    return { output: `restarted ${arguments_[1]}` };
-  });
+test("action handlers use only their allowlisted runtime targets", async () => {
+  const runtimeTargets: string[] = [];
+  const handlers = createActionHandlers({
+    async restartTarget(target) {
+      runtimeTargets.push(target);
+      return { target, containerName: target, output: `restarted ${target}` };
+    },
+  } satisfies IContainerRuntime);
 
   await handlers.restart_postgres_container(actionHandlerInput);
   await handlers.restart_managed_system_service(actionHandlerInput);
 
-  assert.deepEqual(executedProcesses, [
-    {
-      command: "docker",
-      arguments_: ["restart", "managed-system-postgres"],
-    },
-    {
-      command: "docker",
-      arguments_: ["restart", "managed-system-app"],
-    },
-  ]);
+  assert.deepEqual(runtimeTargets, ["postgres", "managed-system"]);
 });
 
 test("unknown handler keys fail safely without execution", async () => {
@@ -77,6 +79,9 @@ test("unknown handler keys fail safely without execution", async () => {
     repository,
     safetyService as never,
     {} as never,
+    undefined,
+    undefined,
+    true,
   );
   const snapshot = {
     id: "snapshot-test",

@@ -10,7 +10,7 @@ import {
 
 function createSnapshot(
   overallState: EvidenceSnapshot["overallState"],
-  suspectedIncidentTypes: string[] = [],
+  suspectedIncidentTypes: EvidenceSnapshot["suspectedIncidentTypes"] = [],
 ): EvidenceSnapshot {
   return {
     id: `snapshot-${overallState}`,
@@ -23,9 +23,11 @@ function createSnapshot(
       ? [{
         source: "health",
         name: "database_connectivity",
+        code: "database_connectivity",
         status: "critical",
         value: false,
         description: "Database connectivity failed.",
+        method: "deterministic",
       }]
       : [],
     suspectedIncidentTypes,
@@ -33,13 +35,13 @@ function createSnapshot(
   };
 }
 
-test("baseline rules select the PostgreSQL restart with the existing fallback", () => {
+test("baseline rules select only the PostgreSQL restart for database evidence", () => {
   const match = findMatchingBaselineRule(
     createSnapshot("unhealthy", ["database_connectivity_failure"]),
   );
 
   assert.deepEqual(match?.rule.proposedActionIds, ["restart_postgres_container"]);
-  assert.deepEqual(match?.rule.fallbackActionIds, ["restart_managed_system_service"]);
+  assert.deepEqual(match?.rule.fallbackActionIds, []);
 });
 
 test("baseline strategy retains healthy and unmatched escalation decisions", async () => {
@@ -48,7 +50,7 @@ test("baseline strategy retains healthy and unmatched escalation decisions", asy
 
   const healthy = await strategy.decide(createSnapshot("healthy"), context);
   const unmatched = await strategy.decide(
-    createSnapshot("unknown", ["unusual_incident"]),
+    createSnapshot("unknown", ["unclassified"]),
     context,
   );
 

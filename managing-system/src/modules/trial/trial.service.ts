@@ -10,15 +10,25 @@ import {
   EvidenceService,
   type EvidenceSnapshot,
 } from "@/modules/evidence";
-import type { RecoveryDecision, RecoveryMode } from "@/modules/recovery";
+import {
+  type RecoveryDecision,
+  type RecoveryMode,
+  RecoveryService,
+} from "@/modules/recovery";
 
 import { TrialFactory } from "./trial.factory";
 import { TrialRepository } from "./trial.repository";
 import type {
   RecoveryStrategies,
+  TrialContext,
   TrialRecord,
 } from "./trial.types";
-import { getOrderedRecoveryActionIds, recordActionResultInTrialContext, recordEvidenceSnapshotInTrialContext } from "./trial.helpers";
+import {
+  getOrderedRecoveryActionIds,
+  recordActionResultInTrialContext,
+  recordEvidenceSnapshotInTrialContext,
+  recordRecoveryDecisionInTrialContext,
+} from "./trial.helpers";
 
 type TrialActionService = Pick<
   ActionService,
@@ -29,6 +39,10 @@ type TrialEvaluationService = Pick<
   EvaluationService,
   "createEvaluationSummary" | "saveEvaluationSummary"
 >;
+type TrialRecoveryService = Pick<
+  RecoveryService,
+  "recordRecoveryDecision" | "findRecoveryDecisionHistory"
+>;
 
 export class TrialService {
   constructor(
@@ -37,6 +51,7 @@ export class TrialService {
     private readonly actionService: TrialActionService,
     private readonly evidenceService: TrialEvidenceService,
     private readonly evaluationService: TrialEvaluationService,
+    private readonly recoveryService: TrialRecoveryService,
     private readonly maxRecoverySteps = 3,
     private readonly trialFactory = new TrialFactory(),
   ) {}
@@ -53,12 +68,14 @@ export class TrialService {
     trialRecord: TrialRecord;
     evaluationSummary: EvaluationSummary;
     recoveryDecision: RecoveryDecision;
+    recoveryDecisions: RecoveryDecision[];
   }> {
     const startedAt = new Date().toISOString();
     const context = this.trialFactory.createTrialContext(input.snapshot);
     const strategy = this.strategies[input.mode];
     let currentSnapshot = input.snapshot;
     let recoveryDecision = await strategy.decide(currentSnapshot, context);
+    this.recordRecoveryDecision(context, recoveryDecision);
     let trialState = this.trialFactory.createTrialStateFromDecision(
       recoveryDecision,
       currentSnapshot,
@@ -140,6 +157,7 @@ export class TrialService {
       }
 
       recoveryDecision = await strategy.decide(currentSnapshot, context);
+      this.recordRecoveryDecision(context, recoveryDecision);
       trialState = this.trialFactory.createTrialStateFromDecision(
         recoveryDecision,
         currentSnapshot,
@@ -169,6 +187,9 @@ export class TrialService {
       trialRecord,
       evaluationSummary,
       recoveryDecision,
+      recoveryDecisions: this.recoveryService.findRecoveryDecisionHistory(
+        context.trialRecordId,
+      ),
     };
   }
 
@@ -184,6 +205,18 @@ export class TrialService {
       this.evidenceService.findEvidenceSnapshotById(result.afterEvidenceSnapshotId) ??
       fallback
     );
+  }
+
+  private recordRecoveryDecision(
+    context: TrialContext,
+    recoveryDecision: RecoveryDecision,
+  ): void {
+    this.recoveryService.recordRecoveryDecision({
+      trialRecordId: context.trialRecordId,
+      sequenceNumber: context.recoveryDecisionIds.length + 1,
+      recoveryDecision,
+    });
+    recordRecoveryDecisionInTrialContext(context, recoveryDecision);
   }
 
 }

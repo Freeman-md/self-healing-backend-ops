@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  ActionRepository,
   type Action,
   type ActionExecutionResult,
 } from "@/modules/action";
@@ -17,7 +16,7 @@ import { TrialService, type TrialRecord } from "@/modules/trial";
 function createSnapshot(
   id: string,
   overallState: EvidenceSnapshot["overallState"],
-  incidentTypes: string[] = [],
+  incidentTypes: EvidenceSnapshot["suspectedIncidentTypes"] = [],
 ): EvidenceSnapshot {
   return {
     id,
@@ -32,9 +31,11 @@ function createSnapshot(
             {
               source: "health",
               name: "database_connectivity",
+              code: "database_connectivity",
               status: "critical",
               value: false,
               description: "Database connectivity failed.",
+              method: "deterministic",
             },
           ]
         : [],
@@ -49,6 +50,7 @@ function createDecision(input: {
   fallbackActionIds?: string[];
 }): RecoveryDecision {
   return {
+    id: `recovery-decision-${input.snapshot.id}`,
     mode: "baseline",
     snapshotId: input.snapshot.id,
     decidedAt: new Date().toISOString(),
@@ -104,6 +106,36 @@ function createResult(input: {
   };
 }
 
+function createAction(id: string): Action {
+  return {
+    id,
+    name: id,
+    description: "Test action.",
+    handlerKey: id,
+    riskLevel: "low",
+    safetyRuleIds: [],
+    expectedOutcome: {
+      description: "Test outcome.",
+      successCriteria: [],
+    },
+  };
+}
+
+function createRecoveryService() {
+  const history = new Map<string, RecoveryDecision[]>();
+  return {
+    recordRecoveryDecision(input: { trialRecordId: string; recoveryDecision: RecoveryDecision }) {
+      const decisions = history.get(input.trialRecordId) ?? [];
+      decisions.push(input.recoveryDecision);
+      history.set(input.trialRecordId, decisions);
+      return input.recoveryDecision;
+    },
+    findRecoveryDecisionHistory(trialRecordId: string) {
+      return history.get(trialRecordId) ?? [];
+    },
+  };
+}
+
 test("baseline produces deterministic diagnosis and ordered recovery plan", async () => {
   const engine = new RecoveryBaselineStrategy();
   const snapshot = createSnapshot(
@@ -142,7 +174,7 @@ test("baseline returns no action for healthy evidence", async () => {
 test("baseline escalates when no deterministic rule matches", async () => {
   const engine = new RecoveryBaselineStrategy();
   const decision = await engine.decide(
-    createSnapshot("snapshot-unknown", "unknown", ["unusual_incident"]),
+    createSnapshot("snapshot-unknown", "unknown", ["unclassified"]),
     {
       actionAttemptCounts: {},
       completedActionIds: [],
@@ -154,7 +186,7 @@ test("baseline escalates when no deterministic rule matches", async () => {
   assert.equal(decision.diagnosisResult.method, "deterministic");
 });
 
-test("trial runner executes proposed then fallback action with reassessment", async () => {
+test("trial runner requires fresh evidence and a re-decision before a subsequent action", async () => {
   const initialSnapshot = createSnapshot(
     "snapshot-unhealthy",
     "unhealthy",
@@ -165,14 +197,21 @@ test("trial runner executes proposed then fallback action with reassessment", as
   const strategy: RecoveryStrategy = {
     mode: "baseline",
     async decide(snapshot) {
+      decisionSnapshotIds.push(snapshot.id);
+      if (snapshot.id === initialSnapshot.id) {
+        return createDecision({
+          snapshot,
+          actionIds: ["restart_postgres_container"],
+        });
+      }
       return createDecision({
         snapshot,
-        actionIds: ["restart_postgres_container"],
-        fallbackActionIds: ["restart_managed_system_service"],
+        actionIds: ["restart_managed_system_service"],
       });
     },
   };
   const executedActionIds: string[] = [];
+  const decisionSnapshotIds: string[] = [];
   const savedResults: ActionExecutionResult[] = [];
   const snapshots = new Map([
     [intermediateSnapshot.id, intermediateSnapshot],
@@ -184,7 +223,7 @@ test("trial runner executes proposed then fallback action with reassessment", as
     { baseline: strategy, agent: strategy },
     { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
     {
-      findActionById: (actionId: string) => new ActionRepository().findActionById(actionId),
+      findActionById: (actionId: string) => createAction(actionId),
       async executeAction(action: Action, _snapshot: EvidenceSnapshot, context: { trialRecordId: string }) {
         executedActionIds.push(action.id);
         executionCount += 1;
@@ -214,6 +253,7 @@ test("trial runner executes proposed then fallback action with reassessment", as
       createEvaluationSummary: () => ({}),
       saveEvaluationSummary: (summary: unknown) => summary,
     } as never,
+    createRecoveryService() as never,
     3,
   );
 
@@ -227,6 +267,10 @@ test("trial runner executes proposed then fallback action with reassessment", as
     "restart_postgres_container",
     "restart_managed_system_service",
   ]);
+  assert.deepEqual(decisionSnapshotIds, [
+    initialSnapshot.id,
+    intermediateSnapshot.id,
+  ]);
   assert.equal(savedResults.length, 2);
   assert.equal(result.trialRecord.status, "resolved");
   assert.equal(result.trialRecord.finalEvidenceSnapshotId, healthySnapshot.id);
@@ -235,6 +279,99 @@ test("trial runner executes proposed then fallback action with reassessment", as
     intermediateSnapshot.id,
     healthySnapshot.id,
   ]);
+});
+
+test("trial runner persists each decision before actions and retains final compatibility references", async () => {
+  const initialSnapshot = createSnapshot("snapshot-history-initial", "unhealthy");
+  const nextSnapshot = createSnapshot("snapshot-history-next", "healthy");
+  const persistedDecisionIds: string[] = [];
+  const persistedDecisions: RecoveryDecision[] = [];
+  const strategy: RecoveryStrategy = {
+    mode: "baseline",
+    async decide(snapshot) {
+      return createDecision({
+        snapshot,
+        actionIds: snapshot.id === initialSnapshot.id ? ["restart_postgres_container"] : [],
+      });
+    },
+  };
+  const recoveryService = {
+    recordRecoveryDecision(input: { recoveryDecision: RecoveryDecision }) {
+      persistedDecisionIds.push(input.recoveryDecision.id);
+      persistedDecisions.push(input.recoveryDecision);
+      return input.recoveryDecision;
+    },
+    findRecoveryDecisionHistory() {
+      return persistedDecisions;
+    },
+  };
+  let actionExecutedAfterPersistence = false;
+
+  const runner = new TrialService(
+    { baseline: strategy, agent: strategy },
+    { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
+    {
+      findActionById: (actionId: string) => createAction(actionId),
+      async executeAction(action: Action, _snapshot: EvidenceSnapshot, context: { trialRecordId: string }) {
+        actionExecutedAfterPersistence = persistedDecisionIds.length === 1;
+        return createResult({
+          id: "result-history",
+          trialRecordId: context.trialRecordId,
+          actionId: action.id,
+          afterSnapshotId: nextSnapshot.id,
+          continuation: "resolved",
+        });
+      },
+      saveActionExecutionResult(result: ActionExecutionResult) { return result; },
+    } as never,
+    { findEvidenceSnapshotById: () => nextSnapshot },
+    { createEvaluationSummary: () => ({}), saveEvaluationSummary: (summary: unknown) => summary } as never,
+    recoveryService as never,
+    3,
+  );
+
+  const result = await runner.runRecoveryTrial({
+    mode: "baseline",
+    scenarioId: "history-scenario",
+    snapshot: initialSnapshot,
+  });
+
+  assert.equal(actionExecutedAfterPersistence, true);
+  assert.equal(persistedDecisionIds.length, 1);
+  assert.deepEqual(result.trialRecord.recoveryDecisionIds, persistedDecisionIds);
+  assert.deepEqual(result.trialRecord.diagnosisResultIds, ["diagnosis-test"]);
+  assert.deepEqual(result.trialRecord.recoveryPlanIds, ["recovery-plan-test"]);
+  assert.equal(result.trialRecord.diagnosisResultId, "diagnosis-test");
+  assert.equal(result.trialRecord.recoveryPlanId, "recovery-plan-test");
+  assert.deepEqual(result.recoveryDecisions, persistedDecisions);
+});
+
+test("trial runner prevents action execution when decision persistence fails", async () => {
+  const snapshot = createSnapshot("snapshot-persistence-failure", "unhealthy");
+  const strategy: RecoveryStrategy = {
+    mode: "baseline",
+    async decide() { return createDecision({ snapshot, actionIds: ["restart_postgres_container"] }); },
+  };
+  let actionExecuted = false;
+  const runner = new TrialService(
+    { baseline: strategy, agent: strategy },
+    { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
+    {
+      findActionById: (actionId: string) => createAction(actionId),
+      async executeAction() { actionExecuted = true; throw new Error("must not execute"); },
+      saveActionExecutionResult: (result: ActionExecutionResult) => result,
+    } as never,
+    { findEvidenceSnapshotById: () => null },
+    { createEvaluationSummary: () => ({}), saveEvaluationSummary: (summary: unknown) => summary } as never,
+    { recordRecoveryDecision() { throw new Error("persistence unavailable"); }, findRecoveryDecisionHistory() { return []; } } as never,
+    3,
+  );
+
+  await assert.rejects(
+    runner.runRecoveryTrial({ mode: "baseline", scenarioId: "persistence-failure", snapshot }),
+    /persistence unavailable/,
+  );
+  assert.equal(actionExecuted, false);
 });
 
 test("trial runner escalates when the action limit is reached", async () => {
@@ -254,7 +391,7 @@ test("trial runner escalates when the action limit is reached", async () => {
     { baseline: strategy, agent: strategy },
     { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
     {
-      findActionById: (actionId: string) => new ActionRepository().findActionById(actionId),
+      findActionById: (actionId: string) => createAction(actionId),
       async executeAction(action: Action, _snapshot: EvidenceSnapshot, context: { trialRecordId: string }) {
         return createResult({
           id: "result-limit",
@@ -277,6 +414,7 @@ test("trial runner escalates when the action limit is reached", async () => {
       createEvaluationSummary: () => ({}),
       saveEvaluationSummary: (summary: unknown) => summary,
     } as never,
+    createRecoveryService() as never,
     1,
   );
 
@@ -328,6 +466,7 @@ test("trial runner fails before execution for an unregistered action", async () 
       createEvaluationSummary: () => ({}),
       saveEvaluationSummary: (summary: unknown) => summary,
     } as never,
+    createRecoveryService() as never,
   );
 
   const result = await runner.runRecoveryTrial({

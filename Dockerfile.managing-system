@@ -4,6 +4,7 @@ WORKDIR /managing-system
 
 COPY package*.json ./
 RUN npm install
+RUN apk add --no-cache docker-cli
 
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src

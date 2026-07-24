@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { readNumber, readOptionalString, readString } from "./helpers";
+import { readBoolean, readNumber, readOptionalEnum, readOptionalString, readString } from "./helpers";
 
 export type AppConfig = {
   environment: string;
@@ -14,6 +14,16 @@ export type AppConfig = {
   };
   database: {
     path: string;
+  };
+  actions: {
+    dockerEnabled: boolean;
+    dockerTimeoutMs: number;
+    postActionHealthTimeoutMs: number;
+    postActionHealthPollIntervalMs: number;
+  };
+  trial: {
+    recoveryMode?: "baseline" | "agent";
+    scenarioId?: "S1" | "S2" | "S3";
   };
 };
 
@@ -32,5 +42,18 @@ export const config: AppConfig = {
       process.env.MANAGING_SYSTEM_DATABASE_PATH,
       "data/managing-system.sqlite",
     ),
+  },
+  actions: {
+    dockerEnabled: readBoolean(process.env.DOCKER_ACTIONS_ENABLED, false),
+    dockerTimeoutMs: readNumber(process.env.DOCKER_ACTION_TIMEOUT_MS, 10000),
+    postActionHealthTimeoutMs: readNumber(process.env.POST_ACTION_HEALTH_TIMEOUT_MS, 30000),
+    postActionHealthPollIntervalMs: readNumber(
+      process.env.POST_ACTION_HEALTH_POLL_INTERVAL_MS,
+      1000,
+    ),
+  },
+  trial: {
+    recoveryMode: readOptionalEnum(process.env.RECOVERY_MODE, ["baseline", "agent"], "RECOVERY_MODE"),
+    scenarioId: readOptionalEnum(process.env.SCENARIO_ID, ["S1", "S2", "S3"], "SCENARIO_ID"),
   },
 };
