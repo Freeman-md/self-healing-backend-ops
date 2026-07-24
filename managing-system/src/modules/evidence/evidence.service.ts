@@ -1,6 +1,7 @@
 import { config } from "@/config";
 import { OpenAIService } from "@/infrastructure/openai";
 import { evidenceSnapshotSchema, type EvidenceSnapshot } from "./evidence.schema";
+import { EvidenceRepository } from "./evidence.repository";
 
 import type { RawEvidence, RawEvidenceSource } from "./evidence.schema";
 
@@ -21,7 +22,13 @@ const evidenceEndpoints: EvidenceEndpoint[] = [
 ];
 
 export class EvidenceService {
-  constructor(private readonly openaiService?: OpenAIService) {}
+  constructor(
+    private readonly evidenceRepository: Pick<
+      EvidenceRepository,
+      "saveEvidenceSnapshot" | "findEvidenceSnapshotById"
+    >,
+    private readonly openaiService?: OpenAIService,
+  ) {}
 
   async collectRawEvidence(): Promise<RawEvidence[]> {
     return Promise.all(
@@ -46,6 +53,14 @@ export class EvidenceService {
 
   async collectAndNormalize(): Promise<EvidenceSnapshot> {
     return this.normalizeEvidence(await this.collectRawEvidence());
+  }
+
+  saveEvidenceSnapshot(snapshot: EvidenceSnapshot): EvidenceSnapshot {
+    return this.evidenceRepository.saveEvidenceSnapshot(snapshot);
+  }
+
+  findEvidenceSnapshotById(snapshotId: string): EvidenceSnapshot | null {
+    return this.evidenceRepository.findEvidenceSnapshotById(snapshotId);
   }
 
   private async collectFromEndpoint(endpoint: EvidenceEndpoint): Promise<RawEvidence> {

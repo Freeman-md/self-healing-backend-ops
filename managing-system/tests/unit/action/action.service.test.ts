@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import { ActionFactory, ActionService, type Action } from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
+import type { SafetyRule } from "@/modules/safety";
 
 const snapshot: EvidenceSnapshot = {
   id: "snapshot-test",
@@ -94,14 +95,12 @@ test("ActionService routes every execution result path through ActionFactory", a
     {} as never,
     blockedSafetyService as never,
     {} as never,
-    {} as never,
     factory,
   ).executeAction(action, snapshot, context);
 
   await new ActionService(
     { findActionHandler: () => null } as never,
     allowedSafetyService as never,
-    {} as never,
     {} as never,
     factory,
   ).executeAction(action, snapshot, context);
@@ -110,15 +109,16 @@ test("ActionService routes every execution result path through ActionFactory", a
     { findActionHandler: () => async () => { throw new Error("handler failed"); } } as never,
     allowedSafetyService as never,
     {} as never,
-    {} as never,
     factory,
   ).executeAction(action, snapshot, context);
 
   await new ActionService(
     { findActionHandler: () => async () => ({ output: "restarted" }) } as never,
     allowedSafetyService as never,
-    { collectAndNormalize: async () => snapshot } as never,
-    { saveEvidenceSnapshot: () => snapshot } as never,
+    {
+      collectAndNormalize: async () => snapshot,
+      saveEvidenceSnapshot: () => snapshot,
+    } as never,
     factory,
     {
       async parseStructuredOutput() {
@@ -154,7 +154,6 @@ test("ActionService evaluates outcomes with the validated fresh snapshot and bou
     {} as never,
     {} as never,
     {} as never,
-    {} as never,
     new ActionFactory(),
     openaiService as never,
   );
@@ -170,4 +169,58 @@ test("ActionService evaluates outcomes with the validated fresh snapshot and bou
     expectedOutcome: action.expectedOutcome,
     freshEvidenceSnapshot: snapshot,
   });
+});
+
+test("ActionService resolves safety rules and persists post-action evidence through EvidenceService", async () => {
+  const evaluatedRules: string[][] = [];
+  let persistedSnapshot: EvidenceSnapshot | undefined;
+  const actionWithRule = { ...action, safetyRuleIds: ["healthy_only"] };
+  const service = new ActionService(
+    {
+      findSafetyRuleById(ruleId: string) {
+        return {
+          id: ruleId,
+          description: "Allow healthy evidence.",
+          checkType: "evidence_state_matches" as const,
+          params: { allowedStates: ["healthy"] },
+          onFail: "block" as const,
+        };
+      },
+      findActionHandler() {
+        return async () => ({ output: "restarted" });
+      },
+    } as never,
+    {
+      evaluateActionSafety(_action: Action, safetyRules: SafetyRule[]) {
+        evaluatedRules.push(safetyRules.map((rule: SafetyRule) => rule.id));
+        return { status: "allowed" as const, failedRuleIds: [] };
+      },
+    } as never,
+    {
+      async collectAndNormalize() {
+        return snapshot;
+      },
+      saveEvidenceSnapshot(candidate: EvidenceSnapshot) {
+        persistedSnapshot = candidate;
+        return candidate;
+      },
+    } as never,
+    new ActionFactory(),
+    {
+      async parseStructuredOutput() {
+        return {
+          expectedOutcomeMet: true,
+          outcomeSummary: "recovered",
+          matchedCriterionIds: [],
+          unmetCriterionIds: [],
+          continuation: "resolved" as const,
+        };
+      },
+    } as never,
+  );
+
+  await service.executeAction(actionWithRule, snapshot, { trialRecordId: "trial-test" });
+
+  assert.deepEqual(evaluatedRules, [["healthy_only"]]);
+  assert.equal(persistedSnapshot, snapshot);
 });

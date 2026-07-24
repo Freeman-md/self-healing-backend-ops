@@ -1,4 +1,4 @@
-import { ActionRepository, type Action } from "@/modules/action";
+import type { Action } from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 
 import type {
@@ -15,13 +15,15 @@ type SafetyContext = {
 };
 
 export class SafetyService {
-  constructor(private readonly actionRepository = new ActionRepository()) {}
-
-  evaluateActionSafety(action: Action, context: SafetyContext): SafetyDecision {
+  evaluateActionSafety(
+    action: Action,
+    safetyRules: SafetyRule[],
+    context: SafetyContext,
+  ): SafetyDecision {
     const evaluations: SafetyRuleEvaluation[] = [];
 
     for (const ruleId of action.safetyRuleIds) {
-      const rule = this.actionRepository.findSafetyRuleById(ruleId);
+      const rule = safetyRules.find((candidate) => candidate.id === ruleId);
 
       if (!rule) {
         evaluations.push({

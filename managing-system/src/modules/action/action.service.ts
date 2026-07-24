@@ -1,6 +1,5 @@
 import {
   EvidenceService,
-  EvidenceRepository,
   type EvidenceSnapshot,
 } from "@/modules/evidence";
 import { OpenAIService } from "@/infrastructure/openai";
@@ -24,13 +23,24 @@ type ActionExecutionContext = {
 
 export class ActionService {
   constructor(
-    private readonly actionRepository = new ActionRepository(),
-    private readonly safetyService = new SafetyService(actionRepository),
-    private readonly evidenceService = new EvidenceService(),
-    private readonly evidenceRepository = new EvidenceRepository(),
+    private readonly actionRepository: ActionRepository,
+    private readonly safetyService: SafetyService,
+    private readonly evidenceService: EvidenceService,
     private readonly actionFactory = new ActionFactory(),
     private readonly openaiService?: OpenAIService,
   ) {}
+
+  listActions(): Action[] {
+    return this.actionRepository.listActions();
+  }
+
+  findActionById(actionId: string): Action | null {
+    return this.actionRepository.findActionById(actionId);
+  }
+
+  saveActionExecutionResult(result: ActionExecutionResult): ActionExecutionResult {
+    return this.actionRepository.saveActionExecutionResult(result);
+  }
 
   async executeAction(
     action: Action,
@@ -38,12 +48,21 @@ export class ActionService {
     context: ActionExecutionContext,
   ): Promise<ActionExecutionResult> {
     const startedAt = new Date().toISOString();
-    const safetyDecision = this.safetyService.evaluateActionSafety(action, {
-      evidenceSnapshot: beforeEvidenceSnapshot,
-      actionAttemptCounts: context.actionAttemptCounts,
-      completedActionIds: context.completedActionIds,
-      manualApprovalGranted: context.manualApprovalGranted,
+    const safetyRules = action.safetyRuleIds.flatMap((ruleId) => {
+      const rule = this.actionRepository.findSafetyRuleById(ruleId);
+
+      return rule ? [rule] : [];
     });
+    const safetyDecision = this.safetyService.evaluateActionSafety(
+      action,
+      safetyRules,
+      {
+        evidenceSnapshot: beforeEvidenceSnapshot,
+        actionAttemptCounts: context.actionAttemptCounts,
+        completedActionIds: context.completedActionIds,
+        manualApprovalGranted: context.manualApprovalGranted,
+      },
+    );
 
     if (safetyDecision.status !== "allowed") {
       return this.actionFactory.createBlockedActionExecutionResult({
@@ -77,7 +96,7 @@ export class ActionService {
     try {
       const handlerResult = await handler({ action, trialRecordId: context.trialRecordId });
       const freshEvidenceSnapshot = await this.evidenceService.collectAndNormalize();
-      const savedSnapshot = this.evidenceRepository.saveEvidenceSnapshot(freshEvidenceSnapshot);
+      const savedSnapshot = this.evidenceService.saveEvidenceSnapshot(freshEvidenceSnapshot);
       const outcome = await this.evaluateActionOutcome({
         expectedOutcome: action.expectedOutcome,
         evidenceSnapshot: savedSnapshot,

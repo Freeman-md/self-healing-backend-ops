@@ -77,7 +77,6 @@ test("unknown handler keys fail safely without execution", async () => {
     repository,
     safetyService as never,
     {} as never,
-    {} as never,
   );
   const snapshot = {
     id: "snapshot-test",

@@ -8,7 +8,7 @@ import type {
   RecoveryMode,
   RecoveryStrategy,
 } from "@/modules/recovery";
-import { TrialService } from "@/modules/trial";
+import { TrialService, type TrialRecord } from "@/modules/trial";
 
 function createHealthySnapshot(): EvidenceSnapshot {
   return {
@@ -69,14 +69,19 @@ test("baseline and agent strategies produce separate comparable trial records", 
   const agent = createStrategy("agent");
   const runner = new TrialService(
     { baseline, agent },
-    new ActionRepository(),
+    { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
     {
+      findActionById: () => null,
       async executeAction(): Promise<ActionExecutionResult> {
         throw new Error("No action should execute for healthy evidence.");
       },
-    },
+      saveActionExecutionResult: (result: ActionExecutionResult) => result,
+    } as never,
     { findEvidenceSnapshotById: () => null },
-    { saveActionExecutionResult: (result: ActionExecutionResult) => result },
+    {
+      createEvaluationSummary: () => ({}),
+      saveEvaluationSummary: (summary: unknown) => summary,
+    } as never,
   );
   const snapshot = createHealthySnapshot();
 

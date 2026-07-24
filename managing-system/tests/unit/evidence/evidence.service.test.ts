@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { EvidenceService } from "@/modules/evidence";
+import type { EvidenceSnapshot } from "@/modules/evidence";
 
 test("raw evidence collection runs without constructing an OpenAI client", async () => {
   const originalFetch = globalThis.fetch;
@@ -13,7 +14,14 @@ test("raw evidence collection runs without constructing an OpenAI client", async
   };
 
   try {
-    const evidence = await new EvidenceService().collectRawEvidence();
+    const evidence = await new EvidenceService({
+      saveEvidenceSnapshot(snapshot) {
+        return snapshot;
+      },
+      findEvidenceSnapshotById() {
+        return null;
+      },
+    }).collectRawEvidence();
 
     assert.deepEqual(requestedTargets, [
       "http://localhost:3004/health",
@@ -23,4 +31,31 @@ test("raw evidence collection runs without constructing an OpenAI client", async
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("EvidenceService persists and retrieves snapshots through its injected repository", () => {
+  const snapshots = new Map<string, EvidenceSnapshot>();
+  const snapshot: EvidenceSnapshot = {
+    id: "snapshot-persistence-test",
+    rawEvidenceIds: [],
+    createdAt: "2026-07-24T00:00:00.000Z",
+    targetSystem: "managed-system",
+    overallState: "healthy",
+    summary: "healthy",
+    signals: [],
+    suspectedIncidentTypes: [],
+    contradictions: [],
+  };
+  const service = new EvidenceService({
+    saveEvidenceSnapshot(savedSnapshot) {
+      snapshots.set(savedSnapshot.id, savedSnapshot);
+      return savedSnapshot;
+    },
+    findEvidenceSnapshotById(snapshotId) {
+      return snapshots.get(snapshotId) ?? null;
+    },
+  });
+
+  assert.equal(service.saveEvidenceSnapshot(snapshot), snapshot);
+  assert.equal(service.findEvidenceSnapshotById(snapshot.id), snapshot);
 });
