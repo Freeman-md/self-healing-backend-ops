@@ -18,6 +18,7 @@ commands from `managing-system/` with the intended `DATABASE_URL`:
 ```text
 npm run prisma:backup
 npm run prisma:prepare-legacy
+npm run prisma:baseline-legacy
 npm run prisma:migrate:deploy
 npm run prisma:seed
 npm run prisma:backfill
@@ -28,7 +29,10 @@ npm run prisma:studio
 
 The backup command creates a timestamped byte-for-byte copy and refuses to
 overwrite an existing file. The preparation step preserves the seven legacy
-tables under `legacy_*` names. Backfill validates every stored JSON payload,
+tables under `legacy_*` names. The baseline step transactionally creates the
+normalized schema and records the initial migration in Prisma's migration
+history; the following deployment command verifies that no migration remains
+unapplied. Backfill validates every stored JSON payload,
 preserves identifiers and timestamps, reports per-entity read/migrated/skipped/
 failed counts, and exits unsuccessfully when any record remains unresolved.
 Running it twice verifies idempotency.

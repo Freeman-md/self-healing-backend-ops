@@ -24,6 +24,10 @@ import { TrialRepository } from "../src/modules/trial/trial.repository";
 import type { TrialRecord } from "../src/modules/trial/trial.types";
 import { config } from "../src/config";
 import { resolveDatabasePath } from "./database-path";
+import {
+  requireLegacyMatch,
+  type LegacyRow,
+} from "./legacy-row-validation";
 
 type EntityName =
   | "evidenceSnapshots"
@@ -44,7 +48,7 @@ type EntitySummary = {
 
 type BackfillSummary = Record<EntityName, EntitySummary>;
 
-type LegacyPayloadRow = Record<string, unknown>;
+type LegacyPayloadRow = LegacyRow;
 
 const databasePath = resolveDatabasePath(config.database.url);
 
@@ -82,6 +86,13 @@ try {
     try {
       const snapshot = evidenceSnapshotSchema.parse(
         parseJsonColumn(row, "snapshot_json"),
+      );
+      requireLegacyMatch("evidence snapshot", row, "id", snapshot.id);
+      requireLegacyMatch(
+        "evidence snapshot",
+        row,
+        "created_at",
+        snapshot.createdAt,
       );
 
       for (const rawEvidenceId of snapshot.rawEvidenceIds) {
@@ -135,6 +146,14 @@ try {
       const trial = parseStoredTrialRecord(
         parseJsonColumn(row, "trial_record_json"),
       );
+      requireLegacyMatch("trial", row, "id", trial.id);
+      requireLegacyMatch("trial", row, "started_at", trial.startedAt);
+      requireLegacyMatch(
+        "trial",
+        row,
+        "completed_at",
+        trial.completedAt,
+      );
       const existingTrial = await prisma.trialRecord.findUnique({
         where: { id: trial.id },
         select: { id: true },
@@ -161,6 +180,31 @@ try {
     try {
       const decision = recoveryDecisionSchema.parse(
         parseJsonColumn(row, "recovery_decision_json"),
+      );
+      requireLegacyMatch("recovery decision", row, "id", decision.id);
+      requireLegacyMatch(
+        "recovery decision",
+        row,
+        "snapshot_id",
+        decision.snapshotId,
+      );
+      requireLegacyMatch(
+        "recovery decision",
+        row,
+        "decided_at",
+        decision.decidedAt,
+      );
+      requireLegacyMatch(
+        "recovery decision",
+        row,
+        "diagnosis_result_id",
+        decision.diagnosisResult.id,
+      );
+      requireLegacyMatch(
+        "recovery decision",
+        row,
+        "recovery_plan_id",
+        decision.recoveryPlan.id,
       );
       const trialRecordId = readStringColumn(row, "trial_record_id");
       const sequenceNumber = readNumberColumn(row, "sequence_number");
@@ -195,6 +239,15 @@ try {
     "diagnosis_result_json",
     diagnosisResultSchema.parse,
     decisionsByDiagnosis,
+    (row, diagnosis) => {
+      requireLegacyMatch("diagnosis", row, "id", diagnosis.id);
+      requireLegacyMatch(
+        "diagnosis",
+        row,
+        "created_at",
+        diagnosis.createdAt,
+      );
+    },
   );
   await validateLegacyChildPayloads(
     legacyRows.plans,
@@ -202,6 +255,21 @@ try {
     "recovery_plan_json",
     recoveryPlanSchema.parse,
     decisionsByPlan,
+    (row, plan) => {
+      requireLegacyMatch("recovery plan", row, "id", plan.id);
+      requireLegacyMatch(
+        "recovery plan",
+        row,
+        "diagnosis_result_id",
+        plan.diagnosisResultId,
+      );
+      requireLegacyMatch(
+        "recovery plan",
+        row,
+        "created_at",
+        plan.createdAt,
+      );
+    },
   );
 
   for (const row of legacyRows.actionResults) {
@@ -210,6 +278,31 @@ try {
     try {
       const actionResult = actionExecutionResultSchema.parse(
         parseJsonColumn(row, "action_execution_result_json"),
+      );
+      requireLegacyMatch("action result", row, "id", actionResult.id);
+      requireLegacyMatch(
+        "action result",
+        row,
+        "trial_record_id",
+        actionResult.trialRecordId,
+      );
+      requireLegacyMatch(
+        "action result",
+        row,
+        "action_definition_id",
+        actionResult.actionId,
+      );
+      requireLegacyMatch(
+        "action result",
+        row,
+        "started_at",
+        actionResult.startedAt,
+      );
+      requireLegacyMatch(
+        "action result",
+        row,
+        "completed_at",
+        actionResult.completedAt,
       );
       const existingResult = await prisma.actionExecutionResult.findUnique({
         where: { id: actionResult.id },
@@ -237,6 +330,19 @@ try {
     try {
       const evaluation = evaluationSummarySchema.parse(
         parseJsonColumn(row, "evaluation_summary_json"),
+      );
+      requireLegacyMatch("evaluation", row, "id", evaluation.id);
+      requireLegacyMatch(
+        "evaluation",
+        row,
+        "trial_record_id",
+        evaluation.trialRecordId,
+      );
+      requireLegacyMatch(
+        "evaluation",
+        row,
+        "created_at",
+        evaluation.createdAt,
       );
       const existingEvaluation = await prisma.evaluationSummary.findUnique({
         where: { id: evaluation.id },
@@ -277,12 +383,14 @@ async function validateLegacyChildPayloads<T extends { id: string }>(
   columnName: string,
   parse: (value: unknown) => T,
   migratedIds: Set<string>,
+  validateIdentity: (row: LegacyPayloadRow, value: T) => void,
 ): Promise<void> {
   for (const row of rows) {
     summary[entityName].read += 1;
 
     try {
       const value = parse(parseJsonColumn(row, columnName));
+      validateIdentity(row, value);
 
       if (!migratedIds.has(value.id)) {
         throw new Error(

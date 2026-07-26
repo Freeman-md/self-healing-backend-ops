@@ -1,11 +1,9 @@
-import type { IContainerRuntime } from "@/infrastructure/container-runtime";
 import { PrismaService } from "@/infrastructure/database";
-import type { SafetyRule } from "@/modules/safety";
-
 import {
-  ActionHandlerRegistry,
-  type ActionHandler,
-} from "./action.handler-registry";
+  persistedSafetyRuleSchema,
+  type SafetyRule,
+} from "@/modules/safety";
+
 import type { Action, ActionExecutionResult } from "./action.types";
 
 const actionSelection = {
@@ -43,14 +41,7 @@ const actionSelection = {
 } as const;
 
 export class ActionRepository {
-  private readonly handlerRegistry: ActionHandlerRegistry;
-
-  constructor(
-    private readonly prisma: PrismaService,
-    containerRuntime?: IContainerRuntime,
-  ) {
-    this.handlerRegistry = new ActionHandlerRegistry(containerRuntime);
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   async listActions(): Promise<Action[]> {
     const rows = await this.prisma.action.findMany({
@@ -75,13 +66,7 @@ export class ActionRepository {
       orderBy: { id: "asc" },
     });
 
-    return rows.map((row) => ({
-      id: row.id,
-      description: row.description,
-      checkType: row.checkType,
-      params: readRecord(row.parameters, `safety rule ${row.id} parameters`),
-      onFail: row.onFail,
-    }));
+    return rows.map(mapSafetyRule);
   }
 
   async findActionById(actionId: string): Promise<Action | null> {
@@ -105,19 +90,7 @@ export class ActionRepository {
       },
     });
 
-    return row
-      ? {
-          id: row.id,
-          description: row.description,
-          checkType: row.checkType,
-          params: readRecord(row.parameters, `safety rule ${row.id} parameters`),
-          onFail: row.onFail,
-        }
-      : null;
-  }
-
-  findActionHandler(handlerKey: string): ActionHandler | null {
-    return this.handlerRegistry.findActionHandler(handlerKey);
+    return row ? mapSafetyRule(row) : null;
   }
 
   async saveActionExecutionResult(
@@ -209,4 +182,20 @@ function readRecord(value: unknown, description: string): Record<string, unknown
   }
 
   return value as Record<string, unknown>;
+}
+
+function mapSafetyRule(row: {
+  id: string;
+  description: string;
+  checkType: "evidence_state_matches" | "max_attempts_not_exceeded";
+  parameters: unknown;
+  onFail: "block" | "escalate";
+}): SafetyRule {
+  return persistedSafetyRuleSchema.parse({
+    id: row.id,
+    description: row.description,
+    checkType: row.checkType,
+    params: row.parameters,
+    onFail: row.onFail,
+  });
 }

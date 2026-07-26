@@ -15,14 +15,15 @@
     "start:container": "npm run prisma:migrate:deploy && npm run prisma:seed && npm run start",
     "prisma:generate": "DATABASE_URL=${DATABASE_URL:-file:./data/managing-system.sqlite} prisma generate",
     "prisma:validate": "DATABASE_URL=${DATABASE_URL:-file:./data/managing-system.sqlite} prisma validate",
-    "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:migrate:dev": "tsx prisma/ensure-sqlite-database.ts && prisma migrate dev",
+    "prisma:migrate:deploy": "tsx prisma/ensure-sqlite-database.ts && prisma migrate deploy",
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
     "prisma:backfill": "tsx prisma/backfill-legacy-data.ts",
     "prisma:backup": "tsx prisma/backup-database.ts",
     "prisma:verify-seed": "tsx prisma/verify-seed.ts",
-    "prisma:prepare-legacy": "tsx prisma/prepare-legacy-database.ts"
+    "prisma:prepare-legacy": "tsx prisma/prepare-legacy-database.ts",
+    "prisma:baseline-legacy": "tsx prisma/baseline-legacy-database.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

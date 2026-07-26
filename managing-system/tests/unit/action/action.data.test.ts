@@ -20,13 +20,7 @@ test("action repository resolves the seeded action and ordered safety catalogue"
   const testDatabase = await createPrismaTestDatabase({ seed: true });
 
   try {
-    const repository = new ActionRepository(testDatabase.prisma, {
-      restartTarget: async () => ({
-        target: "managed-system",
-        containerName: "managed-system-app",
-        output: "",
-      }),
-    });
+    const repository = new ActionRepository(testDatabase.prisma);
     const actions = await repository.listActions();
     const safetyRules = await repository.listSafetyRules();
 
@@ -45,10 +39,6 @@ test("action repository resolves the seeded action and ordered safety catalogue"
       "allow_only_when_system_not_healthy",
       "max_one_attempt_per_cycle",
     ]);
-    assert.equal(
-      typeof repository.findActionHandler("restart_postgres_container"),
-      "function",
-    );
   } finally {
     await testDatabase.close();
   }
@@ -78,11 +68,7 @@ test("action handlers use only their allowlisted runtime targets", async () => {
 });
 
 test("unknown handler keys fail safely without execution", async () => {
-  const repository = {
-    findActionHandler() {
-      return null;
-    },
-  } as unknown as ActionRepository;
+  const repository = {} as ActionRepository;
   const safetyService = {
     evaluateActionSafety() {
       return {

@@ -73,10 +73,7 @@ jobs:
       - name: Generate Prisma client
         run: npm run prisma:generate
 
-      - name: Create isolated SQLite database
-        run: mkdir -p data && touch data/ci.sqlite
-
-      - name: Apply all migrations
+      - name: Create database and apply migrations
         run: npm run prisma:migrate:deploy
 
       - name: Seed catalogues twice

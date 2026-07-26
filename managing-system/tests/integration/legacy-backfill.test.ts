@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -8,18 +8,15 @@ import { test } from "node:test";
 import Database from "better-sqlite3";
 
 import { PrismaService } from "@/infrastructure/database";
-import { seedCatalogue } from "../../prisma/catalogue";
 
 test("historical fixture backfills without loss and remains idempotent", async () => {
-  const fixture = createLegacyFixture(false);
+  const fixture = createLegacyFixture();
 
   try {
     runScript("prisma:prepare-legacy", fixture.databaseUrl);
-    applyMigration(fixture.databasePath);
-    const prisma = new PrismaService(fixture.databaseUrl);
-    await prisma.open();
-    await seedCatalogue(prisma);
-    await prisma.close();
+    runScript("prisma:baseline-legacy", fixture.databaseUrl);
+    runScript("prisma:migrate:deploy", fixture.databaseUrl);
+    runScript("prisma:seed", fixture.databaseUrl);
 
     runScript("prisma:backfill", fixture.databaseUrl);
     runScript("prisma:backfill", fixture.databaseUrl);
@@ -56,15 +53,13 @@ test("historical fixture backfills without loss and remains idempotent", async (
 });
 
 test("malformed historical payloads produce an actionable failing report", async () => {
-  const fixture = createLegacyFixture(true);
+  const fixture = createLegacyFixture({ malformedEvidence: true });
 
   try {
     runScript("prisma:prepare-legacy", fixture.databaseUrl);
-    applyMigration(fixture.databasePath);
-    const prisma = new PrismaService(fixture.databaseUrl);
-    await prisma.open();
-    await seedCatalogue(prisma);
-    await prisma.close();
+    runScript("prisma:baseline-legacy", fixture.databaseUrl);
+    runScript("prisma:migrate:deploy", fixture.databaseUrl);
+    runScript("prisma:seed", fixture.databaseUrl);
 
     const result = runScript("prisma:backfill", fixture.databaseUrl, false);
 
@@ -78,7 +73,90 @@ test("malformed historical payloads produce an actionable failing report", async
   }
 });
 
-function createLegacyFixture(malformedEvidence: boolean): {
+test("legacy relational identity mismatches fail every entity", () => {
+  const fixture = createLegacyFixture({ mismatchedIdentity: true });
+
+  try {
+    runScript("prisma:prepare-legacy", fixture.databaseUrl);
+    runScript("prisma:baseline-legacy", fixture.databaseUrl);
+    runScript("prisma:migrate:deploy", fixture.databaseUrl);
+    runScript("prisma:seed", fixture.databaseUrl);
+
+    const result = runScript("prisma:backfill", fixture.databaseUrl, false);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    assert.notEqual(result.status, 0);
+    for (const failurePattern of [
+      /evidenceSnapshots:row-legacy-snapshot: Legacy evidence snapshot id mismatch/,
+      /trials:row-legacy-trial: Legacy trial id mismatch/,
+      /diagnoses:row-legacy-diagnosis: Legacy diagnosis id mismatch/,
+      /recoveryPlans:row-legacy-plan: Legacy recovery plan id mismatch/,
+      /recoveryDecisions:row-legacy-decision: Legacy recovery decision id mismatch/,
+      /actionResults:row-legacy-action-result: Legacy action result id mismatch/,
+      /evaluations:row-legacy-evaluation: Legacy evaluation id mismatch/,
+    ]) {
+      assert.match(output, failurePattern);
+    }
+  } finally {
+    fixture.close();
+  }
+});
+
+test("legacy relational timestamp mismatches fail every timestamped entity", () => {
+  const fixture = createLegacyFixture({ mismatchedTimestamp: true });
+
+  try {
+    runScript("prisma:prepare-legacy", fixture.databaseUrl);
+    runScript("prisma:baseline-legacy", fixture.databaseUrl);
+    runScript("prisma:migrate:deploy", fixture.databaseUrl);
+    runScript("prisma:seed", fixture.databaseUrl);
+
+    const result = runScript("prisma:backfill", fixture.databaseUrl, false);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    assert.notEqual(result.status, 0);
+    for (const failurePattern of [
+      /evidenceSnapshots:legacy-snapshot: Legacy evidence snapshot created_at mismatch/,
+      /trials:legacy-trial: Legacy trial started_at mismatch/,
+      /diagnoses:legacy-diagnosis: Legacy diagnosis created_at mismatch/,
+      /recoveryPlans:legacy-plan: Legacy recovery plan created_at mismatch/,
+      /recoveryDecisions:legacy-decision: Legacy recovery decision decided_at mismatch/,
+      /actionResults:legacy-action-result: Legacy action result started_at mismatch/,
+      /evaluations:legacy-evaluation: Legacy evaluation created_at mismatch/,
+    ]) {
+      assert.match(output, failurePattern);
+    }
+  } finally {
+    fixture.close();
+  }
+});
+
+test("migration deployment creates an absent SQLite file on a fresh volume", () => {
+  const directory = mkdtempSync(join(tmpdir(), "managing-system-fresh-"));
+  const databasePath = join(directory, "fresh.sqlite");
+  const databaseUrl = `file:${databasePath}`;
+
+  try {
+    assert.equal(existsSync(databasePath), false);
+    runScript("prisma:migrate:deploy", databaseUrl);
+    assert.equal(existsSync(databasePath), true);
+
+    const database = new Database(databasePath, { readonly: true });
+    const migrationCount = database
+      .prepare("SELECT COUNT(*) AS count FROM _prisma_migrations")
+      .get() as { count: number };
+    database.close();
+    assert.equal(migrationCount.count, 1);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+function createLegacyFixture(options: {
+  malformedEvidence?: boolean;
+  mismatchedIdentity?: boolean;
+  mismatchedTimestamp?: boolean;
+} = {}): {
   databasePath: string;
   databaseUrl: string;
   close(): void;
@@ -87,6 +165,11 @@ function createLegacyFixture(malformedEvidence: boolean): {
   const databasePath = join(directory, "legacy.sqlite");
   const database = new Database(databasePath);
   const timestamp = "2026-07-20T00:00:00.000Z";
+  const relationalTimestamp = options.mismatchedTimestamp
+    ? "2026-07-19T00:00:00.000Z"
+    : timestamp;
+  const relationalId = (payloadId: string) =>
+    options.mismatchedIdentity ? `row-${payloadId}` : payloadId;
   const snapshot = {
     id: "legacy-snapshot",
     rawEvidenceIds: [],
@@ -199,25 +282,25 @@ function createLegacyFixture(malformedEvidence: boolean): {
   `);
   database
     .prepare("INSERT INTO evidence_snapshots VALUES (?, ?, ?, ?)")
-    .run(snapshot.id, timestamp, "healthy", malformedEvidence ? "{" : JSON.stringify(snapshot));
+    .run(relationalId(snapshot.id), relationalTimestamp, "healthy", options.malformedEvidence ? "{" : JSON.stringify(snapshot));
   database
     .prepare("INSERT INTO trial_records VALUES (?, ?, ?, ?, ?, ?, ?)")
-    .run(trial.id, "baseline", timestamp, timestamp, "resolved", "resolved_safely", JSON.stringify(trial));
+    .run(relationalId(trial.id), "baseline", relationalTimestamp, relationalTimestamp, "resolved", "resolved_safely", JSON.stringify(trial));
   database
     .prepare("INSERT INTO diagnosis_results VALUES (?, ?, ?, ?)")
-    .run(diagnosis.id, trial.id, timestamp, JSON.stringify(diagnosis));
+    .run(relationalId(diagnosis.id), relationalId(trial.id), relationalTimestamp, JSON.stringify(diagnosis));
   database
     .prepare("INSERT INTO recovery_plans VALUES (?, ?, ?, ?, ?)")
-    .run(plan.id, trial.id, diagnosis.id, timestamp, JSON.stringify(plan));
+    .run(relationalId(plan.id), relationalId(trial.id), relationalId(diagnosis.id), relationalTimestamp, JSON.stringify(plan));
   database
     .prepare("INSERT INTO recovery_decisions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-    .run(decision.id, trial.id, 1, "baseline", snapshot.id, timestamp, "no_action", diagnosis.id, plan.id, JSON.stringify(decision));
+    .run(relationalId(decision.id), relationalId(trial.id), 1, "baseline", relationalId(snapshot.id), relationalTimestamp, "no_action", relationalId(diagnosis.id), relationalId(plan.id), JSON.stringify(decision));
   database
     .prepare("INSERT INTO action_execution_results VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-    .run(actionResult.id, trial.id, actionResult.actionId, "executed", "resolved", timestamp, timestamp, JSON.stringify(actionResult));
+    .run(relationalId(actionResult.id), relationalId(trial.id), options.mismatchedIdentity ? "restart_managed_system_service" : actionResult.actionId, "executed", "resolved", relationalTimestamp, relationalTimestamp, JSON.stringify(actionResult));
   database
     .prepare("INSERT INTO evaluation_summaries VALUES (?, ?, ?, ?, ?)")
-    .run(evaluation.id, trial.id, timestamp, "effective", JSON.stringify(evaluation));
+    .run(relationalId(evaluation.id), relationalId(trial.id), relationalTimestamp, "effective", JSON.stringify(evaluation));
   database.close();
 
   return {
@@ -227,23 +310,6 @@ function createLegacyFixture(malformedEvidence: boolean): {
       rmSync(directory, { recursive: true, force: true });
     },
   };
-}
-
-function applyMigration(databasePath: string): void {
-  const database = new Database(databasePath);
-
-  try {
-    database.exec(
-      readFileSync(
-        resolve(
-          "prisma/migrations/20260726120000_relational_persistence/migration.sql",
-        ),
-        "utf8",
-      ),
-    );
-  } finally {
-    database.close();
-  }
 }
 
 function runScript(

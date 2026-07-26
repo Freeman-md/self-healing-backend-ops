@@ -73,14 +73,6 @@ export class TrialRepository {
             id: true,
             diagnosisResultId: true,
             recoveryPlanId: true,
-            recoveryPlan: {
-              select: {
-                actions: {
-                  select: { actionId: true, phase: true, position: true },
-                  orderBy: [{ phase: "asc" }, { position: "asc" }],
-                },
-              },
-            },
           },
           orderBy: { sequenceNumber: "asc" },
         },
@@ -126,9 +118,7 @@ export class TrialRepository {
       ),
       diagnosisResultId: row.recoveryDecisions.at(-1)?.diagnosisResultId,
       recoveryPlanId: row.recoveryDecisions.at(-1)?.recoveryPlanId,
-      selectedActionIds: row.recoveryDecisions.flatMap((decision) =>
-        decision.recoveryPlan.actions.map((action) => action.actionId),
-      ),
+      selectedActionIds: actionResults.map((result) => result.actionId),
       actionExecutionResultIds: actionResults.map((result) => result.id),
       executedActionResultIds: actionResults
         .filter((result) => result.status === "executed")

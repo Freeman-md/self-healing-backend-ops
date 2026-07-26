@@ -101,25 +101,27 @@ test("ActionService routes every execution result path through ActionFactory", a
   ).executeAction(action, snapshot, context);
 
   await new ActionService(
+    {} as never,
+    allowedSafetyService as never,
+    {} as never,
+    factory,
+    undefined,
+    true,
     { findActionHandler: () => null } as never,
+  ).executeAction(action, snapshot, context);
+
+  await new ActionService(
+    {} as never,
     allowedSafetyService as never,
     {} as never,
     factory,
     undefined,
     true,
-  ).executeAction(action, snapshot, context);
-
-  await new ActionService(
     { findActionHandler: () => async () => { throw new Error("handler failed"); } } as never,
-    allowedSafetyService as never,
-    {} as never,
-    factory,
-    undefined,
-    true,
   ).executeAction(action, snapshot, context);
 
   await new ActionService(
-    { findActionHandler: () => async () => ({ output: "restarted" }) } as never,
+    {} as never,
     allowedSafetyService as never,
     {
       waitForManagedSystemHealth: async () => ({ healthy: true }),
@@ -139,6 +141,7 @@ test("ActionService routes every execution result path through ActionFactory", a
       },
     } as never,
     true,
+    { findActionHandler: () => async () => ({ output: "restarted" }) } as never,
   ).executeAction(action, snapshot, context);
 
   assert.deepEqual(constructedPaths, ["blocked", "failed", "failed", "successful"]);
@@ -194,9 +197,6 @@ test("ActionService resolves safety rules and persists post-action evidence thro
           onFail: "block" as const,
         };
       },
-      findActionHandler() {
-        return async () => ({ output: "restarted" });
-      },
     } as never,
     {
       evaluateActionSafety(_action: Action, safetyRules: SafetyRule[]) {
@@ -227,6 +227,7 @@ test("ActionService resolves safety rules and persists post-action evidence thro
       },
     } as never,
     true,
+    { findActionHandler: () => async () => ({ output: "restarted" }) } as never,
   );
 
   await service.executeAction(actionWithRule, snapshot, { trialRecordId: "trial-test" });
@@ -238,12 +239,13 @@ test("ActionService resolves safety rules and persists post-action evidence thro
 test("ActionService blocks disabled Docker execution after safety without invoking a handler", async () => {
   let handlerInvoked = false;
   const service = new ActionService(
-    { findActionHandler: () => async () => { handlerInvoked = true; return { output: "unexpected" }; } } as never,
+    {} as never,
     { evaluateActionSafety: () => ({ status: "allowed" as const, failedRuleIds: [] }) } as never,
     {} as never,
     new ActionFactory(),
     undefined,
     false,
+    { findActionHandler: () => async () => { handlerInvoked = true; return { output: "unexpected" }; } } as never,
   );
 
   const result = await service.executeAction(action, snapshot, { trialRecordId: "trial-disabled" });
@@ -257,7 +259,7 @@ test("ActionService blocks disabled Docker execution after safety without invoki
 test("ActionService saves fresh evidence after readiness polling times out", async () => {
   let savedSnapshot: EvidenceSnapshot | undefined;
   const service = new ActionService(
-    { findActionHandler: () => async () => ({ output: "restarted" }) } as never,
+    {} as never,
     { evaluateActionSafety: () => ({ status: "allowed" as const, failedRuleIds: [] }) } as never,
     {
       waitForManagedSystemHealth: async () => ({ healthy: false }),
@@ -270,6 +272,7 @@ test("ActionService saves fresh evidence after readiness polling times out", asy
     new ActionFactory(),
     { async parseStructuredOutput() { return { expectedOutcomeMet: false, outcomeSummary: "not recovered", matchedCriterionIds: [], unmetCriterionIds: [], continuation: "continue" as const }; } } as never,
     true,
+    { findActionHandler: () => async () => ({ output: "restarted" }) } as never,
   );
 
   const result = await service.executeAction(action, snapshot, { trialRecordId: "trial-timeout" });

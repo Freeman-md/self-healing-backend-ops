@@ -6,7 +6,7 @@ import { config } from "@/config";
 import { OpenAIService } from "@/infrastructure/openai";
 import { evidenceSnapshotSchema } from "@/modules/evidence";
 import { actionOutcomeEvaluationSchema } from "./action.schema";
-import { SafetyService } from "@/modules/safety";
+import { SafetyService, type SafetyRule } from "@/modules/safety";
 import type {
   Action,
   ActionExecutionResult,
@@ -14,6 +14,7 @@ import type {
 
 import { ActionRepository } from "./action.repository";
 import { ActionFactory } from "./action.factory";
+import { ActionHandlerRegistry } from "./action.handler-registry";
 
 type ActionExecutionContext = {
   trialRecordId: string;
@@ -30,6 +31,7 @@ export class ActionService {
     private readonly actionFactory = new ActionFactory(),
     private readonly openaiService?: OpenAIService,
     private readonly dockerActionsEnabled = config.actions.dockerEnabled,
+    private readonly handlerRegistry = new ActionHandlerRegistry(),
   ) {}
 
   async listActions(): Promise<Action[]> {
@@ -52,13 +54,31 @@ export class ActionService {
     context: ActionExecutionContext,
   ): Promise<ActionExecutionResult> {
     const startedAt = new Date().toISOString();
-    const safetyRules = (
-      await Promise.all(
-        action.safetyRuleIds.map((ruleId) =>
-          this.actionRepository.findSafetyRuleById(ruleId),
-        ),
-      )
-    ).filter((rule) => rule !== null);
+    let safetyRules: SafetyRule[];
+
+    try {
+      safetyRules = (
+        await Promise.all(
+          action.safetyRuleIds.map((ruleId) =>
+            this.actionRepository.findSafetyRuleById(ruleId),
+          ),
+        )
+      ).filter((rule) => rule !== null);
+    } catch (error) {
+      return this.actionFactory.createBlockedActionExecutionResult({
+        actionId: action.id,
+        trialRecordId: context.trialRecordId,
+        startedAt,
+        completedAt: new Date().toISOString(),
+        safetyCheckStatus: "failed",
+        failedSafetyRuleIds: action.safetyRuleIds,
+        beforeEvidenceSnapshotId: beforeEvidenceSnapshot.id,
+        error: `Persisted safety rule validation failed: ${
+          error instanceof Error ? error.message : "unknown validation error"
+        }`,
+        continuation: "escalated",
+      });
+    }
     const safetyDecision = this.safetyService.evaluateActionSafety(
       action,
       safetyRules,
@@ -98,7 +118,7 @@ export class ActionService {
       });
     }
 
-    const handler = this.actionRepository.findActionHandler(action.handlerKey);
+    const handler = this.handlerRegistry.findActionHandler(action.handlerKey);
 
     if (!handler) {
       return this.actionFactory.createFailedActionExecutionResult({

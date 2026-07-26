@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   ActionRepository,
+  ActionService,
   type ActionExecutionResult,
 } from "@/modules/action";
 import {
@@ -15,6 +16,7 @@ import {
   RecoveryRepository,
   RecoveryService,
 } from "@/modules/recovery";
+import { SafetyService } from "@/modules/safety";
 import { TrialRepository, type TrialRecord } from "@/modules/trial";
 import { seedCatalogue } from "../../prisma/catalogue";
 import { createPrismaTestDatabase } from "../helpers/prisma-test-database";
@@ -69,12 +71,45 @@ test("Prisma persistence keeps seeded policy order and normalized trial relation
       rawText: null,
       error: "connection refused",
     });
-    initialSnapshot.rawEvidenceIds = ["raw-health-failed"];
+    await evidenceRepository.saveRawEvidence({
+      id: "raw-log-failed",
+      source: "logs",
+      target: "managed-system",
+      collectedAt: "2026-07-26T00:00:01.000Z",
+      status: "collected",
+      rawText: "database unavailable",
+      error: null,
+    });
+    initialSnapshot.rawEvidenceIds = [
+      "raw-health-failed",
+      "raw-log-failed",
+    ];
     await evidenceRepository.saveEvidenceSnapshot(initialSnapshot);
     await evidenceRepository.saveEvidenceSnapshot(finalSnapshot);
 
-    const reloadedSnapshot =
+    let reloadedSnapshot =
       await evidenceRepository.findEvidenceSnapshotById(initialSnapshot.id);
+    assert.deepEqual(reloadedSnapshot?.rawEvidenceIds, [
+      "raw-health-failed",
+      "raw-log-failed",
+    ]);
+
+    initialSnapshot.rawEvidenceIds = ["raw-health-failed"];
+    await evidenceRepository.saveEvidenceSnapshot(initialSnapshot);
+    reloadedSnapshot =
+      await evidenceRepository.findEvidenceSnapshotById(initialSnapshot.id);
+    assert.deepEqual(reloadedSnapshot?.rawEvidenceIds, [
+      "raw-health-failed",
+    ]);
+    assert.equal(
+      (
+        await testDatabase.prisma.rawEvidence.findUniqueOrThrow({
+          where: { id: "raw-log-failed" },
+          select: { snapshotId: true },
+        })
+      ).snapshotId,
+      null,
+    );
     assert.equal(reloadedSnapshot?.signals[0]?.method, "deterministic");
     assert.equal(reloadedSnapshot?.signals[1]?.method, "llm");
     assert.deepEqual(reloadedSnapshot?.suspectedIncidentTypes, [
@@ -110,7 +145,10 @@ test("Prisma persistence keeps seeded policy order and normalized trial relation
     });
     const plan = factory.createRecoveryPlan({
       diagnosisResultId: diagnosis.id,
-      proposedActionIds: ["restart_postgres_container"],
+      proposedActionIds: [
+        "restart_postgres_container",
+        "restart_managed_system_service",
+      ],
       fallbackActionIds: [],
       rationale: "database first",
       expectedOutcome: "healthy",
@@ -130,6 +168,19 @@ test("Prisma persistence keeps seeded policy order and normalized trial relation
       sequenceNumber: 1,
       recoveryDecision: decision,
     });
+    assert.deepEqual(
+      (
+        await testDatabase.prisma.recoveryPlanAction.findMany({
+          where: { recoveryPlanId: plan.id },
+          select: { actionId: true },
+          orderBy: { position: "asc" },
+        })
+      ).map((entry) => entry.actionId),
+      [
+        "restart_postgres_container",
+        "restart_managed_system_service",
+      ],
+    );
 
     const actionResult: ActionExecutionResult = {
       id: "action-result-test",
@@ -274,6 +325,56 @@ test("Prisma persistence keeps seeded policy order and normalized trial relation
       },
       countsBeforeFailure,
     );
+
+  } finally {
+    await testDatabase.close();
+  }
+});
+
+test("malformed persisted safety parameters fail closed before handler execution", async () => {
+  const testDatabase = await createPrismaTestDatabase({ seed: true });
+
+  try {
+    const actionRepository = new ActionRepository(testDatabase.prisma);
+    const action = await actionRepository.findActionById(
+      "restart_postgres_container",
+    );
+    assert.ok(action);
+
+    await testDatabase.prisma.safetyRule.update({
+      where: { id: "max_one_attempt_per_cycle" },
+      data: { parameters: { maxAttempts: "invalid" } },
+    });
+
+    let handlerInvoked = false;
+    const actionService = new ActionService(
+      actionRepository,
+      new SafetyService(),
+      {} as never,
+      undefined,
+      undefined,
+      true,
+      {
+        findActionHandler: () => async () => {
+          handlerInvoked = true;
+          return { output: "unexpected" };
+        },
+      } as never,
+    );
+    const malformedRuleResult = await actionService.executeAction(
+      action,
+      createSnapshot("snapshot-malformed-rule", "unhealthy", "critical"),
+      { trialRecordId: "trial-malformed-rule" },
+    );
+
+    assert.equal(malformedRuleResult.status, "blocked");
+    assert.equal(malformedRuleResult.safetyCheckStatus, "failed");
+    assert.equal(malformedRuleResult.continuation, "escalated");
+    assert.match(
+      malformedRuleResult.error ?? "",
+      /Persisted safety rule validation failed/,
+    );
+    assert.equal(handlerInvoked, false);
   } finally {
     await testDatabase.close();
   }

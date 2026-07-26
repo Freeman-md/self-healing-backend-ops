@@ -2,7 +2,11 @@ import { config } from "@/config";
 import { PrismaService } from "@/infrastructure/database";
 import { DockerContainerRuntimeService } from "@/infrastructure/container-runtime";
 import { canUseOpenAI } from "@/infrastructure/openai";
-import { ActionRepository, ActionService } from "@/modules/action";
+import {
+  ActionHandlerRegistry,
+  ActionRepository,
+  ActionService,
+} from "@/modules/action";
 import { EvidenceService, EvidenceRepository } from "@/modules/evidence";
 import {
   EvaluationFactory,
@@ -78,7 +82,7 @@ async function main() {
     const recoveryRepository = new RecoveryRepository(prismaService);
     const recoveryService = new RecoveryService(recoveryRepository);
     const evaluationRepository = new EvaluationRepository(prismaService);
-    const actionRepository = new ActionRepository(prismaService, containerRuntime);
+    const actionRepository = new ActionRepository(prismaService);
     const safetyService = new SafetyService();
     const actionService = new ActionService(
       actionRepository,
@@ -87,6 +91,7 @@ async function main() {
       undefined,
       undefined,
       config.actions.dockerEnabled,
+      new ActionHandlerRegistry(containerRuntime),
     );
     const evaluationService = new EvaluationService(
       new EvaluationFactory(),

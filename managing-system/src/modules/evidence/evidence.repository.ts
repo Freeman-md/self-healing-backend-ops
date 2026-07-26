@@ -86,6 +86,15 @@ export class EvidenceRepository {
       }
 
       await transaction.rawEvidence.updateMany({
+        where: {
+          snapshotId: parsed.id,
+          ...(parsed.rawEvidenceIds.length > 0
+            ? { id: { notIn: parsed.rawEvidenceIds } }
+            : {}),
+        },
+        data: { snapshotId: null },
+      });
+      await transaction.rawEvidence.updateMany({
         where: { id: { in: parsed.rawEvidenceIds } },
         data: { snapshotId: parsed.id },
       });
