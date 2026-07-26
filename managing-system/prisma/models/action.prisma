@@ -1,0 +1,90 @@
+model Action {
+  id                 String                  @id
+  name               String
+  description        String
+  handlerKey         String                  @map("handler_key")
+  riskLevel          RiskLevel               @map("risk_level")
+  active             Boolean                 @default(true)
+  createdAt          DateTime                @default(now()) @map("created_at")
+  updatedAt          DateTime                @updatedAt @map("updated_at")
+  expectedOutcome    ExpectedOutcome?
+  safetyRules        ActionSafetyRule[]
+  recoveryPlanLinks  RecoveryPlanAction[]
+  baselineRuleLinks  BaselineRuleAction[]
+  executionResults   ActionExecutionResult[]
+
+  @@map("actions")
+}
+
+model ExpectedOutcome {
+  id          String             @id
+  actionId    String             @unique @map("action_id")
+  description String
+  action      Action             @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  criteria    OutcomeCriterion[]
+
+  @@map("expected_outcomes")
+}
+
+model OutcomeCriterion {
+  id                String           @id
+  expectedOutcomeId String           @map("expected_outcome_id")
+  description       String
+  checkType         OutcomeCheckType @map("check_type")
+  parameters        Json
+  position          Int
+  expectedOutcome   ExpectedOutcome  @relation(fields: [expectedOutcomeId], references: [id], onDelete: Cascade)
+
+  @@unique([expectedOutcomeId, position])
+  @@map("outcome_criteria")
+}
+
+model SafetyRule {
+  id          String              @id
+  description String
+  checkType   SafetyCheckType     @map("check_type")
+  parameters  Json
+  onFail      SafetyFailureAction @map("on_fail")
+  active      Boolean             @default(true)
+  actions     ActionSafetyRule[]
+
+  @@map("safety_rules")
+}
+
+model ActionSafetyRule {
+  actionId     String     @map("action_id")
+  safetyRuleId String     @map("safety_rule_id")
+  position     Int
+  action       Action     @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  safetyRule   SafetyRule @relation(fields: [safetyRuleId], references: [id], onDelete: Cascade)
+
+  @@id([actionId, safetyRuleId])
+  @@unique([actionId, position])
+  @@map("action_safety_rules")
+}
+
+model ActionExecutionResult {
+  id                       String                      @id
+  trialRecordId            String                      @map("trial_record_id")
+  actionId                 String                      @map("action_definition_id")
+  beforeEvidenceSnapshotId String?                     @map("before_evidence_snapshot_id")
+  afterEvidenceSnapshotId  String?                     @map("after_evidence_snapshot_id")
+  status                   ActionExecutionStatus
+  continuation             ActionExecutionContinuation
+  startedAt                DateTime                    @map("started_at")
+  completedAt              DateTime?                   @map("completed_at")
+  safetyCheckStatus        SafetyCheckStatus           @map("safety_check_status")
+  failedSafetyRuleIds      Json                        @map("failed_safety_rule_ids")
+  output                   String?
+  error                    String?
+  expectedOutcomeMet       Boolean?                    @map("expected_outcome_met")
+  outcomeSummary           String?                     @map("outcome_summary")
+  legacyPayload            String?                     @map("action_execution_result_json")
+  action                   Action                      @relation(fields: [actionId], references: [id])
+  trial                    TrialRecord                 @relation(fields: [trialRecordId], references: [id])
+  beforeEvidenceSnapshot   EvidenceSnapshot?           @relation("BeforeEvidence", fields: [beforeEvidenceSnapshotId], references: [id])
+  afterEvidenceSnapshot    EvidenceSnapshot?           @relation("AfterEvidence", fields: [afterEvidenceSnapshotId], references: [id])
+
+  @@index([trialRecordId])
+  @@map("action_execution_results")
+}

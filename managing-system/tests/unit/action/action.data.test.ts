@@ -1,62 +1,78 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import type { IContainerRuntime } from "@/infrastructure/container-runtime";
 import {
+  ActionHandlerRegistry,
   ActionRepository,
+  ActionService,
   type Action,
 } from "@/modules/action";
-import { createActionHandlers } from "@/modules/action/action.data";
-import { DatabaseService } from "@/infrastructure/database";
-import type { IContainerRuntime } from "@/infrastructure/container-runtime";
 import type { EvidenceSnapshot } from "@/modules/evidence";
-import { ActionService } from "@/modules/action/action.service";
+import { createPrismaTestDatabase } from "../../helpers/prisma-test-database";
 
 const actionHandlerInput = {
   action: {} as Action,
   trialRecordId: "trial-test",
 };
 
-test("action repository resolves the predefined action and safety-rule catalogue", () => {
-  const databaseService = new DatabaseService(":memory:");
-  const repository = new ActionRepository(
-    databaseService,
-    {
-      restartTarget: async () => ({ target: "managed-system", containerName: "managed-system-app", output: "" }),
-    },
-  );
+test("action repository resolves the seeded action and ordered safety catalogue", async () => {
+  const testDatabase = await createPrismaTestDatabase({ seed: true });
 
-  assert.equal(repository.listActions().length, 2);
-  assert.equal(repository.listSafetyRules().length, 2);
-  assert.equal(
-    repository.findActionById("restart_postgres_container")?.handlerKey,
-    "restart_postgres_container",
-  );
-  assert.equal(
-    repository.findSafetyRuleById("max_one_attempt_per_cycle")?.id,
-    "max_one_attempt_per_cycle",
-  );
-  assert.equal(
-    typeof repository.findActionHandler("restart_postgres_container"),
-    "function",
-  );
-  assert.equal(
-    typeof repository.findActionHandler("restart_managed_system_service"),
-    "function",
-  );
-  databaseService.close();
+  try {
+    const repository = new ActionRepository(testDatabase.prisma, {
+      restartTarget: async () => ({
+        target: "managed-system",
+        containerName: "managed-system-app",
+        output: "",
+      }),
+    });
+    const actions = await repository.listActions();
+    const safetyRules = await repository.listSafetyRules();
+
+    assert.equal(actions.length, 2);
+    assert.equal(safetyRules.length, 2);
+    assert.equal(
+      (await repository.findActionById("restart_postgres_container"))
+        ?.handlerKey,
+      "restart_postgres_container",
+    );
+    assert.equal(
+      (await repository.findSafetyRuleById("max_one_attempt_per_cycle"))?.id,
+      "max_one_attempt_per_cycle",
+    );
+    assert.deepEqual(actions[0]?.safetyRuleIds, [
+      "allow_only_when_system_not_healthy",
+      "max_one_attempt_per_cycle",
+    ]);
+    assert.equal(
+      typeof repository.findActionHandler("restart_postgres_container"),
+      "function",
+    );
+  } finally {
+    await testDatabase.close();
+  }
 });
 
 test("action handlers use only their allowlisted runtime targets", async () => {
   const runtimeTargets: string[] = [];
-  const handlers = createActionHandlers({
+  const registry = new ActionHandlerRegistry({
     async restartTarget(target) {
       runtimeTargets.push(target);
-      return { target, containerName: target, output: `restarted ${target}` };
+      return {
+        target,
+        containerName: target,
+        output: `restarted ${target}`,
+      };
     },
   } satisfies IContainerRuntime);
 
-  await handlers.restart_postgres_container(actionHandlerInput);
-  await handlers.restart_managed_system_service(actionHandlerInput);
+  await registry
+    .findActionHandler("restart_postgres_container")
+    ?.(actionHandlerInput);
+  await registry
+    .findActionHandler("restart_managed_system_service")
+    ?.(actionHandlerInput);
 
   assert.deepEqual(runtimeTargets, ["postgres", "managed-system"]);
 });

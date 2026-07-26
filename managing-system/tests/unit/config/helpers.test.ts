@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { readBoolean, readNumber } from "@/config/helpers";
+import {
+  readBoolean,
+  readNumber,
+  readSqliteDatabaseUrl,
+} from "@/config/helpers";
 
 test("Docker execution configuration defaults safely and requires explicit values", () => {
   assert.equal(readBoolean(undefined, false), false);
@@ -11,4 +15,17 @@ test("Docker execution configuration defaults safely and requires explicit value
   assert.equal(readNumber(undefined, 10000), 10000);
   assert.throws(() => readNumber("0", 10000), /positive finite/);
   assert.throws(() => readNumber("not-a-number", 10000), /positive finite/);
+});
+
+test("SQLite configuration requires a non-empty Prisma file URL", () => {
+  assert.equal(
+    readSqliteDatabaseUrl("file:./data/test.sqlite"),
+    "file:./data/test.sqlite",
+  );
+  assert.throws(() => readSqliteDatabaseUrl(undefined), /DATABASE_URL/);
+  assert.throws(
+    () => readSqliteDatabaseUrl("postgresql://localhost/test"),
+    /SQLite file:/,
+  );
+  assert.throws(() => readSqliteDatabaseUrl("file:"), /database path/);
 });

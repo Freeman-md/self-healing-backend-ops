@@ -23,17 +23,21 @@ export class RecoveryAgentStrategy implements RecoveryStrategy {
     _context: RecoveryStrategyContext,
   ): Promise<RecoveryDecision> {
     const diagnosisResult = await this.recoveryAgentService.diagnoseEvidence(evidenceSnapshot);
+    const availableActions = await this.actionService.listActions();
     const recoveryPlan = await this.recoveryAgentService.createRecoveryPlan({
       evidenceSnapshot,
       diagnosisResult,
-      availableActions: this.actionService.listActions(),
+      availableActions,
     });
     const plannedActionIds = [
       ...recoveryPlan.proposedActionIds,
       ...recoveryPlan.fallbackActionIds,
     ];
+    const registeredActions = await Promise.all(
+      plannedActionIds.map((actionId) => this.actionService.findActionById(actionId)),
+    );
     const unregisteredActionIds = plannedActionIds.filter(
-      (actionId) => !this.actionService.findActionById(actionId),
+      (_actionId, position) => !registeredActions[position],
     );
     if (unregisteredActionIds.length > 0) {
       const escalationReason =

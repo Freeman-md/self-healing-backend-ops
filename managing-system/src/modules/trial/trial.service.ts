@@ -1,5 +1,6 @@
 import {
   ActionService,
+  type Action,
   type ActionExecutionResult,
 } from "@/modules/action";
 import {
@@ -30,19 +31,35 @@ import {
   recordRecoveryDecisionInTrialContext,
 } from "./trial.helpers";
 
-type TrialActionService = Pick<
-  ActionService,
-  "executeAction" | "findActionById" | "saveActionExecutionResult"
->;
-type TrialEvidenceService = Pick<EvidenceService, "findEvidenceSnapshotById">;
-type TrialEvaluationService = Pick<
-  EvaluationService,
-  "createEvaluationSummary" | "saveEvaluationSummary"
->;
-type TrialRecoveryService = Pick<
-  RecoveryService,
-  "recordRecoveryDecision" | "findRecoveryDecisionHistory"
->;
+type Awaitable<T> = T | Promise<T>;
+type TrialActionService = {
+  executeAction: ActionService["executeAction"];
+  findActionById(actionId: string): Awaitable<Action | null>;
+  saveActionExecutionResult(
+    result: ActionExecutionResult,
+  ): Awaitable<ActionExecutionResult>;
+};
+type TrialEvidenceService = {
+  findEvidenceSnapshotById(
+    snapshotId: string,
+  ): Awaitable<EvidenceSnapshot | null>;
+};
+type TrialEvaluationService = {
+  createEvaluationSummary: EvaluationService["createEvaluationSummary"];
+  saveEvaluationSummary(
+    summary: EvaluationSummary,
+  ): Awaitable<EvaluationSummary>;
+};
+type TrialRecoveryService = {
+  recordRecoveryDecision(input: {
+    trialRecordId: string;
+    sequenceNumber: number;
+    recoveryDecision: RecoveryDecision;
+  }): Awaitable<RecoveryDecision>;
+  findRecoveryDecisionHistory(
+    trialRecordId: string,
+  ): Awaitable<RecoveryDecision[]>;
+};
 
 export class TrialService {
   constructor(
@@ -56,7 +73,7 @@ export class TrialService {
     private readonly trialFactory = new TrialFactory(),
   ) {}
 
-  saveTrialRecord(trialRecord: TrialRecord): TrialRecord {
+  async saveTrialRecord(trialRecord: TrialRecord): Promise<TrialRecord> {
     return this.trialRepository.saveTrialRecord(trialRecord);
   }
 
@@ -73,9 +90,32 @@ export class TrialService {
     const startedAt = new Date().toISOString();
     const context = this.trialFactory.createTrialContext(input.snapshot);
     const strategy = this.strategies[input.mode];
+    await this.saveTrialRecord({
+      id: context.trialRecordId,
+      scenarioId: input.scenarioId,
+      recoveryMode: input.mode,
+      startedAt,
+      initialEvidenceSnapshotId: input.snapshot.id,
+      evidenceSnapshotIds: [input.snapshot.id],
+      recoveryDecisionIds: [],
+      diagnosisResultIds: [],
+      recoveryPlanIds: [],
+      selectedActionIds: [],
+      actionExecutionResultIds: [],
+      executedActionResultIds: [],
+      blockedActionIds: [],
+      failedActionIds: [],
+      status: "started",
+      outcome: "unresolved_not_escalated",
+      metrics: {
+        actionCount: 0,
+        blockedActionCount: 0,
+        failedActionCount: 0,
+      },
+    });
     let currentSnapshot = input.snapshot;
     let recoveryDecision = await strategy.decide(currentSnapshot, context);
-    this.recordRecoveryDecision(context, recoveryDecision);
+    await this.recordRecoveryDecision(context, recoveryDecision);
     let trialState = this.trialFactory.createTrialStateFromDecision(
       recoveryDecision,
       currentSnapshot,
@@ -104,7 +144,7 @@ export class TrialService {
           break;
         }
 
-        const action = this.actionService.findActionById(actionId);
+        const action = await this.actionService.findActionById(actionId);
 
         if (!action) {
           trialState = {
@@ -124,8 +164,8 @@ export class TrialService {
 
         executedSteps += 1;
         recordActionResultInTrialContext(context, action.id, result);
-        this.actionService.saveActionExecutionResult(result);
-        currentSnapshot = this.findAfterSnapshot(result, currentSnapshot);
+        await this.actionService.saveActionExecutionResult(result);
+        currentSnapshot = await this.findAfterSnapshot(result, currentSnapshot);
         recordEvidenceSnapshotInTrialContext(context, currentSnapshot);
         trialState = this.trialFactory.createTrialStateFromActionResult(result);
 
@@ -157,7 +197,7 @@ export class TrialService {
       }
 
       recoveryDecision = await strategy.decide(currentSnapshot, context);
-      this.recordRecoveryDecision(context, recoveryDecision);
+      await this.recordRecoveryDecision(context, recoveryDecision);
       trialState = this.trialFactory.createTrialStateFromDecision(
         recoveryDecision,
         currentSnapshot,
@@ -180,38 +220,42 @@ export class TrialService {
       trialRecord,
       trialState.reason,
     );
-    this.saveTrialRecord(trialRecord);
-    this.evaluationService.saveEvaluationSummary(evaluationSummary);
+    await this.saveTrialRecord(trialRecord);
+    await this.evaluationService.saveEvaluationSummary(evaluationSummary);
+    const recoveryDecisions =
+      await this.recoveryService.findRecoveryDecisionHistory(
+        context.trialRecordId,
+      );
 
     return {
       trialRecord,
       evaluationSummary,
       recoveryDecision,
-      recoveryDecisions: this.recoveryService.findRecoveryDecisionHistory(
-        context.trialRecordId,
-      ),
+      recoveryDecisions,
     };
   }
 
-  private findAfterSnapshot(
+  private async findAfterSnapshot(
     result: ActionExecutionResult,
     fallback: EvidenceSnapshot,
-  ): EvidenceSnapshot {
+  ): Promise<EvidenceSnapshot> {
     if (!result.afterEvidenceSnapshotId) {
       return fallback;
     }
 
     return (
-      this.evidenceService.findEvidenceSnapshotById(result.afterEvidenceSnapshotId) ??
+      (await this.evidenceService.findEvidenceSnapshotById(
+        result.afterEvidenceSnapshotId,
+      )) ??
       fallback
     );
   }
 
-  private recordRecoveryDecision(
+  private async recordRecoveryDecision(
     context: TrialContext,
     recoveryDecision: RecoveryDecision,
-  ): void {
-    this.recoveryService.recordRecoveryDecision({
+  ): Promise<void> {
+    await this.recoveryService.recordRecoveryDecision({
       trialRecordId: context.trialRecordId,
       sequenceNumber: context.recoveryDecisionIds.length + 1,
       recoveryDecision,

@@ -1,0 +1,15 @@
+model EvaluationSummary {
+  id                 String              @id
+  trialRecordId      String              @unique @map("trial_record_id")
+  createdAt          DateTime            @map("created_at")
+  summary            String
+  recoverySucceeded  Boolean             @map("recovery_succeeded")
+  safetyMaintained   Boolean             @map("safety_maintained")
+  actionEffectiveness ActionEffectiveness @map("action_effectiveness")
+  lessons            Json
+  recommendedChanges Json                 @map("recommended_changes")
+  legacyPayload      String?              @map("evaluation_summary_json")
+  trial              TrialRecord          @relation(fields: [trialRecordId], references: [id], onDelete: Cascade)
+
+  @@map("evaluation_summaries")
+}

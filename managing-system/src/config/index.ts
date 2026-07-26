@@ -1,6 +1,13 @@
 import "dotenv/config";
 
-import { readBoolean, readNumber, readOptionalEnum, readOptionalString, readString } from "./helpers";
+import {
+  readBoolean,
+  readNumber,
+  readOptionalEnum,
+  readOptionalString,
+  readSqliteDatabaseUrl,
+  readString,
+} from "./helpers";
 
 export type AppConfig = {
   environment: string;
@@ -13,7 +20,7 @@ export type AppConfig = {
     model: string;
   };
   database: {
-    path: string;
+    url: string;
   };
   actions: {
     dockerEnabled: boolean;
@@ -38,10 +45,7 @@ export const config: AppConfig = {
     model: readString(process.env.OPENAI_MODEL, "gpt-4.1-mini"),
   },
   database: {
-    path: readString(
-      process.env.MANAGING_SYSTEM_DATABASE_PATH,
-      "data/managing-system.sqlite",
-    ),
+    url: readSqliteDatabaseUrl(process.env.DATABASE_URL),
   },
   actions: {
     dockerEnabled: readBoolean(process.env.DOCKER_ACTIONS_ENABLED, false),

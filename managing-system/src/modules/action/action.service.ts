@@ -32,15 +32,17 @@ export class ActionService {
     private readonly dockerActionsEnabled = config.actions.dockerEnabled,
   ) {}
 
-  listActions(): Action[] {
+  async listActions(): Promise<Action[]> {
     return this.actionRepository.listActions();
   }
 
-  findActionById(actionId: string): Action | null {
+  async findActionById(actionId: string): Promise<Action | null> {
     return this.actionRepository.findActionById(actionId);
   }
 
-  saveActionExecutionResult(result: ActionExecutionResult): ActionExecutionResult {
+  async saveActionExecutionResult(
+    result: ActionExecutionResult,
+  ): Promise<ActionExecutionResult> {
     return this.actionRepository.saveActionExecutionResult(result);
   }
 
@@ -50,11 +52,13 @@ export class ActionService {
     context: ActionExecutionContext,
   ): Promise<ActionExecutionResult> {
     const startedAt = new Date().toISOString();
-    const safetyRules = action.safetyRuleIds.flatMap((ruleId) => {
-      const rule = this.actionRepository.findSafetyRuleById(ruleId);
-
-      return rule ? [rule] : [];
-    });
+    const safetyRules = (
+      await Promise.all(
+        action.safetyRuleIds.map((ruleId) =>
+          this.actionRepository.findSafetyRuleById(ruleId),
+        ),
+      )
+    ).filter((rule) => rule !== null);
     const safetyDecision = this.safetyService.evaluateActionSafety(
       action,
       safetyRules,
@@ -113,7 +117,8 @@ export class ActionService {
       const handlerResult = await handler({ action, trialRecordId: context.trialRecordId });
       await this.evidenceService.waitForManagedSystemHealth();
       const freshEvidenceSnapshot = await this.evidenceService.collectAndNormalize();
-      const savedSnapshot = this.evidenceService.saveEvidenceSnapshot(freshEvidenceSnapshot);
+      const savedSnapshot =
+        await this.evidenceService.saveEvidenceSnapshot(freshEvidenceSnapshot);
       const outcome = await this.evaluateActionOutcome({
         expectedOutcome: action.expectedOutcome,
         evidenceSnapshot: savedSnapshot,

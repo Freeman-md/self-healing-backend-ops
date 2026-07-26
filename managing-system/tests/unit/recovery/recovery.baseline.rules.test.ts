@@ -5,8 +5,44 @@ import type { EvidenceSnapshot } from "@/modules/evidence";
 import {
   RecoveryBaselineStrategy,
   findMatchingBaselineRule,
+  type BaselineRule,
   type RecoveryFactory,
 } from "@/modules/recovery";
+
+const baselineRules: BaselineRule[] = [
+  {
+    id: "database_connectivity_failure",
+    description: "database first",
+    incidentType: "database_connectivity_failure",
+    severity: "high",
+    expectedOutcome: "healthy",
+    priority: 100,
+    version: 1,
+    proposedActionIds: ["restart_postgres_container"],
+    fallbackActionIds: [],
+    conditionGroups: [{
+      matchMode: "ANY",
+      conditions: [
+        {
+          signalCode: "postgres_container_state",
+          operator: "EQUALS",
+          expectedStatus: "critical",
+        },
+        {
+          signalCode: "database_connectivity",
+          operator: "EQUALS",
+          expectedStatus: "critical",
+        },
+      ],
+    }],
+  },
+];
+
+const baselineRuleSource = {
+  async findMatchingBaselineRule(snapshot: EvidenceSnapshot) {
+    return findMatchingBaselineRule(snapshot, baselineRules);
+  },
+};
 
 function createSnapshot(
   overallState: EvidenceSnapshot["overallState"],
@@ -38,6 +74,7 @@ function createSnapshot(
 test("baseline rules select only the PostgreSQL restart for database evidence", () => {
   const match = findMatchingBaselineRule(
     createSnapshot("unhealthy", ["database_connectivity_failure"]),
+    baselineRules,
   );
 
   assert.deepEqual(match?.rule.proposedActionIds, ["restart_postgres_container"]);
@@ -45,7 +82,7 @@ test("baseline rules select only the PostgreSQL restart for database evidence", 
 });
 
 test("baseline strategy retains healthy and unmatched escalation decisions", async () => {
-  const strategy = new RecoveryBaselineStrategy();
+  const strategy = new RecoveryBaselineStrategy(baselineRuleSource);
   const context = { actionAttemptCounts: {}, completedActionIds: [] };
 
   const healthy = await strategy.decide(createSnapshot("healthy"), context);
@@ -78,7 +115,7 @@ test("baseline strategy delegates deterministic construction to RecoveryFactory"
       };
     },
   } as unknown as RecoveryFactory;
-  const strategy = new RecoveryBaselineStrategy(factory);
+  const strategy = new RecoveryBaselineStrategy(baselineRuleSource, factory);
 
   const decision = await strategy.decide(
     createSnapshot("unhealthy", ["database_connectivity_failure"]),
@@ -87,4 +124,19 @@ test("baseline strategy delegates deterministic construction to RecoveryFactory"
 
   assert.equal(decision.status, "action_selected");
   assert.deepEqual(calls, ["diagnosis", "plan", "decision"]);
+});
+
+test("unsupported baseline operators fail safely", () => {
+  const invalidRules = structuredClone(baselineRules);
+  invalidRules[0]!.conditionGroups[0]!.conditions[0]!.operator =
+    "UNSUPPORTED" as "EQUALS";
+
+  assert.throws(
+    () =>
+      findMatchingBaselineRule(
+        createSnapshot("unhealthy", ["database_connectivity_failure"]),
+        invalidRules,
+      ),
+    /Unsupported baseline operator/,
+  );
 });

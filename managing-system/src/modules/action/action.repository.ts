@@ -1,62 +1,212 @@
-import type { SafetyRule } from "@/modules/safety";
-import type { DatabaseSync } from "node:sqlite";
-import { DatabaseService } from "@/infrastructure/database";
 import type { IContainerRuntime } from "@/infrastructure/container-runtime";
+import { PrismaService } from "@/infrastructure/database";
+import type { SafetyRule } from "@/modules/safety";
 
-import type { Action, ActionExecutionResult } from "./action.types";
 import {
-  createActionHandlers,
-  predefinedActions,
-  predefinedSafetyRules,
+  ActionHandlerRegistry,
   type ActionHandler,
-} from "./action.data";
+} from "./action.handler-registry";
+import type { Action, ActionExecutionResult } from "./action.types";
+
+const actionSelection = {
+  id: true,
+  name: true,
+  description: true,
+  handlerKey: true,
+  riskLevel: true,
+  safetyRules: {
+    select: {
+      position: true,
+      safetyRule: {
+        select: {
+          id: true,
+        },
+      },
+    },
+    orderBy: { position: "asc" as const },
+  },
+  expectedOutcome: {
+    select: {
+      description: true,
+      criteria: {
+        select: {
+          id: true,
+          description: true,
+          checkType: true,
+          parameters: true,
+          position: true,
+        },
+        orderBy: { position: "asc" as const },
+      },
+    },
+  },
+} as const;
 
 export class ActionRepository {
-  private readonly database: DatabaseSync;
-  private readonly actionHandlers: Record<string, ActionHandler>;
+  private readonly handlerRegistry: ActionHandlerRegistry;
 
   constructor(
-    databaseService = new DatabaseService(),
+    private readonly prisma: PrismaService,
     containerRuntime?: IContainerRuntime,
   ) {
-    this.database = databaseService.getConnection();
-    this.database.exec(`
-      CREATE TABLE IF NOT EXISTS action_execution_results (
-        id TEXT PRIMARY KEY, trial_record_id TEXT NOT NULL,
-        action_definition_id TEXT NOT NULL, status TEXT NOT NULL,
-        continuation TEXT NOT NULL, started_at TEXT NOT NULL,
-        completed_at TEXT, action_execution_result_json TEXT NOT NULL
-      );
-      CREATE INDEX IF NOT EXISTS idx_action_execution_results_trial_record_id
-        ON action_execution_results(trial_record_id);
-    `);
-    this.actionHandlers = containerRuntime ? createActionHandlers(containerRuntime) : {};
+    this.handlerRegistry = new ActionHandlerRegistry(containerRuntime);
   }
 
-  listActions(): Action[] {
-    return predefinedActions;
+  async listActions(): Promise<Action[]> {
+    const rows = await this.prisma.action.findMany({
+      where: { active: true },
+      select: actionSelection,
+      orderBy: { id: "asc" },
+    });
+
+    return rows.map(mapAction);
   }
 
-  listSafetyRules(): SafetyRule[] {
-    return predefinedSafetyRules;
+  async listSafetyRules(): Promise<SafetyRule[]> {
+    const rows = await this.prisma.safetyRule.findMany({
+      where: { active: true },
+      select: {
+        id: true,
+        description: true,
+        checkType: true,
+        parameters: true,
+        onFail: true,
+      },
+      orderBy: { id: "asc" },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      description: row.description,
+      checkType: row.checkType,
+      params: readRecord(row.parameters, `safety rule ${row.id} parameters`),
+      onFail: row.onFail,
+    }));
   }
 
-  findActionById(actionId: string): Action | null {
-    return predefinedActions.find((action) => action.id === actionId) ?? null;
+  async findActionById(actionId: string): Promise<Action | null> {
+    const row = await this.prisma.action.findFirst({
+      where: { id: actionId, active: true },
+      select: actionSelection,
+    });
+
+    return row ? mapAction(row) : null;
   }
 
-  findSafetyRuleById(ruleId: string): SafetyRule | null {
-    return predefinedSafetyRules.find((rule) => rule.id === ruleId) ?? null;
+  async findSafetyRuleById(ruleId: string): Promise<SafetyRule | null> {
+    const row = await this.prisma.safetyRule.findFirst({
+      where: { id: ruleId, active: true },
+      select: {
+        id: true,
+        description: true,
+        checkType: true,
+        parameters: true,
+        onFail: true,
+      },
+    });
+
+    return row
+      ? {
+          id: row.id,
+          description: row.description,
+          checkType: row.checkType,
+          params: readRecord(row.parameters, `safety rule ${row.id} parameters`),
+          onFail: row.onFail,
+        }
+      : null;
   }
 
   findActionHandler(handlerKey: string): ActionHandler | null {
-    return this.actionHandlers[handlerKey] ?? null;
+    return this.handlerRegistry.findActionHandler(handlerKey);
   }
 
-  saveActionExecutionResult(result: ActionExecutionResult): ActionExecutionResult {
-    this.database.prepare(
-      "INSERT INTO action_execution_results (id, trial_record_id, action_definition_id, status, continuation, started_at, completed_at, action_execution_result_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET trial_record_id = excluded.trial_record_id, action_definition_id = excluded.action_definition_id, status = excluded.status, continuation = excluded.continuation, started_at = excluded.started_at, completed_at = excluded.completed_at, action_execution_result_json = excluded.action_execution_result_json",
-    ).run(result.id, result.trialRecordId, result.actionId, result.status, result.continuation, result.startedAt, result.completedAt ?? null, JSON.stringify(result));
+  async saveActionExecutionResult(
+    result: ActionExecutionResult,
+  ): Promise<ActionExecutionResult> {
+    await this.prisma.actionExecutionResult.upsert({
+      where: { id: result.id },
+      create: {
+        id: result.id,
+        ...toActionExecutionData(result),
+        legacyPayload: null,
+      },
+      update: toActionExecutionData(result),
+    });
+
     return result;
   }
+}
+
+function mapAction(row: {
+  id: string;
+  name: string;
+  description: string;
+  handlerKey: string;
+  riskLevel: "low" | "medium" | "high";
+  safetyRules: Array<{
+    position: number;
+    safetyRule: { id: string };
+  }>;
+  expectedOutcome: {
+    description: string;
+    criteria: Array<{
+      id: string;
+      description: string;
+      checkType: Action["expectedOutcome"]["successCriteria"][number]["checkType"];
+      parameters: unknown;
+      position: number;
+    }>;
+  } | null;
+}): Action {
+  if (!row.expectedOutcome) {
+    throw new Error(`Action ${row.id} does not have an expected outcome.`);
+  }
+
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    handlerKey: row.handlerKey,
+    riskLevel: row.riskLevel,
+    safetyRuleIds: row.safetyRules.map((link) => link.safetyRule.id),
+    expectedOutcome: {
+      description: row.expectedOutcome.description,
+      successCriteria: row.expectedOutcome.criteria.map((criterion) => ({
+        id: criterion.id,
+        description: criterion.description,
+        checkType: criterion.checkType,
+        params: readRecord(
+          criterion.parameters,
+          `outcome criterion ${criterion.id} parameters`,
+        ),
+      })),
+    },
+  };
+}
+
+function toActionExecutionData(result: ActionExecutionResult) {
+  return {
+    trialRecordId: result.trialRecordId,
+    actionId: result.actionId,
+    beforeEvidenceSnapshotId: result.beforeEvidenceSnapshotId ?? null,
+    afterEvidenceSnapshotId: result.afterEvidenceSnapshotId ?? null,
+    status: result.status,
+    continuation: result.continuation,
+    startedAt: new Date(result.startedAt),
+    completedAt: result.completedAt ? new Date(result.completedAt) : null,
+    safetyCheckStatus: result.safetyCheckStatus,
+    failedSafetyRuleIds: result.failedSafetyRuleIds,
+    output: result.output ?? null,
+    error: result.error ?? null,
+    expectedOutcomeMet: result.expectedOutcomeMet ?? null,
+    outcomeSummary: result.outcomeSummary ?? null,
+  };
+}
+
+function readRecord(value: unknown, description: string): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error(`Persisted ${description} must be an object.`);
+  }
+
+  return value as Record<string, unknown>;
 }

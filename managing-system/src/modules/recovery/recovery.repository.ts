@@ -1,153 +1,293 @@
-import type { DatabaseSync } from "node:sqlite";
+import { PrismaService } from "@/infrastructure/database";
 
-import { DatabaseService } from "@/infrastructure/database";
-
-import { recoveryDecisionSchema } from "./recovery.schema";
-import type { RecoveryDecision } from "./recovery.types";
-
-type RecoveryDecisionRow = {
-  recovery_decision_json: string;
-};
+import {
+  recoveryDecisionSchema,
+  type RecoveryDecision,
+} from "./recovery.schema";
+import type { BaselineRule } from "./recovery.baseline.rules";
 
 export class RecoveryRepository {
-  private readonly database: DatabaseSync;
+  constructor(private readonly prisma: PrismaService) {}
 
-  constructor(databaseService = new DatabaseService()) {
-    this.database = databaseService.getConnection();
-    this.initialize();
-  }
-
-  saveRecoveryDecisionHistory(input: {
+  async saveRecoveryDecisionHistory(input: {
     trialRecordId: string;
     sequenceNumber: number;
     recoveryDecision: RecoveryDecision;
-  }): RecoveryDecision {
-    const { trialRecordId, sequenceNumber, recoveryDecision } = input;
+  }): Promise<RecoveryDecision> {
+    const { trialRecordId, sequenceNumber } = input;
+    const recoveryDecision = recoveryDecisionSchema.parse(input.recoveryDecision);
 
-    this.database.exec("BEGIN");
-    try {
-      this.database
-        .prepare(
-          `INSERT INTO diagnosis_results (id, trial_record_id, created_at, diagnosis_result_json)
-           VALUES (?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET
-             trial_record_id = excluded.trial_record_id,
-             created_at = excluded.created_at,
-             diagnosis_result_json = excluded.diagnosis_result_json`,
-        )
-        .run(
-          recoveryDecision.diagnosisResult.id,
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.diagnosisResult.upsert({
+        where: { id: recoveryDecision.diagnosisResult.id },
+        create: {
+          id: recoveryDecision.diagnosisResult.id,
           trialRecordId,
-          recoveryDecision.diagnosisResult.createdAt,
-          JSON.stringify(recoveryDecision.diagnosisResult),
-        );
-      this.database
-        .prepare(
-          `INSERT INTO recovery_plans (id, trial_record_id, diagnosis_result_id, created_at, recovery_plan_json)
-           VALUES (?, ?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET
-             trial_record_id = excluded.trial_record_id,
-             diagnosis_result_id = excluded.diagnosis_result_id,
-             created_at = excluded.created_at,
-             recovery_plan_json = excluded.recovery_plan_json`,
-        )
-        .run(
-          recoveryDecision.recoveryPlan.id,
+          evidenceSnapshotId:
+            recoveryDecision.diagnosisResult.evidenceSnapshotId,
+          createdAt: new Date(recoveryDecision.diagnosisResult.createdAt),
+          method: recoveryDecision.diagnosisResult.method,
+          incidentCode:
+            recoveryDecision.diagnosisResult.suspectedIncidentType,
+          severity: recoveryDecision.diagnosisResult.severity,
+          confidence: recoveryDecision.diagnosisResult.confidence,
+          reasoningSummary:
+            recoveryDecision.diagnosisResult.reasoningSummary,
+          sourceIds: recoveryDecision.diagnosisResult.sourceIds,
+          supportingSignals:
+            recoveryDecision.diagnosisResult.supportingSignals,
+          contradictions: recoveryDecision.diagnosisResult.contradictions,
+          legacyPayload: null,
+        },
+        update: {
           trialRecordId,
-          recoveryDecision.diagnosisResult.id,
-          recoveryDecision.recoveryPlan.createdAt,
-          JSON.stringify(recoveryDecision.recoveryPlan),
-        );
-      this.database
-        .prepare(
-          `INSERT INTO recovery_decisions (
-             id, trial_record_id, sequence_number, recovery_mode, snapshot_id,
-             decided_at, status, diagnosis_result_id, recovery_plan_id, recovery_decision_json
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET
-             trial_record_id = excluded.trial_record_id,
-             sequence_number = excluded.sequence_number,
-             recovery_mode = excluded.recovery_mode,
-             snapshot_id = excluded.snapshot_id,
-             decided_at = excluded.decided_at,
-             status = excluded.status,
-             diagnosis_result_id = excluded.diagnosis_result_id,
-             recovery_plan_id = excluded.recovery_plan_id,
-             recovery_decision_json = excluded.recovery_decision_json`,
-        )
-        .run(
-          recoveryDecision.id,
+          evidenceSnapshotId:
+            recoveryDecision.diagnosisResult.evidenceSnapshotId,
+          createdAt: new Date(recoveryDecision.diagnosisResult.createdAt),
+          method: recoveryDecision.diagnosisResult.method,
+          incidentCode:
+            recoveryDecision.diagnosisResult.suspectedIncidentType,
+          severity: recoveryDecision.diagnosisResult.severity,
+          confidence: recoveryDecision.diagnosisResult.confidence,
+          reasoningSummary:
+            recoveryDecision.diagnosisResult.reasoningSummary,
+          sourceIds: recoveryDecision.diagnosisResult.sourceIds,
+          supportingSignals:
+            recoveryDecision.diagnosisResult.supportingSignals,
+          contradictions: recoveryDecision.diagnosisResult.contradictions,
+        },
+      });
+
+      await transaction.recoveryPlan.upsert({
+        where: { id: recoveryDecision.recoveryPlan.id },
+        create: {
+          id: recoveryDecision.recoveryPlan.id,
+          trialRecordId,
+          diagnosisResultId: recoveryDecision.diagnosisResult.id,
+          createdAt: new Date(recoveryDecision.recoveryPlan.createdAt),
+          rationale: recoveryDecision.recoveryPlan.rationale,
+          expectedOutcome: recoveryDecision.recoveryPlan.expectedOutcome,
+          escalationReason: recoveryDecision.recoveryPlan.escalationReason,
+          legacyPayload: null,
+        },
+        update: {
+          trialRecordId,
+          diagnosisResultId: recoveryDecision.diagnosisResult.id,
+          createdAt: new Date(recoveryDecision.recoveryPlan.createdAt),
+          rationale: recoveryDecision.recoveryPlan.rationale,
+          expectedOutcome: recoveryDecision.recoveryPlan.expectedOutcome,
+          escalationReason: recoveryDecision.recoveryPlan.escalationReason,
+        },
+      });
+
+      await transaction.recoveryPlanAction.deleteMany({
+        where: { recoveryPlanId: recoveryDecision.recoveryPlan.id },
+      });
+
+      const planActions = [
+        ...recoveryDecision.recoveryPlan.proposedActionIds.map(
+          (actionId, position) => ({
+            recoveryPlanId: recoveryDecision.recoveryPlan.id,
+            actionId,
+            phase: "proposed" as const,
+            position,
+          }),
+        ),
+        ...recoveryDecision.recoveryPlan.fallbackActionIds.map(
+          (actionId, position) => ({
+            recoveryPlanId: recoveryDecision.recoveryPlan.id,
+            actionId,
+            phase: "fallback" as const,
+            position,
+          }),
+        ),
+      ];
+
+      if (planActions.length > 0) {
+        await transaction.recoveryPlanAction.createMany({ data: planActions });
+      }
+
+      await transaction.recoveryDecision.upsert({
+        where: { id: recoveryDecision.id },
+        create: {
+          id: recoveryDecision.id,
           trialRecordId,
           sequenceNumber,
-          recoveryDecision.mode,
-          recoveryDecision.snapshotId,
-          recoveryDecision.decidedAt,
-          recoveryDecision.status,
-          recoveryDecision.diagnosisResult.id,
-          recoveryDecision.recoveryPlan.id,
-          JSON.stringify(recoveryDecision),
-        );
-      this.database.exec("COMMIT");
-    } catch (error) {
-      this.database.exec("ROLLBACK");
-      throw error;
-    }
+          recoveryMode: recoveryDecision.mode,
+          snapshotId: recoveryDecision.snapshotId,
+          decidedAt: new Date(recoveryDecision.decidedAt),
+          status: recoveryDecision.status,
+          reason: recoveryDecision.reason,
+          escalationReason: recoveryDecision.escalationReason ?? null,
+          diagnosisResultId: recoveryDecision.diagnosisResult.id,
+          recoveryPlanId: recoveryDecision.recoveryPlan.id,
+          legacyPayload: null,
+        },
+        update: {
+          trialRecordId,
+          sequenceNumber,
+          recoveryMode: recoveryDecision.mode,
+          snapshotId: recoveryDecision.snapshotId,
+          decidedAt: new Date(recoveryDecision.decidedAt),
+          status: recoveryDecision.status,
+          reason: recoveryDecision.reason,
+          escalationReason: recoveryDecision.escalationReason ?? null,
+          diagnosisResultId: recoveryDecision.diagnosisResult.id,
+          recoveryPlanId: recoveryDecision.recoveryPlan.id,
+        },
+      });
+    });
 
     return recoveryDecision;
   }
 
-  findRecoveryDecisionsByTrialRecordId(
+  async findRecoveryDecisionsByTrialRecordId(
     trialRecordId: string,
-  ): RecoveryDecision[] {
-    const rows = this.database
-      .prepare(
-        `SELECT recovery_decision_json FROM recovery_decisions
-         WHERE trial_record_id = ? ORDER BY sequence_number ASC`,
-      )
-      .all(trialRecordId) as RecoveryDecisionRow[];
+  ): Promise<RecoveryDecision[]> {
+    const rows = await this.prisma.recoveryDecision.findMany({
+      where: { trialRecordId },
+      select: {
+        id: true,
+        recoveryMode: true,
+        snapshotId: true,
+        decidedAt: true,
+        status: true,
+        reason: true,
+        escalationReason: true,
+        diagnosisResult: {
+          select: {
+            id: true,
+            evidenceSnapshotId: true,
+            createdAt: true,
+            method: true,
+            sourceIds: true,
+            incidentCode: true,
+            severity: true,
+            confidence: true,
+            reasoningSummary: true,
+            supportingSignals: true,
+            contradictions: true,
+          },
+        },
+        recoveryPlan: {
+          select: {
+            id: true,
+            diagnosisResultId: true,
+            createdAt: true,
+            rationale: true,
+            expectedOutcome: true,
+            escalationReason: true,
+            actions: {
+              select: {
+                actionId: true,
+                phase: true,
+                position: true,
+              },
+              orderBy: [{ phase: "asc" }, { position: "asc" }],
+            },
+          },
+        },
+      },
+      orderBy: { sequenceNumber: "asc" },
+    });
 
     return rows.map((row) =>
-      recoveryDecisionSchema.parse(JSON.parse(row.recovery_decision_json)),
+      recoveryDecisionSchema.parse({
+        id: row.id,
+        mode: row.recoveryMode,
+        snapshotId: row.snapshotId,
+        decidedAt: row.decidedAt.toISOString(),
+        status: row.status,
+        reason: row.reason,
+        escalationReason: row.escalationReason ?? undefined,
+        diagnosisResult: {
+          id: row.diagnosisResult.id,
+          evidenceSnapshotId: row.diagnosisResult.evidenceSnapshotId,
+          createdAt: row.diagnosisResult.createdAt.toISOString(),
+          method: row.diagnosisResult.method,
+          sourceIds: row.diagnosisResult.sourceIds,
+          suspectedIncidentType: row.diagnosisResult.incidentCode,
+          severity: row.diagnosisResult.severity,
+          confidence: row.diagnosisResult.confidence,
+          reasoningSummary: row.diagnosisResult.reasoningSummary,
+          supportingSignals: row.diagnosisResult.supportingSignals,
+          contradictions: row.diagnosisResult.contradictions,
+        },
+        recoveryPlan: {
+          id: row.recoveryPlan.id,
+          diagnosisResultId: row.recoveryPlan.diagnosisResultId,
+          createdAt: row.recoveryPlan.createdAt.toISOString(),
+          proposedActionIds: row.recoveryPlan.actions
+            .filter((action) => action.phase === "proposed")
+            .map((action) => action.actionId),
+          fallbackActionIds: row.recoveryPlan.actions
+            .filter((action) => action.phase === "fallback")
+            .map((action) => action.actionId),
+          rationale: row.recoveryPlan.rationale,
+          expectedOutcome: row.recoveryPlan.expectedOutcome,
+          escalationReason: row.recoveryPlan.escalationReason,
+        },
+      }),
     );
   }
 
-  private initialize(): void {
-    this.database.exec(`
-      CREATE TABLE IF NOT EXISTS diagnosis_results (
-        id TEXT PRIMARY KEY,
-        trial_record_id TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        diagnosis_result_json TEXT NOT NULL
-      );
+  async listActiveBaselineRules(): Promise<BaselineRule[]> {
+    const rows = await this.prisma.baselineRule.findMany({
+      where: { active: true },
+      select: {
+        id: true,
+        description: true,
+        incidentCode: true,
+        severity: true,
+        expectedOutcome: true,
+        priority: true,
+        version: true,
+        conditionGroups: {
+          select: {
+            matchMode: true,
+            position: true,
+            conditions: {
+              select: {
+                signalCode: true,
+                operator: true,
+                expectedStatus: true,
+                position: true,
+              },
+              orderBy: { position: "asc" },
+            },
+          },
+          orderBy: { position: "asc" },
+        },
+        actions: {
+          select: { actionId: true, phase: true, position: true },
+          orderBy: [{ phase: "asc" }, { position: "asc" }],
+        },
+      },
+      orderBy: { priority: "desc" },
+    });
 
-      CREATE TABLE IF NOT EXISTS recovery_plans (
-        id TEXT PRIMARY KEY,
-        trial_record_id TEXT NOT NULL,
-        diagnosis_result_id TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        recovery_plan_json TEXT NOT NULL
-      );
-
-      CREATE TABLE IF NOT EXISTS recovery_decisions (
-        id TEXT PRIMARY KEY,
-        trial_record_id TEXT NOT NULL,
-        sequence_number INTEGER NOT NULL,
-        recovery_mode TEXT NOT NULL,
-        snapshot_id TEXT NOT NULL,
-        decided_at TEXT NOT NULL,
-        status TEXT NOT NULL,
-        diagnosis_result_id TEXT NOT NULL,
-        recovery_plan_id TEXT NOT NULL,
-        recovery_decision_json TEXT NOT NULL,
-        UNIQUE(trial_record_id, sequence_number)
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_diagnosis_results_trial_record_id
-        ON diagnosis_results(trial_record_id);
-      CREATE INDEX IF NOT EXISTS idx_recovery_plans_trial_record_id
-        ON recovery_plans(trial_record_id);
-      CREATE INDEX IF NOT EXISTS idx_recovery_decisions_trial_record_sequence
-        ON recovery_decisions(trial_record_id, sequence_number);
-    `);
+    return rows.map((row) => ({
+      id: row.id,
+      description: row.description,
+      incidentType: row.incidentCode,
+      severity: row.severity,
+      expectedOutcome: row.expectedOutcome,
+      priority: row.priority,
+      version: row.version,
+      proposedActionIds: row.actions
+        .filter((action) => action.phase === "proposed")
+        .map((action) => action.actionId),
+      fallbackActionIds: row.actions
+        .filter((action) => action.phase === "fallback")
+        .map((action) => action.actionId),
+      conditionGroups: row.conditionGroups.map((group) => ({
+        matchMode: group.matchMode,
+        conditions: group.conditions.map((condition) => ({
+          signalCode: condition.signalCode,
+          operator: condition.operator,
+          expectedStatus: condition.expectedStatus,
+        })),
+      })),
+    }));
   }
 }

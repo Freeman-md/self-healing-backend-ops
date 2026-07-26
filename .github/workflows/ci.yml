@@ -49,6 +49,9 @@ jobs:
     defaults:
       run:
         working-directory: managing-system
+    env:
+      DATABASE_URL: file:./data/ci.sqlite
+      NODE_ENV: test
 
     steps:
       - name: Check out repository
@@ -64,11 +67,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate Prisma schema
+        run: npm run prisma:validate
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Create isolated SQLite database
+        run: mkdir -p data && touch data/ci.sqlite
+
+      - name: Apply all migrations
+        run: npm run prisma:migrate:deploy
+
+      - name: Seed catalogues twice
+        run: npm run prisma:seed && npm run prisma:seed
+
+      - name: Verify idempotent seed
+        run: npm run prisma:verify-seed
+
       - name: Type-check
         run: npm run test:types
 
-      - name: Test
-        run: npm test
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Integration tests
+        run: npm run test:integration
 
       - name: Build
         run: npm run build

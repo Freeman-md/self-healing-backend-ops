@@ -7,7 +7,6 @@ import {
   type EvidenceSnapshot,
   type IncidentTypeCode,
 } from "./evidence.schema";
-import { EvidenceRepository } from "./evidence.repository";
 import { EvidenceFactory } from "./evidence.factory";
 
 import type { RawEvidence, RawEvidenceSource } from "./evidence.schema";
@@ -30,6 +29,16 @@ type EvidenceServiceOptions = {
 };
 
 type ContainerStateReader = Pick<IContainerStateReader, "inspectTarget">;
+type Awaitable<T> = T | Promise<T>;
+type EvidencePersistence = {
+  saveRawEvidence?(rawEvidence: RawEvidence): Awaitable<RawEvidence>;
+  saveEvidenceSnapshot(
+    snapshot: EvidenceSnapshot,
+  ): Awaitable<EvidenceSnapshot>;
+  findEvidenceSnapshotById(
+    snapshotId: string,
+  ): Awaitable<EvidenceSnapshot | null>;
+};
 
 type EvidenceEndpoint = {
   source: Extract<RawEvidenceSource, "health" | "metrics">;
@@ -49,10 +58,7 @@ const evidenceEndpoints: EvidenceEndpoint[] = [
 
 export class EvidenceService {
   constructor(
-    private readonly evidenceRepository: Pick<
-      EvidenceRepository,
-      "saveEvidenceSnapshot" | "findEvidenceSnapshotById"
-    >,
+    private readonly evidenceRepository: EvidencePersistence,
     private readonly openaiService?: OpenAIService,
     private readonly evidenceFactory = new EvidenceFactory(),
     private readonly options: EvidenceServiceOptions = {},
@@ -68,7 +74,17 @@ export class EvidenceService {
       this.collectContainerState("postgres"),
     ]);
 
-    return [...endpointEvidence, ...containerEvidence];
+    const collectedEvidence = [...endpointEvidence, ...containerEvidence];
+
+    if (this.evidenceRepository.saveRawEvidence) {
+      await Promise.all(
+        collectedEvidence.map((item) =>
+          this.evidenceRepository.saveRawEvidence?.(item),
+        ),
+      );
+    }
+
+    return collectedEvidence;
   }
 
   async normalizeEvidence(rawEvidence: RawEvidence[]): Promise<EvidenceSnapshot> {
@@ -153,11 +169,15 @@ export class EvidenceService {
     return { healthy: false, attempts, startedAt, completedAt: new Date().toISOString(), lastStatusCode, lastError };
   }
 
-  saveEvidenceSnapshot(snapshot: EvidenceSnapshot): EvidenceSnapshot {
+  async saveEvidenceSnapshot(
+    snapshot: EvidenceSnapshot,
+  ): Promise<EvidenceSnapshot> {
     return this.evidenceRepository.saveEvidenceSnapshot(snapshot);
   }
 
-  findEvidenceSnapshotById(snapshotId: string): EvidenceSnapshot | null {
+  async findEvidenceSnapshotById(
+    snapshotId: string,
+  ): Promise<EvidenceSnapshot | null> {
     return this.evidenceRepository.findEvidenceSnapshotById(snapshotId);
   }
 

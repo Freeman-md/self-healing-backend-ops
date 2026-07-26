@@ -1,1 +1,1 @@
-export { DatabaseService } from "./database.service";
+export { PrismaService } from "./prisma.service";

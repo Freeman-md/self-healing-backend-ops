@@ -1,0 +1,40 @@
+model TrialRecord {
+  id                    String                  @id
+  scenarioId            String                  @map("scenario_id")
+  recoveryMode          RecoveryMode            @map("recovery_mode")
+  startedAt             DateTime                @map("started_at")
+  completedAt           DateTime?               @map("completed_at")
+  status                TrialStatus
+  outcome               TrialOutcome
+  escalationReason      String?                 @map("escalation_reason")
+  actionCount           Int                     @default(0) @map("action_count")
+  blockedActionCount    Int                     @default(0) @map("blocked_action_count")
+  failedActionCount     Int                     @default(0) @map("failed_action_count")
+  timeToRecoveryMs      Int?                    @map("time_to_recovery_ms")
+  timeToEscalationMs    Int?                    @map("time_to_escalation_ms")
+  notes                 String?
+  legacyPayload         String?                 @map("trial_record_json")
+  evidenceHistory       TrialEvidenceSnapshot[]
+  recoveryDecisions     RecoveryDecision[]
+  diagnosisResults      DiagnosisResult[]
+  recoveryPlans         RecoveryPlan[]
+  actionExecutionResults ActionExecutionResult[]
+  evaluationSummary     EvaluationSummary?
+
+  @@index([recoveryMode])
+  @@index([status])
+  @@map("trial_records")
+}
+
+model TrialEvidenceSnapshot {
+  trialRecordId     String            @map("trial_record_id")
+  evidenceSnapshotId String           @map("evidence_snapshot_id")
+  sequenceNumber    Int               @map("sequence_number")
+  role              TrialEvidenceRole
+  trial             TrialRecord       @relation(fields: [trialRecordId], references: [id], onDelete: Cascade)
+  evidenceSnapshot  EvidenceSnapshot  @relation(fields: [evidenceSnapshotId], references: [id])
+
+  @@id([trialRecordId, sequenceNumber])
+  @@unique([trialRecordId, evidenceSnapshotId, role])
+  @@map("trial_evidence_snapshots")
+}

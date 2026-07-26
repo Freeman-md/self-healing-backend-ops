@@ -7,16 +7,24 @@ import type {
 import type { DiagnosisResult, RecoveryPlan } from "./recovery.schema";
 import { RecoveryFactory } from "./recovery.factory";
 
-import {
-  findMatchingBaselineRule,
-  type BaselineRule,
-  type BaselineRuleMatch,
+import type {
+  BaselineRule,
+  BaselineRuleMatch,
 } from "./recovery.baseline.rules";
+
+type BaselineRuleSource = {
+  findMatchingBaselineRule(
+    snapshot: EvidenceSnapshot,
+  ): Promise<{ rule: BaselineRule; match: BaselineRuleMatch } | null>;
+};
 
 export class RecoveryBaselineStrategy implements RecoveryStrategy {
   readonly mode = "baseline" as const;
 
-  constructor(private readonly recoveryFactory = new RecoveryFactory()) {}
+  constructor(
+    private readonly baselineRuleSource: BaselineRuleSource,
+    private readonly recoveryFactory = new RecoveryFactory(),
+  ) {}
 
   async decide(
     snapshot: EvidenceSnapshot,
@@ -50,7 +58,7 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
       });
     }
 
-    const matched = findMatchingBaselineRule(snapshot);
+    const matched = await this.baselineRuleSource.findMatchingBaselineRule(snapshot);
     if (matched) {
       const proposedActionIds = matched.rule.proposedActionIds.filter((actionId) => !this.wasAttempted(actionId, context));
       const fallbackActionIds = matched.rule.fallbackActionIds.filter((actionId) => !this.wasAttempted(actionId, context));

@@ -1,78 +1,217 @@
-import type { DatabaseSync } from "node:sqlite";
-
-import { DatabaseService } from "@/infrastructure/database";
+import { PrismaService } from "@/infrastructure/database";
 
 import type { TrialRecord } from "./trial.types";
 import { parseStoredTrialRecord } from "./trial.helpers";
 
-type TrialRecordRow = { trial_record_json: string };
-
 export class TrialRepository {
-  private readonly database: DatabaseSync;
+  constructor(private readonly prisma: PrismaService) {}
 
-  constructor(databaseService = new DatabaseService()) {
-    this.database = databaseService.getConnection();
-    this.initialize();
+  async saveTrialRecord(trialRecord: TrialRecord): Promise<TrialRecord> {
+    const parsed = parseStoredTrialRecord(trialRecord);
+    const evidenceHistory = createEvidenceHistory(parsed);
+
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.trialRecord.upsert({
+        where: { id: parsed.id },
+        create: {
+          id: parsed.id,
+          ...toTrialData(parsed),
+          legacyPayload: null,
+        },
+        update: toTrialData(parsed),
+      });
+
+      await transaction.trialEvidenceSnapshot.deleteMany({
+        where: { trialRecordId: parsed.id },
+      });
+
+      if (evidenceHistory.length > 0) {
+        await transaction.trialEvidenceSnapshot.createMany({
+          data: evidenceHistory.map((entry, sequenceNumber) => ({
+            trialRecordId: parsed.id,
+            evidenceSnapshotId: entry.evidenceSnapshotId,
+            sequenceNumber,
+            role: entry.role,
+          })),
+        });
+      }
+    });
+
+    return parsed;
   }
 
-  saveTrialRecord(trialRecord: TrialRecord): TrialRecord {
-    this.database
-      .prepare(
-        `
-          INSERT INTO trial_records (
-            id,
-            recovery_mode,
-            started_at,
-            completed_at,
-            status,
-            outcome,
-            trial_record_json
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(id) DO UPDATE SET
-            recovery_mode = excluded.recovery_mode,
-            started_at = excluded.started_at,
-            completed_at = excluded.completed_at,
-            status = excluded.status,
-            outcome = excluded.outcome,
-            trial_record_json = excluded.trial_record_json
-        `,
-      )
-      .run(
-        trialRecord.id,
-        trialRecord.recoveryMode,
-        trialRecord.startedAt,
-        trialRecord.completedAt ?? null,
-        trialRecord.status,
-        trialRecord.outcome,
-        JSON.stringify(trialRecord),
-      );
+  async findTrialRecordById(
+    trialRecordId: string,
+  ): Promise<TrialRecord | null> {
+    const row = await this.prisma.trialRecord.findUnique({
+      where: { id: trialRecordId },
+      select: {
+        id: true,
+        scenarioId: true,
+        recoveryMode: true,
+        startedAt: true,
+        completedAt: true,
+        status: true,
+        outcome: true,
+        escalationReason: true,
+        actionCount: true,
+        blockedActionCount: true,
+        failedActionCount: true,
+        timeToRecoveryMs: true,
+        timeToEscalationMs: true,
+        notes: true,
+        evidenceHistory: {
+          select: {
+            evidenceSnapshotId: true,
+            role: true,
+            sequenceNumber: true,
+          },
+          orderBy: { sequenceNumber: "asc" },
+        },
+        recoveryDecisions: {
+          select: {
+            id: true,
+            diagnosisResultId: true,
+            recoveryPlanId: true,
+            recoveryPlan: {
+              select: {
+                actions: {
+                  select: { actionId: true, phase: true, position: true },
+                  orderBy: [{ phase: "asc" }, { position: "asc" }],
+                },
+              },
+            },
+          },
+          orderBy: { sequenceNumber: "asc" },
+        },
+        actionExecutionResults: {
+          select: { id: true, actionId: true, status: true },
+          orderBy: { startedAt: "asc" },
+        },
+        evaluationSummary: { select: { id: true } },
+      },
+    });
 
-    return trialRecord;
+    if (!row) {
+      return null;
+    }
+
+    const initialEvidence = row.evidenceHistory.find(
+      (entry) => entry.role === "initial",
+    );
+    const finalEvidence = [...row.evidenceHistory]
+      .reverse()
+      .find((entry) => entry.role === "final");
+    const actionResults = row.actionExecutionResults;
+
+    return parseStoredTrialRecord({
+      id: row.id,
+      scenarioId: row.scenarioId,
+      recoveryMode: row.recoveryMode,
+      startedAt: row.startedAt.toISOString(),
+      completedAt: row.completedAt?.toISOString(),
+      initialEvidenceSnapshotId: initialEvidence?.evidenceSnapshotId,
+      finalEvidenceSnapshotId: finalEvidence?.evidenceSnapshotId,
+      evidenceSnapshotIds: unique(
+        row.evidenceHistory.map((entry) => entry.evidenceSnapshotId),
+      ),
+      recoveryDecisionIds: row.recoveryDecisions.map(
+        (decision) => decision.id,
+      ),
+      diagnosisResultIds: row.recoveryDecisions.map(
+        (decision) => decision.diagnosisResultId,
+      ),
+      recoveryPlanIds: row.recoveryDecisions.map(
+        (decision) => decision.recoveryPlanId,
+      ),
+      diagnosisResultId: row.recoveryDecisions.at(-1)?.diagnosisResultId,
+      recoveryPlanId: row.recoveryDecisions.at(-1)?.recoveryPlanId,
+      selectedActionIds: row.recoveryDecisions.flatMap((decision) =>
+        decision.recoveryPlan.actions.map((action) => action.actionId),
+      ),
+      actionExecutionResultIds: actionResults.map((result) => result.id),
+      executedActionResultIds: actionResults
+        .filter((result) => result.status === "executed")
+        .map((result) => result.id),
+      blockedActionIds: actionResults
+        .filter((result) => result.status === "blocked")
+        .map((result) => result.actionId),
+      failedActionIds: actionResults
+        .filter((result) => result.status === "failed")
+        .map((result) => result.actionId),
+      status: row.status,
+      outcome: row.outcome,
+      escalationReason: row.escalationReason ?? undefined,
+      metrics: {
+        actionCount: row.actionCount,
+        blockedActionCount: row.blockedActionCount,
+        failedActionCount: row.failedActionCount,
+        timeToRecoveryMs: row.timeToRecoveryMs ?? undefined,
+        timeToEscalationMs: row.timeToEscalationMs ?? undefined,
+      },
+      notes: row.notes ?? undefined,
+      evaluationSummaryId: row.evaluationSummary?.id,
+    });
+  }
+}
+
+function toTrialData(trialRecord: TrialRecord) {
+  return {
+    scenarioId: trialRecord.scenarioId,
+    recoveryMode: trialRecord.recoveryMode,
+    startedAt: new Date(trialRecord.startedAt),
+    completedAt: trialRecord.completedAt
+      ? new Date(trialRecord.completedAt)
+      : null,
+    status: trialRecord.status,
+    outcome: trialRecord.outcome,
+    escalationReason: trialRecord.escalationReason ?? null,
+    actionCount: trialRecord.metrics.actionCount,
+    blockedActionCount: trialRecord.metrics.blockedActionCount,
+    failedActionCount: trialRecord.metrics.failedActionCount,
+    timeToRecoveryMs: trialRecord.metrics.timeToRecoveryMs ?? null,
+    timeToEscalationMs: trialRecord.metrics.timeToEscalationMs ?? null,
+    notes: trialRecord.notes ?? null,
+  };
+}
+
+function createEvidenceHistory(
+  trialRecord: TrialRecord,
+): Array<{
+  evidenceSnapshotId: string;
+  role: "initial" | "intermediate" | "final";
+}> {
+  const initialId =
+    trialRecord.initialEvidenceSnapshotId ??
+    trialRecord.evidenceSnapshotIds.at(0);
+  const finalId =
+    trialRecord.finalEvidenceSnapshotId ??
+    trialRecord.evidenceSnapshotIds.at(-1);
+  const history: Array<{
+    evidenceSnapshotId: string;
+    role: "initial" | "intermediate" | "final";
+  }> = [];
+
+  if (initialId) {
+    history.push({ evidenceSnapshotId: initialId, role: "initial" });
   }
 
-  findTrialRecordById(trialRecordId: string): TrialRecord | null {
-    const row = this.database.prepare("SELECT trial_record_json FROM trial_records WHERE id = ?").get(trialRecordId) as TrialRecordRow | undefined;
-    return row ? parseStoredTrialRecord(JSON.parse(row.trial_record_json)) : null;
+  for (const evidenceSnapshotId of trialRecord.evidenceSnapshotIds) {
+    if (
+      evidenceSnapshotId !== initialId &&
+      evidenceSnapshotId !== finalId
+    ) {
+      history.push({ evidenceSnapshotId, role: "intermediate" });
+    }
   }
 
-  private initialize(): void {
-    this.database.exec(`
-      CREATE TABLE IF NOT EXISTS trial_records (
-        id TEXT PRIMARY KEY,
-        recovery_mode TEXT NOT NULL,
-        started_at TEXT NOT NULL,
-        completed_at TEXT,
-        status TEXT NOT NULL,
-        outcome TEXT NOT NULL,
-        trial_record_json TEXT NOT NULL
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_trial_records_recovery_mode
-        ON trial_records(recovery_mode);
-
-      CREATE INDEX IF NOT EXISTS idx_trial_records_status
-        ON trial_records(status);
-    `);
+  if (finalId && trialRecord.completedAt) {
+    history.push({ evidenceSnapshotId: finalId, role: "final" });
   }
+
+  return history;
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)];
 }

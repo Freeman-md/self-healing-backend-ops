@@ -1,59 +1,60 @@
-import type { DatabaseSync } from "node:sqlite";
+import { PrismaService } from "@/infrastructure/database";
 
-import { DatabaseService } from "@/infrastructure/database";
-
-import type { EvaluationSummary } from "./evaluation.types";
+import {
+  evaluationSummarySchema,
+  type EvaluationSummary,
+} from "./evaluation.schema";
 
 export class EvaluationRepository {
-  private readonly database: DatabaseSync;
+  constructor(private readonly prisma: PrismaService) {}
 
-  constructor(databaseService = new DatabaseService()) {
-    this.database = databaseService.getConnection();
-    this.initialize();
+  async saveEvaluationSummary(
+    summary: EvaluationSummary,
+  ): Promise<EvaluationSummary> {
+    const parsed = evaluationSummarySchema.parse(summary);
+    const data = {
+      trialRecordId: parsed.trialRecordId,
+      createdAt: new Date(parsed.createdAt),
+      summary: parsed.summary,
+      recoverySucceeded: parsed.recoverySucceeded,
+      safetyMaintained: parsed.safetyMaintained,
+      actionEffectiveness: parsed.actionEffectiveness,
+      lessons: parsed.lessons,
+      recommendedChanges: parsed.recommendedChanges,
+    };
+
+    await this.prisma.evaluationSummary.upsert({
+      where: { id: parsed.id },
+      create: { id: parsed.id, ...data, legacyPayload: null },
+      update: data,
+    });
+
+    return parsed;
   }
 
-  saveEvaluationSummary(summary: EvaluationSummary): EvaluationSummary {
-    this.database
-      .prepare(
-        `
-          INSERT INTO evaluation_summaries (
-            id,
-            trial_record_id,
-            created_at,
-            action_effectiveness,
-            evaluation_summary_json
-          )
-          VALUES (?, ?, ?, ?, ?)
-          ON CONFLICT(id) DO UPDATE SET
-            trial_record_id = excluded.trial_record_id,
-            created_at = excluded.created_at,
-            action_effectiveness = excluded.action_effectiveness,
-            evaluation_summary_json = excluded.evaluation_summary_json
-        `,
-      )
-      .run(
-        summary.id,
-        summary.trialRecordId,
-        summary.createdAt,
-        summary.actionEffectiveness,
-        JSON.stringify(summary),
-      );
+  async findEvaluationSummaryByTrialRecordId(
+    trialRecordId: string,
+  ): Promise<EvaluationSummary | null> {
+    const row = await this.prisma.evaluationSummary.findUnique({
+      where: { trialRecordId },
+      select: {
+        id: true,
+        trialRecordId: true,
+        createdAt: true,
+        summary: true,
+        recoverySucceeded: true,
+        safetyMaintained: true,
+        actionEffectiveness: true,
+        lessons: true,
+        recommendedChanges: true,
+      },
+    });
 
-    return summary;
-  }
-
-  private initialize(): void {
-    this.database.exec(`
-      CREATE TABLE IF NOT EXISTS evaluation_summaries (
-        id TEXT PRIMARY KEY,
-        trial_record_id TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        action_effectiveness TEXT NOT NULL,
-        evaluation_summary_json TEXT NOT NULL
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_evaluation_summaries_trial_record_id
-        ON evaluation_summaries(trial_record_id);
-    `);
+    return row
+      ? evaluationSummarySchema.parse({
+          ...row,
+          createdAt: row.createdAt.toISOString(),
+        })
+      : null;
   }
 }

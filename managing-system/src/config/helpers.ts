@@ -58,3 +58,19 @@ export function readOptionalEnum<T extends string>(
   if ((allowedValues as readonly string[]).includes(resolvedValue)) return resolvedValue as T;
   throw new Error(`${name} must be one of: ${allowedValues.join(", ")}.`);
 }
+
+export function readSqliteDatabaseUrl(value: string | undefined): string {
+  const databaseUrl = readOptionalString(value);
+
+  if (!databaseUrl || !databaseUrl.startsWith("file:")) {
+    throw new Error("DATABASE_URL must be a non-empty Prisma SQLite file: URL.");
+  }
+
+  const databasePath = databaseUrl.slice("file:".length);
+
+  if (!databasePath.trim()) {
+    throw new Error("DATABASE_URL must contain a SQLite database path.");
+  }
+
+  return databaseUrl;
+}

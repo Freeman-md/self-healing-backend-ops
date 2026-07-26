@@ -33,7 +33,7 @@ test("raw evidence collection runs without constructing an OpenAI client", async
   }
 });
 
-test("EvidenceService persists and retrieves snapshots through its injected repository", () => {
+test("EvidenceService persists and retrieves snapshots through its injected repository", async () => {
   const snapshots = new Map<string, EvidenceSnapshot>();
   const snapshot: EvidenceSnapshot = {
     id: "snapshot-persistence-test",
@@ -56,8 +56,8 @@ test("EvidenceService persists and retrieves snapshots through its injected repo
     },
   });
 
-  assert.equal(service.saveEvidenceSnapshot(snapshot), snapshot);
-  assert.equal(service.findEvidenceSnapshotById(snapshot.id), snapshot);
+  assert.equal(await service.saveEvidenceSnapshot(snapshot), snapshot);
+  assert.equal(await service.findEvidenceSnapshotById(snapshot.id), snapshot);
 });
 
 test("health polling stops as soon as the managed system reports healthy", async () => {

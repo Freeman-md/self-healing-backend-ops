@@ -8,10 +8,38 @@ import {
 import type { EvidenceSnapshot } from "@/modules/evidence";
 import {
   RecoveryBaselineStrategy,
+  findMatchingBaselineRule,
+  type BaselineRule,
   type RecoveryDecision,
   type RecoveryStrategy,
 } from "@/modules/recovery";
 import { TrialService, type TrialRecord } from "@/modules/trial";
+
+const baselineRules: BaselineRule[] = [{
+  id: "database_connectivity_failure",
+  description: "database first",
+  incidentType: "database_connectivity_failure",
+  severity: "high",
+  expectedOutcome: "healthy",
+  priority: 100,
+  version: 1,
+  proposedActionIds: ["restart_postgres_container"],
+  fallbackActionIds: [],
+  conditionGroups: [{
+    matchMode: "ANY",
+    conditions: [{
+      signalCode: "database_connectivity",
+      operator: "EQUALS",
+      expectedStatus: "critical",
+    }],
+  }],
+}];
+
+const baselineRuleSource = {
+  async findMatchingBaselineRule(snapshot: EvidenceSnapshot) {
+    return findMatchingBaselineRule(snapshot, baselineRules);
+  },
+};
 
 function createSnapshot(
   id: string,
@@ -137,7 +165,7 @@ function createRecoveryService() {
 }
 
 test("baseline produces deterministic diagnosis and ordered recovery plan", async () => {
-  const engine = new RecoveryBaselineStrategy();
+  const engine = new RecoveryBaselineStrategy(baselineRuleSource);
   const snapshot = createSnapshot(
     "snapshot-database-failure",
     "unhealthy",
@@ -161,7 +189,7 @@ test("baseline produces deterministic diagnosis and ordered recovery plan", asyn
 });
 
 test("baseline returns no action for healthy evidence", async () => {
-  const engine = new RecoveryBaselineStrategy();
+  const engine = new RecoveryBaselineStrategy(baselineRuleSource);
   const decision = await engine.decide(createSnapshot("snapshot-healthy", "healthy"), {
     actionAttemptCounts: {},
     completedActionIds: [],
@@ -172,7 +200,7 @@ test("baseline returns no action for healthy evidence", async () => {
 });
 
 test("baseline escalates when no deterministic rule matches", async () => {
-  const engine = new RecoveryBaselineStrategy();
+  const engine = new RecoveryBaselineStrategy(baselineRuleSource);
   const decision = await engine.decide(
     createSnapshot("snapshot-unknown", "unknown", ["unclassified"]),
     {

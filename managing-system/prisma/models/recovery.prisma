@@ -1,0 +1,130 @@
+model DiagnosisResult {
+  id                 String            @id
+  trialRecordId      String            @map("trial_record_id")
+  evidenceSnapshotId String            @map("evidence_snapshot_id")
+  createdAt          DateTime          @map("created_at")
+  method             DiagnosisMethod
+  incidentCode       String            @map("incident_code")
+  severity           IncidentSeverity
+  confidence         Float?
+  reasoningSummary   String            @map("reasoning_summary")
+  sourceIds          Json              @map("source_ids")
+  supportingSignals  Json              @map("supporting_signals")
+  contradictions     Json
+  legacyPayload      String?           @map("diagnosis_result_json")
+  trial              TrialRecord       @relation(fields: [trialRecordId], references: [id])
+  evidenceSnapshot   EvidenceSnapshot  @relation(fields: [evidenceSnapshotId], references: [id])
+  recoveryPlan       RecoveryPlan?
+  recoveryDecision   RecoveryDecision?
+
+  @@index([trialRecordId])
+  @@map("diagnosis_results")
+}
+
+model RecoveryPlan {
+  id                 String               @id
+  trialRecordId      String               @map("trial_record_id")
+  diagnosisResultId  String               @unique @map("diagnosis_result_id")
+  createdAt          DateTime             @map("created_at")
+  rationale          String
+  expectedOutcome    String               @map("expected_outcome")
+  escalationReason   String?              @map("escalation_reason")
+  legacyPayload      String?              @map("recovery_plan_json")
+  trial              TrialRecord          @relation(fields: [trialRecordId], references: [id])
+  diagnosisResult    DiagnosisResult      @relation(fields: [diagnosisResultId], references: [id])
+  actions            RecoveryPlanAction[]
+  recoveryDecision   RecoveryDecision?
+
+  @@index([trialRecordId])
+  @@map("recovery_plans")
+}
+
+model RecoveryPlanAction {
+  recoveryPlanId String        @map("recovery_plan_id")
+  actionId       String        @map("action_id")
+  phase          ActionPhase
+  position       Int
+  recoveryPlan   RecoveryPlan  @relation(fields: [recoveryPlanId], references: [id], onDelete: Cascade)
+  action         Action        @relation(fields: [actionId], references: [id])
+
+  @@id([recoveryPlanId, phase, position])
+  @@index([actionId])
+  @@map("recovery_plan_actions")
+}
+
+model RecoveryDecision {
+  id                 String                 @id
+  trialRecordId      String                 @map("trial_record_id")
+  sequenceNumber     Int                    @map("sequence_number")
+  recoveryMode       RecoveryMode           @map("recovery_mode")
+  snapshotId         String                 @map("snapshot_id")
+  decidedAt          DateTime               @map("decided_at")
+  status             RecoveryDecisionStatus
+  reason             String
+  escalationReason   String?                @map("escalation_reason")
+  diagnosisResultId  String                 @unique @map("diagnosis_result_id")
+  recoveryPlanId     String                 @unique @map("recovery_plan_id")
+  legacyPayload      String?                @map("recovery_decision_json")
+  trial              TrialRecord            @relation(fields: [trialRecordId], references: [id])
+  snapshot           EvidenceSnapshot       @relation(fields: [snapshotId], references: [id])
+  diagnosisResult    DiagnosisResult        @relation(fields: [diagnosisResultId], references: [id])
+  recoveryPlan       RecoveryPlan           @relation(fields: [recoveryPlanId], references: [id])
+
+  @@unique([trialRecordId, sequenceNumber])
+  @@index([trialRecordId, sequenceNumber])
+  @@map("recovery_decisions")
+}
+
+model BaselineRule {
+  id              String                       @id
+  description     String
+  incidentCode    String                       @map("incident_code")
+  severity        IncidentSeverity
+  expectedOutcome String                       @map("expected_outcome")
+  priority        Int
+  version         Int
+  active          Boolean                      @default(true)
+  conditionGroups BaselineRuleConditionGroup[]
+  actions         BaselineRuleAction[]
+
+  @@index([active, priority])
+  @@map("baseline_rules")
+}
+
+model BaselineRuleConditionGroup {
+  id         String                      @id
+  ruleId     String                      @map("rule_id")
+  position   Int
+  matchMode  BaselineGroupMatchMode      @map("match_mode")
+  rule       BaselineRule                @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  conditions BaselineRuleCondition[]
+
+  @@unique([ruleId, position])
+  @@map("baseline_rule_condition_groups")
+}
+
+model BaselineRuleCondition {
+  id             String                     @id
+  groupId        String                     @map("group_id")
+  signalCode     EvidenceSignalCode         @map("signal_code")
+  operator       BaselineOperator
+  expectedStatus EvidenceSignalStatus       @map("expected_status")
+  position       Int
+  group          BaselineRuleConditionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, position])
+  @@map("baseline_rule_conditions")
+}
+
+model BaselineRuleAction {
+  baselineRuleId String       @map("baseline_rule_id")
+  actionId       String       @map("action_id")
+  phase          ActionPhase
+  position       Int
+  baselineRule   BaselineRule @relation(fields: [baselineRuleId], references: [id], onDelete: Cascade)
+  action         Action       @relation(fields: [actionId], references: [id])
+
+  @@id([baselineRuleId, phase, position])
+  @@index([actionId])
+  @@map("baseline_rule_actions")
+}
