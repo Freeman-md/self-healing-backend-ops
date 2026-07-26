@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { ZodError } from "zod/v4";
+
 import type { IContainerRuntime } from "@/infrastructure/container-runtime";
 import {
   ActionHandlerRegistry,
   ActionRepository,
   ActionService,
   type Action,
+  type OutcomeCheckType,
 } from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 import { createPrismaTestDatabase } from "../../helpers/prisma-test-database";
@@ -15,6 +18,43 @@ const actionHandlerInput = {
   action: {} as Action,
   trialRecordId: "trial-test",
 };
+
+const outcomeCriterionParameterCases = [
+  {
+    checkType: "health_status_is",
+    validParameters: { expectedState: "healthy" },
+    malformedParameters: { expectedState: 42 },
+  },
+  {
+    checkType: "endpoint_returns_status",
+    validParameters: { endpoint: "/health", expectedStatus: 200 },
+    malformedParameters: { endpoint: "/health", expectedStatus: "200" },
+  },
+  {
+    checkType: "metric_below_threshold",
+    validParameters: { metric: "latency_ms", threshold: 500 },
+    malformedParameters: { metric: "latency_ms", threshold: "500" },
+  },
+  {
+    checkType: "container_running",
+    validParameters: { container: "managed-system" },
+    malformedParameters: { container: 42 },
+  },
+  {
+    checkType: "file_exists",
+    validParameters: { path: "/tmp/readiness" },
+    malformedParameters: { path: 42 },
+  },
+  {
+    checkType: "action_completed",
+    validParameters: { actionId: "restart_postgres_container" },
+    malformedParameters: { actionId: 42 },
+  },
+] satisfies Array<{
+  checkType: OutcomeCheckType;
+  validParameters: Record<string, unknown>;
+  malformedParameters: Record<string, unknown>;
+}>;
 
 test("action repository resolves the seeded action and ordered safety catalogue", async () => {
   const testDatabase = await createPrismaTestDatabase({ seed: true });
@@ -43,6 +83,43 @@ test("action repository resolves the seeded action and ordered safety catalogue"
     await testDatabase.close();
   }
 });
+
+for (const parameterCase of outcomeCriterionParameterCases) {
+  test(`action repository validates ${parameterCase.checkType} outcome parameters`, async () => {
+    const testDatabase = await createPrismaTestDatabase({ seed: true });
+    const repository = new ActionRepository(testDatabase.prisma);
+
+    try {
+      await testDatabase.prisma.outcomeCriterion.update({
+        where: { id: "health_ready_after_postgres_restart" },
+        data: {
+          checkType: parameterCase.checkType,
+          parameters: parameterCase.validParameters,
+        },
+      });
+
+      const action = await repository.findActionById(
+        "restart_postgres_container",
+      );
+      assert.deepEqual(
+        action?.expectedOutcome.successCriteria[0]?.params,
+        parameterCase.validParameters,
+      );
+
+      await testDatabase.prisma.outcomeCriterion.update({
+        where: { id: "health_ready_after_postgres_restart" },
+        data: { parameters: parameterCase.malformedParameters },
+      });
+
+      await assert.rejects(
+        repository.findActionById("restart_postgres_container"),
+        (error: unknown) => error instanceof ZodError,
+      );
+    } finally {
+      await testDatabase.close();
+    }
+  });
+}
 
 test("action handlers use only their allowlisted runtime targets", async () => {
   const runtimeTargets: string[] = [];

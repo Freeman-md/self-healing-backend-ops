@@ -4,6 +4,7 @@ import {
   type SafetyRule,
 } from "@/modules/safety";
 
+import { persistedOutcomeCriterionSchema } from "./action.schema";
 import type { Action, ActionExecutionResult } from "./action.types";
 
 const actionSelection = {
@@ -144,15 +145,14 @@ function mapAction(row: {
     safetyRuleIds: row.safetyRules.map((link) => link.safetyRule.id),
     expectedOutcome: {
       description: row.expectedOutcome.description,
-      successCriteria: row.expectedOutcome.criteria.map((criterion) => ({
-        id: criterion.id,
-        description: criterion.description,
-        checkType: criterion.checkType,
-        params: readRecord(
-          criterion.parameters,
-          `outcome criterion ${criterion.id} parameters`,
-        ),
-      })),
+      successCriteria: row.expectedOutcome.criteria.map((criterion) =>
+        persistedOutcomeCriterionSchema.parse({
+          id: criterion.id,
+          description: criterion.description,
+          checkType: criterion.checkType,
+          params: criterion.parameters,
+        }),
+      ),
     },
   };
 }
@@ -174,14 +174,6 @@ function toActionExecutionData(result: ActionExecutionResult) {
     expectedOutcomeMet: result.expectedOutcomeMet ?? null,
     outcomeSummary: result.outcomeSummary ?? null,
   };
-}
-
-function readRecord(value: unknown, description: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error(`Persisted ${description} must be an object.`);
-  }
-
-  return value as Record<string, unknown>;
 }
 
 function mapSafetyRule(row: {

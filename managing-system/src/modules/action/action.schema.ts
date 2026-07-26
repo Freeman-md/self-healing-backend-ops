@@ -1,5 +1,65 @@
 import { z } from "zod/v4";
 
+const outcomeCriterionBase = {
+  id: z.string(),
+  description: z.string(),
+};
+
+export const persistedOutcomeCriterionSchema = z.discriminatedUnion(
+  "checkType",
+  [
+    z.object({
+      ...outcomeCriterionBase,
+      checkType: z.literal("health_status_is"),
+      params: z.strictObject({
+        expectedState: z.enum([
+          "healthy",
+          "degraded",
+          "unhealthy",
+          "unknown",
+        ]),
+      }),
+    }),
+    z.object({
+      ...outcomeCriterionBase,
+      checkType: z.literal("endpoint_returns_status"),
+      params: z.strictObject({
+        endpoint: z.string().min(1),
+        expectedStatus: z.number().int().min(100).max(599),
+      }),
+    }),
+    z.object({
+      ...outcomeCriterionBase,
+      checkType: z.literal("metric_below_threshold"),
+      params: z.strictObject({
+        metric: z.string().min(1),
+        threshold: z.number(),
+      }),
+    }),
+    z.object({
+      ...outcomeCriterionBase,
+      checkType: z.literal("container_running"),
+      params: z.strictObject({
+        container: z.string().min(1),
+      }),
+    }),
+    z.object({
+      ...outcomeCriterionBase,
+      checkType: z.literal("file_exists"),
+      params: z.strictObject({
+        path: z.string().min(1),
+      }),
+    }),
+    z.object({
+      ...outcomeCriterionBase,
+      checkType: z.literal("action_completed"),
+      params: z.strictObject({
+        actionId: z.string().min(1),
+      }),
+    }),
+  ],
+);
+
 export const actionOutcomeEvaluationSchema = z.object({
   expectedOutcomeMet: z.boolean(),
   outcomeSummary: z.string(),
@@ -35,3 +95,7 @@ export const actionExecutionResultSchema = z.object({
 export type ActionOutcomeEvaluation = z.infer<
   typeof actionOutcomeEvaluationSchema
 >;
+export type OutcomeCriterion = z.infer<
+  typeof persistedOutcomeCriterionSchema
+>;
+export type OutcomeCheckType = OutcomeCriterion["checkType"];

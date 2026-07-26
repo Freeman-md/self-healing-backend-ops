@@ -52,6 +52,32 @@ test("historical fixture backfills without loss and remains idempotent", async (
   }
 });
 
+test("evidence-only legacy fixture completes the documented migration path", async () => {
+  const fixture = createEvidenceOnlyLegacyFixture();
+
+  try {
+    runScript("prisma:prepare-legacy", fixture.databaseUrl);
+    runScript("prisma:baseline-legacy", fixture.databaseUrl);
+    runScript("prisma:migrate:deploy", fixture.databaseUrl);
+    runScript("prisma:seed", fixture.databaseUrl);
+    runScript("prisma:backfill", fixture.databaseUrl);
+    runScript("prisma:backfill", fixture.databaseUrl);
+
+    const verifier = new PrismaService(fixture.databaseUrl);
+    await verifier.open();
+    assert.equal(await verifier.evidenceSnapshot.count(), 1);
+    assert.equal(await verifier.trialRecord.count(), 0);
+    assert.ok(
+      await verifier.evidenceSnapshot.findUnique({
+        where: { id: "legacy-partial-snapshot" },
+      }),
+    );
+    await verifier.close();
+  } finally {
+    fixture.close();
+  }
+});
+
 test("malformed historical payloads produce an actionable failing report", async () => {
   const fixture = createLegacyFixture({ malformedEvidence: true });
 
@@ -151,6 +177,54 @@ test("migration deployment creates an absent SQLite file on a fresh volume", () 
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+function createEvidenceOnlyLegacyFixture(): {
+  databaseUrl: string;
+  close(): void;
+} {
+  const directory = mkdtempSync(
+    join(tmpdir(), "managing-system-partial-legacy-"),
+  );
+  const databasePath = join(directory, "legacy.sqlite");
+  const database = new Database(databasePath);
+  const timestamp = "2026-07-20T00:00:00.000Z";
+  const snapshot = {
+    id: "legacy-partial-snapshot",
+    rawEvidenceIds: [],
+    createdAt: timestamp,
+    targetSystem: "managed-system",
+    overallState: "healthy",
+    summary: "healthy",
+    signals: [],
+    suspectedIncidentTypes: ["unclassified"],
+    contradictions: [],
+  };
+
+  database.exec(`
+    CREATE TABLE evidence_snapshots (
+      id TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL,
+      overall_state TEXT NOT NULL,
+      snapshot_json TEXT NOT NULL
+    );
+  `);
+  database
+    .prepare("INSERT INTO evidence_snapshots VALUES (?, ?, ?, ?)")
+    .run(
+      snapshot.id,
+      timestamp,
+      snapshot.overallState,
+      JSON.stringify(snapshot),
+    );
+  database.close();
+
+  return {
+    databaseUrl: `file:${databasePath}`,
+    close() {
+      rmSync(directory, { recursive: true, force: true });
+    },
+  };
+}
 
 function createLegacyFixture(options: {
   malformedEvidence?: boolean;

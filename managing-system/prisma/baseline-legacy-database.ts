@@ -8,6 +8,15 @@ import { config } from "../src/config";
 import { resolveDatabasePath } from "./database-path";
 
 const migrationName = "20260726120000_relational_persistence";
+const preparedLegacyTables = [
+  "legacy_evidence_snapshots",
+  "legacy_trial_records",
+  "legacy_diagnosis_results",
+  "legacy_recovery_plans",
+  "legacy_recovery_decisions",
+  "legacy_action_execution_results",
+  "legacy_evaluation_summaries",
+] as const;
 const migrationPath = resolve(
   "prisma",
   "migrations",
@@ -25,7 +34,9 @@ let schemaCreated = false;
 
 try {
   const migrationHistoryExists = tableExists(database, "_prisma_migrations");
-  const legacyTablesExist = tableExists(database, "legacy_trial_records");
+  const preparedLegacySchemaExists = preparedLegacyTables.some((tableName) =>
+    tableExists(database, tableName),
+  );
   const normalizedTables = ["actions", "evidence_snapshots", "trial_records"];
   const normalizedTableCount = normalizedTables.filter((tableName) =>
     tableExists(database, tableName),
@@ -37,9 +48,9 @@ try {
     );
   }
 
-  if (!legacyTablesExist) {
+  if (!preparedLegacySchemaExists) {
     throw new Error(
-      "Legacy baseline requires the prepared legacy_* tables. Run prisma:prepare-legacy first.",
+      "Legacy baseline requires at least one known prepared legacy_* table. Run prisma:prepare-legacy first.",
     );
   }
 
