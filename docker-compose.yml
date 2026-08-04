@@ -53,7 +53,7 @@ services:
     environment:
       NODE_ENV: production
       MANAGED_SYSTEM_BASE_URL: http://managed-system:3000
-      DATABASE_URL: postgresql://postgres:postgres@managing-system-postgres:5432/managing_system
+      DATABASE_URL: postgresql://${MANAGING_SYSTEM_POSTGRES_USER:?Set MANAGING_SYSTEM_POSTGRES_USER}:${MANAGING_SYSTEM_POSTGRES_PASSWORD:?Set MANAGING_SYSTEM_POSTGRES_PASSWORD}@managing-system-postgres:5432/${MANAGING_SYSTEM_POSTGRES_DB:?Set MANAGING_SYSTEM_POSTGRES_DB}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       DOCKER_ACTIONS_ENABLED: "true"
@@ -70,15 +70,15 @@ services:
     container_name: managing-system-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: managing_system
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${MANAGING_SYSTEM_POSTGRES_DB:?Set MANAGING_SYSTEM_POSTGRES_DB}
+      POSTGRES_USER: ${MANAGING_SYSTEM_POSTGRES_USER:?Set MANAGING_SYSTEM_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${MANAGING_SYSTEM_POSTGRES_PASSWORD:?Set MANAGING_SYSTEM_POSTGRES_PASSWORD}
     ports:
       - "5433:5432"
     volumes:
       - managing_system_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d managing_system"]
+      test: ["CMD-SHELL", "pg_isready -U ${MANAGING_SYSTEM_POSTGRES_USER:?Set MANAGING_SYSTEM_POSTGRES_USER} -d ${MANAGING_SYSTEM_POSTGRES_DB:?Set MANAGING_SYSTEM_POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10

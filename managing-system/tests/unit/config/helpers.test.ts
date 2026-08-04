@@ -19,8 +19,8 @@ test("Docker execution configuration defaults safely and requires explicit value
 
 test("PostgreSQL configuration requires a non-empty connection URL", () => {
   assert.equal(
-    readPostgresDatabaseUrl("postgresql://postgres:postgres@localhost:5433/test_database"),
-    "postgresql://postgres:postgres@localhost:5433/test_database",
+    readPostgresDatabaseUrl("postgresql://localhost:5433/test_database"),
+    "postgresql://localhost:5433/test_database",
   );
   assert.throws(() => readPostgresDatabaseUrl(undefined), /DATABASE_URL/);
   assert.throws(
