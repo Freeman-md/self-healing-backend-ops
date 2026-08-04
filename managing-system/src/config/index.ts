@@ -5,7 +5,7 @@ import {
   readNumber,
   readOptionalEnum,
   readOptionalString,
-  readSqliteDatabaseUrl,
+  readPostgresDatabaseUrl,
   readString,
 } from "./helpers";
 
@@ -45,7 +45,7 @@ export const config: AppConfig = {
     model: readString(process.env.OPENAI_MODEL, "gpt-4.1-mini"),
   },
   database: {
-    url: readSqliteDatabaseUrl(process.env.DATABASE_URL),
+    url: readPostgresDatabaseUrl(process.env.DATABASE_URL),
   },
   actions: {
     dockerEnabled: readBoolean(process.env.DOCKER_ACTIONS_ENABLED, false),

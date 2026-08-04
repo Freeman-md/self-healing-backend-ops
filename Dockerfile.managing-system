@@ -11,6 +11,8 @@ COPY prisma.config.ts ./
 COPY prisma ./prisma
 COPY src ./src
 
+ENV DATABASE_URL=postgresql://postgres:postgres@managing-system-postgres:5432/managing_system
+
 RUN npm run build
 
 CMD ["npm", "run", "start:container"]

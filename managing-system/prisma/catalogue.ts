@@ -160,7 +160,7 @@ const baselineRules = [
 ];
 
 export async function seedCatalogue(prisma: PrismaService): Promise<void> {
-  await prisma.$transaction(async (transaction) => {
+  await prisma.executeInTransaction(async (transaction) => {
     for (const rule of safetyRules) {
       await transaction.safetyRule.upsert({
         where: { id: rule.id },

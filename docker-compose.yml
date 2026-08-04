@@ -48,10 +48,12 @@ services:
     depends_on:
       managed-system:
         condition: service_healthy
+      managing-system-postgres:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       MANAGED_SYSTEM_BASE_URL: http://managed-system:3000
-      DATABASE_URL: file:./data/managing-system.sqlite
+      DATABASE_URL: postgresql://postgres:postgres@managing-system-postgres:5432/managing_system
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       DOCKER_ACTIONS_ENABLED: "true"
@@ -62,8 +64,25 @@ services:
       SCENARIO_ID: ${SCENARIO_ID:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - managing_system_data:/managing-system/data
+
+  managing-system-postgres:
+    image: postgres:16-alpine
+    container_name: managing-system-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: managing_system
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - managing_system_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d managing_system"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   managed_system_postgres_data:
-  managing_system_data:
+  managing_system_postgres_data:

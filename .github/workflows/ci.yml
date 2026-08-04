@@ -46,11 +46,25 @@ jobs:
   managing-system:
     name: Managing system
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: managing_system_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d managing_system_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: managing-system
     env:
-      DATABASE_URL: file:./data/ci.sqlite
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/managing_system_ci
       NODE_ENV: test
 
     steps:
