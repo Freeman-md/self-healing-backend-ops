@@ -63,3 +63,33 @@ test("monitor only triggers one recovery after sustained unhealthy evidence and 
   assert.equal(recoveryInputs[0]?.triggerSource, "monitor");
   assert.equal(recoveryInputs[0]?.scenarioId, undefined);
 });
+
+test("stopping the monitor interrupts a pending interval wait", async () => {
+  let resolveCollectionStarted: (() => void) | undefined;
+  const collectionStarted = new Promise<void>((resolve) => {
+    resolveCollectionStarted = resolve;
+  });
+  const monitoringService = new MonitoringService(
+    {
+      async collectAndNormalize() {
+        resolveCollectionStarted?.();
+        return snapshot("healthy", "healthy");
+      },
+      saveEvidenceSnapshot: (savedSnapshot) => savedSnapshot,
+    },
+    { runRecoveryTrial: async () => ({} as never) },
+    "baseline",
+    {
+      intervalMs: 60000,
+      consecutiveUnhealthyThreshold: 2,
+      cooldownMs: 100,
+      sleep: () => new Promise<void>(() => undefined),
+      log: () => undefined,
+    },
+  );
+
+  const monitoring = monitoringService.startMonitoring();
+  await collectionStarted;
+  monitoringService.stopMonitoring();
+  await monitoring;
+});

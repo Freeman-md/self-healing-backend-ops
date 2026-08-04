@@ -13,7 +13,7 @@ export class RecoveryAgentStrategy implements RecoveryStrategy {
   readonly mode = "agent" as const;
 
   constructor(
-    private readonly recoveryAgentService = new RecoveryAgentService(),
+    private readonly recoveryAgentService: RecoveryAgentService | undefined,
     private readonly actionService: Pick<ActionService, "listActions" | "findActionById">,
     private readonly recoveryFactory = new RecoveryFactory(),
   ) {}
@@ -22,9 +22,10 @@ export class RecoveryAgentStrategy implements RecoveryStrategy {
     evidenceSnapshot: EvidenceSnapshot,
     _context: RecoveryStrategyContext,
   ): Promise<RecoveryDecision> {
-    const diagnosisResult = await this.recoveryAgentService.diagnoseEvidence(evidenceSnapshot);
+    const recoveryAgentService = this.recoveryAgentService ?? new RecoveryAgentService();
+    const diagnosisResult = await recoveryAgentService.diagnoseEvidence(evidenceSnapshot);
     const availableActions = await this.actionService.listActions();
-    const recoveryPlan = await this.recoveryAgentService.createRecoveryPlan({
+    const recoveryPlan = await recoveryAgentService.createRecoveryPlan({
       evidenceSnapshot,
       diagnosisResult,
       availableActions,

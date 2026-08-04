@@ -79,3 +79,12 @@ test("RecoveryAgentStrategy obtains and validates planned actions through Action
   assert.equal(decision.status, "action_selected");
   assert.deepEqual(requestedActionIds, [action.id]);
 });
+
+test("constructing the unused agent strategy does not require OpenAI configuration", () => {
+  assert.doesNotThrow(() => {
+    new RecoveryAgentStrategy(undefined, {
+      listActions: () => [],
+      findActionById: () => null,
+    } as never);
+  });
+});

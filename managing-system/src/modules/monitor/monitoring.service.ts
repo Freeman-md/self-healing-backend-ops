@@ -25,6 +25,8 @@ export class MonitoringService {
   private recoveryInProgress = false;
   private consecutiveUnhealthyCount = 0;
   private cooldownUntilMs = 0;
+  private pendingWait?: () => void;
+  private pendingTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     private readonly evidenceService: MonitoringEvidenceService,
@@ -46,7 +48,7 @@ export class MonitoringService {
       await this.executeCollectionCycle();
 
       if (!this.stopRequested) {
-        await this.sleep(this.options.intervalMs);
+        await this.waitForNextCycle(this.options.intervalMs);
       }
     }
 
@@ -55,6 +57,7 @@ export class MonitoringService {
 
   stopMonitoring(): void {
     this.stopRequested = true;
+    this.pendingWait?.();
   }
 
   private async executeCollectionCycle(): Promise<void> {
@@ -121,8 +124,26 @@ export class MonitoringService {
     }
   }
 
-  private sleep(milliseconds: number): Promise<void> {
-    return this.options.sleep?.(milliseconds) ?? new Promise((resolve) => setTimeout(resolve, milliseconds));
+  private waitForNextCycle(milliseconds: number): Promise<void> {
+    return new Promise((resolve) => {
+      const finishWait = (): void => {
+        if (this.pendingTimer) {
+          clearTimeout(this.pendingTimer);
+          this.pendingTimer = undefined;
+        }
+        this.pendingWait = undefined;
+        resolve();
+      };
+
+      this.pendingWait = finishWait;
+
+      if (this.options.sleep) {
+        void this.options.sleep(milliseconds).then(finishWait, finishWait);
+        return;
+      }
+
+      this.pendingTimer = setTimeout(finishWait, milliseconds);
+    });
   }
 
   private now(): number {
