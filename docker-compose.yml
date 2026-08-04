@@ -51,7 +51,7 @@ services:
     environment:
       NODE_ENV: production
       MANAGED_SYSTEM_BASE_URL: http://managed-system:3000
-      MANAGING_SYSTEM_DATABASE_PATH: /managing-system/data/managing-system.sqlite
+      DATABASE_URL: file:./data/managing-system.sqlite
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       DOCKER_ACTIONS_ENABLED: "true"

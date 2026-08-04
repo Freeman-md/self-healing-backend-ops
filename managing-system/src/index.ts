@@ -1,8 +1,12 @@
 import { config } from "@/config";
-import { DatabaseService } from "@/infrastructure/database";
+import { PrismaService } from "@/infrastructure/database";
 import { DockerContainerRuntimeService } from "@/infrastructure/container-runtime";
 import { canUseOpenAI } from "@/infrastructure/openai";
-import { ActionRepository, ActionService } from "@/modules/action";
+import {
+  ActionHandlerRegistry,
+  ActionRepository,
+  ActionService,
+} from "@/modules/action";
 import { EvidenceService, EvidenceRepository } from "@/modules/evidence";
 import {
   EvaluationFactory,
@@ -25,8 +29,9 @@ async function main() {
     managedSystemBaseUrl: config.managedSystem.baseUrl,
   });
 
-  const databaseService = new DatabaseService();
-  const evidenceRepository = new EvidenceRepository(databaseService);
+  const prismaService = new PrismaService();
+  await prismaService.open();
+  const evidenceRepository = new EvidenceRepository(prismaService);
   const containerRuntime = new DockerContainerRuntimeService();
   const evidenceService = new EvidenceService(
     evidenceRepository,
@@ -60,7 +65,7 @@ async function main() {
     }
 
     const snapshot = await evidenceService.normalizeEvidence(evidence);
-    const savedSnapshot = evidenceService.saveEvidenceSnapshot(snapshot);
+    const savedSnapshot = await evidenceService.saveEvidenceSnapshot(snapshot);
 
     console.log({
       event: "evidence_snapshot_created",
@@ -70,14 +75,14 @@ async function main() {
     console.log({
       event: "evidence_snapshot_persisted",
       snapshotId: savedSnapshot.id,
-      path: config.database.path,
+      databaseUrl: config.database.url,
     });
 
-    const trialRepository = new TrialRepository(databaseService);
-    const recoveryRepository = new RecoveryRepository(databaseService);
+    const trialRepository = new TrialRepository(prismaService);
+    const recoveryRepository = new RecoveryRepository(prismaService);
     const recoveryService = new RecoveryService(recoveryRepository);
-    const evaluationRepository = new EvaluationRepository(databaseService);
-    const actionRepository = new ActionRepository(databaseService, containerRuntime);
+    const evaluationRepository = new EvaluationRepository(prismaService);
+    const actionRepository = new ActionRepository(prismaService);
     const safetyService = new SafetyService();
     const actionService = new ActionService(
       actionRepository,
@@ -86,6 +91,7 @@ async function main() {
       undefined,
       undefined,
       config.actions.dockerEnabled,
+      new ActionHandlerRegistry(containerRuntime),
     );
     const evaluationService = new EvaluationService(
       new EvaluationFactory(),
@@ -93,7 +99,7 @@ async function main() {
     );
     const trialService = new TrialService(
       {
-        baseline: new RecoveryBaselineStrategy(),
+        baseline: new RecoveryBaselineStrategy(recoveryService),
         agent: new RecoveryAgentStrategy(undefined, actionService),
       },
       trialRepository,
@@ -118,7 +124,7 @@ async function main() {
       evaluationSummary: trialRun.evaluationSummary,
     });
   } finally {
-    databaseService.close();
+    await prismaService.close();
   }
 }
 

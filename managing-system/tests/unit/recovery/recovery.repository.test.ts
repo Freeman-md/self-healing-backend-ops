@@ -1,13 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { DatabaseService } from "@/infrastructure/database";
 import {
   RecoveryFactory,
   RecoveryRepository,
   type RecoveryDecision,
 } from "@/modules/recovery";
 import type { EvidenceSnapshot } from "@/modules/evidence";
+import { EvidenceRepository } from "@/modules/evidence";
+import { TrialRepository } from "@/modules/trial";
+import { createPrismaTestDatabase } from "../../helpers/prisma-test-database";
 
 function createSnapshot(id: string): EvidenceSnapshot {
   return {
@@ -65,29 +67,59 @@ test("RecoveryFactory assigns a unique durable ID to each decision", () => {
   assert.notEqual(first.id, second.id);
 });
 
-test("RecoveryRepository persists and retrieves ordered decision history in one isolated database", () => {
-  const databaseService = new DatabaseService(":memory:");
-  const repository = new RecoveryRepository(databaseService);
+test("RecoveryRepository persists and retrieves ordered decision history in one isolated database", async () => {
+  const testDatabase = await createPrismaTestDatabase({ seed: true });
+  const repository = new RecoveryRepository(testDatabase.prisma);
+  const evidenceRepository = new EvidenceRepository(testDatabase.prisma);
+  const trialRepository = new TrialRepository(testDatabase.prisma);
   const trialRecordId = "trial-history-test";
   const first = createDecision(createSnapshot("snapshot-first"), "action_selected");
   const second = createDecision(createSnapshot("snapshot-second"), "escalate");
 
-  repository.saveRecoveryDecisionHistory({
-    trialRecordId,
-    sequenceNumber: 1,
-    recoveryDecision: first,
-  });
-  repository.saveRecoveryDecisionHistory({
-    trialRecordId,
-    sequenceNumber: 2,
-    recoveryDecision: second,
-  });
+  try {
+    await evidenceRepository.saveEvidenceSnapshot(createSnapshot("snapshot-first"));
+    await evidenceRepository.saveEvidenceSnapshot(createSnapshot("snapshot-second"));
+    await trialRepository.saveTrialRecord({
+      id: trialRecordId,
+      scenarioId: "S1",
+      recoveryMode: "baseline",
+      startedAt: "2026-07-24T00:00:00.000Z",
+      evidenceSnapshotIds: ["snapshot-first", "snapshot-second"],
+      recoveryDecisionIds: [],
+      diagnosisResultIds: [],
+      recoveryPlanIds: [],
+      selectedActionIds: [],
+      actionExecutionResultIds: [],
+      executedActionResultIds: [],
+      blockedActionIds: [],
+      failedActionIds: [],
+      status: "started",
+      outcome: "unresolved_not_escalated",
+      metrics: {
+        actionCount: 0,
+        blockedActionCount: 0,
+        failedActionCount: 0,
+      },
+    });
+    await repository.saveRecoveryDecisionHistory({
+      trialRecordId,
+      sequenceNumber: 1,
+      recoveryDecision: first,
+    });
+    await repository.saveRecoveryDecisionHistory({
+      trialRecordId,
+      sequenceNumber: 2,
+      recoveryDecision: second,
+    });
 
-  const history = repository.findRecoveryDecisionsByTrialRecordId(trialRecordId);
+    const history =
+      await repository.findRecoveryDecisionsByTrialRecordId(trialRecordId);
 
-  assert.deepEqual(history.map((decision) => decision.id), [first.id, second.id]);
-  assert.deepEqual(history.map((decision) => decision.snapshotId), ["snapshot-first", "snapshot-second"]);
-  assert.equal(history[0]?.diagnosisResult.id, first.diagnosisResult.id);
-  assert.equal(history[1]?.recoveryPlan.id, second.recoveryPlan.id);
-  databaseService.close();
+    assert.deepEqual(history.map((decision) => decision.id), [first.id, second.id]);
+    assert.deepEqual(history.map((decision) => decision.snapshotId), ["snapshot-first", "snapshot-second"]);
+    assert.equal(history[0]?.diagnosisResult.id, first.diagnosisResult.id);
+    assert.equal(history[1]?.recoveryPlan.id, second.recoveryPlan.id);
+  } finally {
+    await testDatabase.close();
+  }
 });

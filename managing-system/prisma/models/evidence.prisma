@@ -1,0 +1,65 @@
+model RawEvidence {
+  id              String           @id
+  source          RawEvidenceSource
+  target          String
+  collectedAt     DateTime         @map("collected_at")
+  status          CollectionStatus
+  rawText         String?          @map("raw_text")
+  collectionError String?          @map("collection_error")
+  snapshotId      String?          @map("snapshot_id")
+  snapshot        EvidenceSnapshot? @relation(fields: [snapshotId], references: [id])
+
+  @@index([snapshotId])
+  @@map("raw_evidence")
+}
+
+model EvidenceSnapshot {
+  id                    String                  @id
+  createdAt             DateTime                @map("created_at")
+  targetSystem          String                  @map("target_system")
+  overallState          EvidenceState           @map("overall_state")
+  summary               String
+  contradictions        Json
+  legacyPayload         String?                 @map("snapshot_json")
+  rawEvidence           RawEvidence[]
+  signals               EvidenceSignal[]
+  incidents             EvidenceIncident[]
+  trialLinks            TrialEvidenceSnapshot[]
+  diagnosisResults      DiagnosisResult[]
+  recoveryDecisions     RecoveryDecision[]
+  actionResultsBefore   ActionExecutionResult[] @relation("BeforeEvidence")
+  actionResultsAfter    ActionExecutionResult[] @relation("AfterEvidence")
+
+  @@index([createdAt])
+  @@index([overallState])
+  @@map("evidence_snapshots")
+}
+
+model EvidenceSignal {
+  id          String                   @id
+  snapshotId  String                   @map("snapshot_id")
+  source      RawEvidenceSource
+  code        EvidenceSignalCode
+  name        String
+  status      EvidenceSignalStatus
+  value       Json
+  description String
+  method      EvidenceDerivationMethod
+  position    Int
+  snapshot    EvidenceSnapshot         @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@unique([snapshotId, position])
+  @@index([snapshotId, code])
+  @@map("evidence_signals")
+}
+
+model EvidenceIncident {
+  id           String           @id
+  snapshotId   String           @map("snapshot_id")
+  incidentCode IncidentCode     @map("incident_code")
+  position     Int
+  snapshot     EvidenceSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@unique([snapshotId, position])
+  @@map("evidence_incidents")
+}

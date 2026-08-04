@@ -1,22 +1,10 @@
 import type { EvidenceSnapshot } from "@/modules/evidence";
 
-import type { DiagnosisResult, RecoveryPlan } from "./recovery.schema";
+import type { RecoveryDecision } from "./recovery.schema";
 
 export type RecoveryMode = "baseline" | "agent";
 
-export type RecoveryDecisionStatus = "no_action" | "action_selected" | "escalate";
-
-export type RecoveryDecision = {
-  id: string;
-  mode: RecoveryMode;
-  snapshotId: string;
-  decidedAt: string;
-  status: RecoveryDecisionStatus;
-  reason: string;
-  diagnosisResult: DiagnosisResult;
-  recoveryPlan: RecoveryPlan;
-  escalationReason?: string;
-};
+export type RecoveryDecisionStatus = RecoveryDecision["status"];
 
 export type RecoveryStrategyContext = {
   actionAttemptCounts: Record<string, number>;
@@ -31,3 +19,5 @@ export interface RecoveryStrategy {
     context: RecoveryStrategyContext,
   ): Promise<RecoveryDecision>;
 }
+
+export type { RecoveryDecision };

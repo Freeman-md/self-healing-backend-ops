@@ -6,7 +6,7 @@ import { config } from "@/config";
 import { OpenAIService } from "@/infrastructure/openai";
 import { evidenceSnapshotSchema } from "@/modules/evidence";
 import { actionOutcomeEvaluationSchema } from "./action.schema";
-import { SafetyService } from "@/modules/safety";
+import { SafetyService, type SafetyRule } from "@/modules/safety";
 import type {
   Action,
   ActionExecutionResult,
@@ -14,6 +14,7 @@ import type {
 
 import { ActionRepository } from "./action.repository";
 import { ActionFactory } from "./action.factory";
+import { ActionHandlerRegistry } from "./action.handler-registry";
 
 type ActionExecutionContext = {
   trialRecordId: string;
@@ -30,17 +31,20 @@ export class ActionService {
     private readonly actionFactory = new ActionFactory(),
     private readonly openaiService?: OpenAIService,
     private readonly dockerActionsEnabled = config.actions.dockerEnabled,
+    private readonly handlerRegistry = new ActionHandlerRegistry(),
   ) {}
 
-  listActions(): Action[] {
+  async listActions(): Promise<Action[]> {
     return this.actionRepository.listActions();
   }
 
-  findActionById(actionId: string): Action | null {
+  async findActionById(actionId: string): Promise<Action | null> {
     return this.actionRepository.findActionById(actionId);
   }
 
-  saveActionExecutionResult(result: ActionExecutionResult): ActionExecutionResult {
+  async saveActionExecutionResult(
+    result: ActionExecutionResult,
+  ): Promise<ActionExecutionResult> {
     return this.actionRepository.saveActionExecutionResult(result);
   }
 
@@ -50,11 +54,31 @@ export class ActionService {
     context: ActionExecutionContext,
   ): Promise<ActionExecutionResult> {
     const startedAt = new Date().toISOString();
-    const safetyRules = action.safetyRuleIds.flatMap((ruleId) => {
-      const rule = this.actionRepository.findSafetyRuleById(ruleId);
+    let safetyRules: SafetyRule[];
 
-      return rule ? [rule] : [];
-    });
+    try {
+      safetyRules = (
+        await Promise.all(
+          action.safetyRuleIds.map((ruleId) =>
+            this.actionRepository.findSafetyRuleById(ruleId),
+          ),
+        )
+      ).filter((rule) => rule !== null);
+    } catch (error) {
+      return this.actionFactory.createBlockedActionExecutionResult({
+        actionId: action.id,
+        trialRecordId: context.trialRecordId,
+        startedAt,
+        completedAt: new Date().toISOString(),
+        safetyCheckStatus: "failed",
+        failedSafetyRuleIds: action.safetyRuleIds,
+        beforeEvidenceSnapshotId: beforeEvidenceSnapshot.id,
+        error: `Persisted safety rule validation failed: ${
+          error instanceof Error ? error.message : "unknown validation error"
+        }`,
+        continuation: "escalated",
+      });
+    }
     const safetyDecision = this.safetyService.evaluateActionSafety(
       action,
       safetyRules,
@@ -94,7 +118,7 @@ export class ActionService {
       });
     }
 
-    const handler = this.actionRepository.findActionHandler(action.handlerKey);
+    const handler = this.handlerRegistry.findActionHandler(action.handlerKey);
 
     if (!handler) {
       return this.actionFactory.createFailedActionExecutionResult({
@@ -113,7 +137,8 @@ export class ActionService {
       const handlerResult = await handler({ action, trialRecordId: context.trialRecordId });
       await this.evidenceService.waitForManagedSystemHealth();
       const freshEvidenceSnapshot = await this.evidenceService.collectAndNormalize();
-      const savedSnapshot = this.evidenceService.saveEvidenceSnapshot(freshEvidenceSnapshot);
+      const savedSnapshot =
+        await this.evidenceService.saveEvidenceSnapshot(freshEvidenceSnapshot);
       const outcome = await this.evaluateActionOutcome({
         expectedOutcome: action.expectedOutcome,
         evidenceSnapshot: savedSnapshot,

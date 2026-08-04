@@ -1,14 +1,7 @@
-export type RiskLevel = "low" | "medium" | "high";
-
 import type { SafetyCheckStatus } from "@/modules/safety";
+import type { OutcomeCriterion } from "./action.schema";
 
-export type OutcomeCheckType =
-  | "health_status_is"
-  | "endpoint_returns_status"
-  | "metric_below_threshold"
-  | "container_running"
-  | "file_exists"
-  | "action_completed";
+export type RiskLevel = "low" | "medium" | "high";
 
 export type ActionExecutionStatus = "skipped" | "blocked" | "executed" | "failed";
 
@@ -18,13 +11,6 @@ export type ActionExecutionContinuation =
   | "blocked"
   | "escalated"
   | "failed";
-
-export type OutcomeCriterion = {
-  id: string;
-  description: string;
-  checkType: OutcomeCheckType;
-  params: Record<string, unknown>;
-};
 
 export type ExpectedOutcome = {
   description: string;

@@ -5,21 +5,34 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json --resolve-full-paths --resolve-full-extension .js",
+    "build": "npm run prisma:generate && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json --resolve-full-paths --resolve-full-extension .js",
     "dev": "tsx watch src/index.ts",
-    "test": "npm run test:unit && npm run test:integration",
+    "test": "npm run prisma:generate && npm run test:unit && npm run test:integration",
     "test:unit": "tsx --tsconfig tsconfig.test.json --test tests/unit/**/*.test.ts",
     "test:integration": "tsx --tsconfig tsconfig.test.json --test tests/integration/**/*.test.ts",
-    "test:types": "tsc -p tsconfig.test.json",
-    "start": "node dist/index.js"
+    "test:types": "npm run prisma:generate && tsc -p tsconfig.test.json",
+    "start": "node dist/index.js",
+    "start:container": "npm run prisma:migrate:deploy && npm run prisma:seed && npm run start",
+    "prisma:generate": "DATABASE_URL=${DATABASE_URL:-file:./data/managing-system.sqlite} prisma generate",
+    "prisma:validate": "DATABASE_URL=${DATABASE_URL:-file:./data/managing-system.sqlite} prisma validate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:seed": "prisma db seed",
+    "prisma:studio": "prisma studio",
+    "prisma:verify-seed": "tsx prisma/verify-seed.ts"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.13.2",
+    "prisma": "^7.9.0",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.20.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.9.0",
+    "@prisma/client": "^7.9.0",
+    "better-sqlite3": "^13.0.1",
     "dotenv": "^17.4.2",
     "openai": "^6.45.0",
     "zod": "^4.4.3"

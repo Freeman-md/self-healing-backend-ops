@@ -44,3 +44,4 @@ export type IncidentSeverity = z.infer<typeof incidentSeveritySchema>;
 export type DiagnosisMethod = z.infer<typeof diagnosisMethodSchema>;
 export type DiagnosisResult = z.infer<typeof diagnosisResultSchema>;
 export type RecoveryPlan = z.infer<typeof recoveryPlanSchema>;
+export type RecoveryDecision = z.infer<typeof recoveryDecisionSchema>;

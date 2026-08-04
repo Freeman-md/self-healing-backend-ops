@@ -20,7 +20,6 @@ export { RecoveryFactory } from "./recovery.factory";
 export { RecoveryRepository } from "./recovery.repository";
 export { RecoveryService } from "./recovery.service";
 export {
-  baselineRules,
   findMatchingBaselineRule,
   type BaselineRule,
   type BaselineRuleMatch,

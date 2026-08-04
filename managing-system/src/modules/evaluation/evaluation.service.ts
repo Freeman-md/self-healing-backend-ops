@@ -17,7 +17,9 @@ export class EvaluationService {
     return this.evaluationFactory.createEvaluationSummary(trialRecord, reason);
   }
 
-  saveEvaluationSummary(summary: EvaluationSummary): EvaluationSummary {
+  async saveEvaluationSummary(
+    summary: EvaluationSummary,
+  ): Promise<EvaluationSummary> {
     return this.evaluationRepository.saveEvaluationSummary(summary);
   }
 }

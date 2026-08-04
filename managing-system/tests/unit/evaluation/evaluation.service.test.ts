@@ -24,7 +24,7 @@ const trialRecord = {
   metrics: { actionCount: 0, blockedActionCount: 0, failedActionCount: 0 },
 } satisfies TrialRecord;
 
-test("EvaluationService delegates summary construction and persistence", () => {
+test("EvaluationService delegates summary construction and persistence", async () => {
   const summary = {
     id: "evaluation-test",
     trialRecordId: trialRecord.id,
@@ -55,6 +55,6 @@ test("EvaluationService delegates summary construction and persistence", () => {
 
   assert.equal(service.createEvaluationSummary(trialRecord, "resolved"), summary);
   assert.deepEqual(createdWith, { record: trialRecord, reason: "resolved" });
-  assert.equal(service.saveEvaluationSummary(summary), summary);
+  assert.equal(await service.saveEvaluationSummary(summary), summary);
   assert.equal(savedSummary, summary);
 });
