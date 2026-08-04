@@ -1,6 +1,7 @@
 model TrialRecord {
   id                    String                  @id
-  scenarioId            String                  @map("scenario_id")
+  triggerSource         TrialTriggerSource      @default(controlled) @map("trigger_source")
+  scenarioId            String?                 @map("scenario_id")
   recoveryMode          RecoveryMode            @map("recovery_mode")
   startedAt             DateTime                @map("started_at")
   completedAt           DateTime?               @map("completed_at")
@@ -22,6 +23,7 @@ model TrialRecord {
   evaluationSummary     EvaluationSummary?
 
   @@index([recoveryMode])
+  @@index([triggerSource])
   @@index([status])
   @@map("trial_records")
 }

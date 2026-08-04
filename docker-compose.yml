@@ -46,8 +46,6 @@ services:
       dockerfile: ../Dockerfile.managing-system
     container_name: managing-system-app
     depends_on:
-      managed-system:
-        condition: service_healthy
       managing-system-postgres:
         condition: service_healthy
     environment:
@@ -60,8 +58,11 @@ services:
       DOCKER_ACTION_TIMEOUT_MS: "10000"
       POST_ACTION_HEALTH_TIMEOUT_MS: "30000"
       POST_ACTION_HEALTH_POLL_INTERVAL_MS: "1000"
-      RECOVERY_MODE: ${RECOVERY_MODE:-}
-      SCENARIO_ID: ${SCENARIO_ID:-}
+      MANAGING_SYSTEM_RUN_MODE: monitor
+      RECOVERY_MODE: ${RECOVERY_MODE:?Set RECOVERY_MODE to baseline or agent}
+      MONITOR_INTERVAL_MS: ${MONITOR_INTERVAL_MS:-30000}
+      MONITOR_CONSECUTIVE_UNHEALTHY_THRESHOLD: ${MONITOR_CONSECUTIVE_UNHEALTHY_THRESHOLD:-2}
+      MONITOR_RECOVERY_COOLDOWN_MS: ${MONITOR_RECOVERY_COOLDOWN_MS:-60000}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 

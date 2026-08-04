@@ -65,4 +65,20 @@ test("stored historical trial records receive additive defaults", () => {
   assert.deepEqual(record.diagnosisResultIds, []);
   assert.deepEqual(record.recoveryPlanIds, []);
   assert.equal(record.metrics.failedActionCount, 0);
+  assert.equal(record.triggerSource, "controlled");
+});
+
+test("monitor-triggered trial records retain an explicit source without a scenario", () => {
+  const record = parseStoredTrialRecord({
+    id: "trial-monitor",
+    triggerSource: "monitor",
+    recoveryMode: "baseline",
+    startedAt: "2026-08-04T00:00:00.000Z",
+    status: "unresolved",
+    outcome: "unresolved_not_escalated",
+    metrics: { actionCount: 0, blockedActionCount: 0, failedActionCount: 0 },
+  });
+
+  assert.equal(record.triggerSource, "monitor");
+  assert.equal(record.scenarioId, undefined);
 });

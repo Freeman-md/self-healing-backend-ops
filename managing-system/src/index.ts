@@ -1,130 +1,129 @@
 import { config } from "@/config";
-import { PrismaService } from "@/infrastructure/database";
 import { DockerContainerRuntimeService } from "@/infrastructure/container-runtime";
-import { canUseOpenAI } from "@/infrastructure/openai";
+import { PrismaService } from "@/infrastructure/database";
 import {
   ActionHandlerRegistry,
   ActionRepository,
   ActionService,
 } from "@/modules/action";
-import { EvidenceService, EvidenceRepository } from "@/modules/evidence";
+import { EvidenceRepository, EvidenceService } from "@/modules/evidence";
 import {
   EvaluationFactory,
   EvaluationRepository,
   EvaluationService,
 } from "@/modules/evaluation";
+import { MonitoringService } from "@/modules/monitor";
 import {
   RecoveryAgentStrategy,
   RecoveryBaselineStrategy,
   RecoveryRepository,
   RecoveryService,
 } from "@/modules/recovery";
-import { TrialRepository, TrialService } from "@/modules/trial";
 import { SafetyService } from "@/modules/safety";
+import { TrialRepository, TrialService } from "@/modules/trial";
 
-async function main() {
+async function main(): Promise<void> {
   console.log({
     event: "managing_system_started",
     environment: config.environment,
     managedSystemBaseUrl: config.managedSystem.baseUrl,
+    runMode: config.trial.runMode,
   });
 
   const prismaService = new PrismaService();
+  let closed = false;
+  const closeResources = async (): Promise<void> => {
+    if (closed) return;
+    closed = true;
+    await prismaService.close();
+  };
+
   await prismaService.open();
-  const evidenceRepository = new EvidenceRepository(prismaService);
   const containerRuntime = new DockerContainerRuntimeService();
   const evidenceService = new EvidenceService(
-    evidenceRepository,
+    new EvidenceRepository(prismaService),
     undefined,
     undefined,
     undefined,
     containerRuntime,
   );
+  const recoveryService = new RecoveryService(new RecoveryRepository(prismaService));
+  const actionService = new ActionService(
+    new ActionRepository(prismaService),
+    new SafetyService(),
+    evidenceService,
+    undefined,
+    undefined,
+    config.actions.dockerEnabled,
+    new ActionHandlerRegistry(containerRuntime),
+  );
+  const trialService = new TrialService(
+    {
+      baseline: new RecoveryBaselineStrategy(recoveryService),
+      agent: new RecoveryAgentStrategy(undefined, actionService),
+    },
+    new TrialRepository(prismaService),
+    actionService,
+    evidenceService,
+    new EvaluationService(new EvaluationFactory(), new EvaluationRepository(prismaService)),
+    recoveryService,
+  );
 
   try {
-    const evidence = await evidenceService.collectRawEvidence();
-
-    console.log({
-      event: "raw_evidence_collected",
-      evidence: evidence.map((item) => ({
-        id: item.id,
-        source: item.source,
-        target: item.target,
-        status: item.status,
-        error: item.error,
-      })),
-    });
-
-    if (!canUseOpenAI()) {
-      console.log({
-        event: "evidence_normalization_skipped",
-        reason: "OPENAI_API_KEY is not configured",
-      });
-
+    if (config.trial.runMode === "controlled") {
+      await runControlledTrial(evidenceService, trialService);
       return;
     }
 
-    const snapshot = await evidenceService.normalizeEvidence(evidence);
-    const savedSnapshot = await evidenceService.saveEvidenceSnapshot(snapshot);
-
-    console.log({
-      event: "evidence_snapshot_created",
-      snapshot: savedSnapshot,
-    });
-
-    console.log({
-      event: "evidence_snapshot_persisted",
-      snapshotId: savedSnapshot.id,
-    });
-
-    const trialRepository = new TrialRepository(prismaService);
-    const recoveryRepository = new RecoveryRepository(prismaService);
-    const recoveryService = new RecoveryService(recoveryRepository);
-    const evaluationRepository = new EvaluationRepository(prismaService);
-    const actionRepository = new ActionRepository(prismaService);
-    const safetyService = new SafetyService();
-    const actionService = new ActionService(
-      actionRepository,
-      safetyService,
+    const recoveryMode = resolveMonitorRecoveryMode();
+    const monitoringService = new MonitoringService(
       evidenceService,
-      undefined,
-      undefined,
-      config.actions.dockerEnabled,
-      new ActionHandlerRegistry(containerRuntime),
-    );
-    const evaluationService = new EvaluationService(
-      new EvaluationFactory(),
-      evaluationRepository,
-    );
-    const trialService = new TrialService(
-      {
-        baseline: new RecoveryBaselineStrategy(recoveryService),
-        agent: new RecoveryAgentStrategy(undefined, actionService),
-      },
-      trialRepository,
-      actionService,
-      evidenceService,
-      evaluationService,
-      recoveryService,
-    );
-    const { recoveryMode, scenarioId } = resolveControlledTrialInput();
-    const trialRun = await trialService.runRecoveryTrial({
-      mode: recoveryMode,
-      scenarioId,
-      snapshot: savedSnapshot,
-    });
-    console.log({
-      event: "controlled_trial_recorded",
+      trialService,
       recoveryMode,
-      scenarioId,
-      decision: trialRun.recoveryDecision,
-      recoveryDecisions: trialRun.recoveryDecisions,
-      trialRecord: trialRun.trialRecord,
-      evaluationSummary: trialRun.evaluationSummary,
-    });
+      config.monitoring,
+    );
+    const stopMonitoring = (): void => monitoringService.stopMonitoring();
+    process.once("SIGINT", stopMonitoring);
+    process.once("SIGTERM", stopMonitoring);
+
+    try {
+      await monitoringService.startMonitoring();
+    } finally {
+      process.removeListener("SIGINT", stopMonitoring);
+      process.removeListener("SIGTERM", stopMonitoring);
+    }
   } finally {
-    await prismaService.close();
+    await closeResources();
   }
+}
+
+async function runControlledTrial(
+  evidenceService: EvidenceService,
+  trialService: TrialService,
+): Promise<void> {
+  const { recoveryMode, scenarioId } = resolveControlledTrialInput();
+  const snapshot = await evidenceService.collectAndNormalize();
+  const savedSnapshot = await evidenceService.saveEvidenceSnapshot(snapshot);
+  console.log({
+    event: "controlled_snapshot_observed",
+    snapshotId: savedSnapshot.id,
+    overallState: savedSnapshot.overallState,
+  });
+  const trialRun = await trialService.runRecoveryTrial({
+    mode: recoveryMode,
+    triggerSource: "controlled",
+    scenarioId,
+    snapshot: savedSnapshot,
+  });
+  console.log({
+    event: "controlled_trial_recorded",
+    recoveryMode,
+    scenarioId,
+    decision: trialRun.recoveryDecision,
+    recoveryDecisions: trialRun.recoveryDecisions,
+    trialRecord: trialRun.trialRecord,
+    evaluationSummary: trialRun.evaluationSummary,
+  });
 }
 
 function resolveControlledTrialInput(): {
@@ -132,9 +131,19 @@ function resolveControlledTrialInput(): {
   scenarioId: "S1" | "S2" | "S3";
 } {
   if (!config.trial.recoveryMode || !config.trial.scenarioId) {
-    throw new Error("RECOVERY_MODE and SCENARIO_ID are required for controlled trials.");
+    throw new Error("RECOVERY_MODE and SCENARIO_ID are required for controlled mode.");
   }
   return { recoveryMode: config.trial.recoveryMode, scenarioId: config.trial.scenarioId };
+}
+
+function resolveMonitorRecoveryMode(): "baseline" | "agent" {
+  if (!config.trial.recoveryMode) {
+    throw new Error("RECOVERY_MODE is required for monitor mode.");
+  }
+  if (config.trial.scenarioId) {
+    throw new Error("SCENARIO_ID is not allowed for monitor mode.");
+  }
+  return config.trial.recoveryMode;
 }
 
 main().catch((error: unknown) => {
@@ -142,6 +151,5 @@ main().catch((error: unknown) => {
     event: "managing_system_failed",
     error: error instanceof Error ? error.message : "unknown error",
   });
-
   process.exitCode = 1;
 });

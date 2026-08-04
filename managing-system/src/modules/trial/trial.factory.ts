@@ -25,7 +25,8 @@ export class TrialFactory {
   }
 
   createTrialRecord(input: {
-    scenarioId: string;
+    triggerSource?: "controlled" | "monitor";
+    scenarioId?: string;
     recoveryMode: RecoveryMode;
     startedAt: string;
     completedAt: string;
@@ -37,6 +38,7 @@ export class TrialFactory {
   }): TrialRecord {
     return {
       id: input.context.trialRecordId,
+      triggerSource: input.triggerSource ?? "controlled",
       scenarioId: input.scenarioId,
       recoveryMode: input.recoveryMode,
       startedAt: input.startedAt,

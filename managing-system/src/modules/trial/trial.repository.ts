@@ -47,6 +47,7 @@ export class TrialRepository {
       where: { id: trialRecordId },
       select: {
         id: true,
+        triggerSource: true,
         scenarioId: true,
         recoveryMode: true,
         startedAt: true,
@@ -98,6 +99,7 @@ export class TrialRepository {
 
     return parseStoredTrialRecord({
       id: row.id,
+      triggerSource: row.triggerSource,
       scenarioId: row.scenarioId,
       recoveryMode: row.recoveryMode,
       startedAt: row.startedAt.toISOString(),
@@ -147,6 +149,7 @@ export class TrialRepository {
 
 function toTrialData(trialRecord: TrialRecord) {
   return {
+    triggerSource: trialRecord.triggerSource ?? "controlled",
     scenarioId: trialRecord.scenarioId,
     recoveryMode: trialRecord.recoveryMode,
     startedAt: new Date(trialRecord.startedAt),

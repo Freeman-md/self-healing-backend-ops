@@ -79,7 +79,8 @@ export class TrialService {
 
   async runRecoveryTrial(input: {
     mode: RecoveryMode;
-    scenarioId: string;
+    scenarioId?: string;
+    triggerSource?: "controlled" | "monitor";
     snapshot: EvidenceSnapshot;
   }): Promise<{
     trialRecord: TrialRecord;
@@ -92,6 +93,7 @@ export class TrialService {
     const strategy = this.strategies[input.mode];
     await this.saveTrialRecord({
       id: context.trialRecordId,
+      triggerSource: input.triggerSource ?? "controlled",
       scenarioId: input.scenarioId,
       recoveryMode: input.mode,
       startedAt,
@@ -206,6 +208,7 @@ export class TrialService {
 
     const completedAt = new Date().toISOString();
     const trialRecord = this.trialFactory.createTrialRecord({
+      triggerSource: input.triggerSource ?? "controlled",
       scenarioId: input.scenarioId,
       recoveryMode: input.mode,
       startedAt,

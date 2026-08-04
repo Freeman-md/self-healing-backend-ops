@@ -29,8 +29,14 @@ export type AppConfig = {
     postActionHealthPollIntervalMs: number;
   };
   trial: {
+    runMode: "controlled" | "monitor";
     recoveryMode?: "baseline" | "agent";
     scenarioId?: "S1" | "S2" | "S3";
+  };
+  monitoring: {
+    intervalMs: number;
+    consecutiveUnhealthyThreshold: number;
+    cooldownMs: number;
   };
 };
 
@@ -57,7 +63,20 @@ export const config: AppConfig = {
     ),
   },
   trial: {
+    runMode: readOptionalEnum(
+      process.env.MANAGING_SYSTEM_RUN_MODE,
+      ["controlled", "monitor"],
+      "MANAGING_SYSTEM_RUN_MODE",
+    ) ?? "controlled",
     recoveryMode: readOptionalEnum(process.env.RECOVERY_MODE, ["baseline", "agent"], "RECOVERY_MODE"),
     scenarioId: readOptionalEnum(process.env.SCENARIO_ID, ["S1", "S2", "S3"], "SCENARIO_ID"),
+  },
+  monitoring: {
+    intervalMs: readNumber(process.env.MONITOR_INTERVAL_MS, 30000),
+    consecutiveUnhealthyThreshold: readNumber(
+      process.env.MONITOR_CONSECUTIVE_UNHEALTHY_THRESHOLD,
+      2,
+    ),
+    cooldownMs: readNumber(process.env.MONITOR_RECOVERY_COOLDOWN_MS, 60000),
   },
 };

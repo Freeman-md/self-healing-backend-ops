@@ -45,7 +45,8 @@ export type TrialMetrics = {
 
 export type TrialRecord = {
   id: string;
-  scenarioId: string;
+  triggerSource?: "controlled" | "monitor";
+  scenarioId?: string;
   recoveryMode: RecoveryMode;
   startedAt: string;
   completedAt?: string;
