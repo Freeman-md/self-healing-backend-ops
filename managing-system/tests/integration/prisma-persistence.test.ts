@@ -270,10 +270,9 @@ test("Prisma persistence keeps seeded policy order and normalized trial relation
     });
     const modes = await testDatabase.prisma.trialRecord.findMany({
       select: { recoveryMode: true },
-      orderBy: { recoveryMode: "asc" },
     });
     assert.deepEqual(
-      modes.map((entry) => entry.recoveryMode),
+      modes.map((entry) => entry.recoveryMode).sort(),
       ["agent", "baseline"],
     );
 

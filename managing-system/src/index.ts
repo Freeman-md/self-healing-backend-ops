@@ -75,7 +75,6 @@ async function main() {
     console.log({
       event: "evidence_snapshot_persisted",
       snapshotId: savedSnapshot.id,
-      databaseUrl: config.database.url,
     });
 
     const trialRepository = new TrialRepository(prismaService);

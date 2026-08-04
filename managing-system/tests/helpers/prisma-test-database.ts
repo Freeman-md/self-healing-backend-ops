@@ -1,9 +1,3 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-
-import Database from "better-sqlite3";
-
 import { PrismaService } from "@/infrastructure/database";
 import { seedCatalogue } from "../../prisma/catalogue";
 
@@ -11,25 +5,11 @@ export async function createPrismaTestDatabase(options?: {
   seed?: boolean;
 }): Promise<{
   prisma: PrismaService;
-  databaseUrl: string;
   close(): Promise<void>;
 }> {
-  const directory = mkdtempSync(join(tmpdir(), "managing-system-prisma-"));
-  const databasePath = join(directory, "test.sqlite");
-  const migrationPath = resolve(
-    "prisma/migrations/20260726120000_relational_persistence/migration.sql",
-  );
-  const database = new Database(databasePath);
-
-  try {
-    database.exec(readFileSync(migrationPath, "utf8"));
-  } finally {
-    database.close();
-  }
-
-  const databaseUrl = `file:${databasePath}`;
-  const prisma = new PrismaService(databaseUrl);
+  const prisma = new PrismaService();
   await prisma.open();
+  await clearDatabase(prisma);
 
   if (options?.seed) {
     await seedCatalogue(prisma);
@@ -37,10 +17,40 @@ export async function createPrismaTestDatabase(options?: {
 
   return {
     prisma,
-    databaseUrl,
     async close() {
-      await prisma.close();
-      rmSync(directory, { recursive: true, force: true });
+      try {
+        await clearDatabase(prisma);
+      } finally {
+        await prisma.close();
+      }
     },
   };
+}
+
+async function clearDatabase(prisma: PrismaService): Promise<void> {
+  await prisma.$executeRawUnsafe(`
+    TRUNCATE TABLE
+      "action_execution_results",
+      "evaluation_summaries",
+      "recovery_decisions",
+      "recovery_plan_actions",
+      "recovery_plans",
+      "diagnosis_results",
+      "trial_evidence_snapshots",
+      "trial_records",
+      "raw_evidence",
+      "evidence_signals",
+      "evidence_incidents",
+      "evidence_snapshots",
+      "baseline_rule_actions",
+      "baseline_rule_conditions",
+      "baseline_rule_condition_groups",
+      "baseline_rules",
+      "action_safety_rules",
+      "outcome_criteria",
+      "expected_outcomes",
+      "safety_rules",
+      "actions"
+    RESTART IDENTITY CASCADE
+  `);
 }

@@ -59,17 +59,20 @@ export function readOptionalEnum<T extends string>(
   throw new Error(`${name} must be one of: ${allowedValues.join(", ")}.`);
 }
 
-export function readSqliteDatabaseUrl(value: string | undefined): string {
+export function readPostgresDatabaseUrl(value: string | undefined): string {
   const databaseUrl = readOptionalString(value);
 
-  if (!databaseUrl || !databaseUrl.startsWith("file:")) {
-    throw new Error("DATABASE_URL must be a non-empty Prisma SQLite file: URL.");
+  if (!databaseUrl || !/^postgres(?:ql)?:\/\//i.test(databaseUrl)) {
+    throw new Error("DATABASE_URL must be a non-empty PostgreSQL connection URL.");
   }
 
-  const databasePath = databaseUrl.slice("file:".length);
-
-  if (!databasePath.trim()) {
-    throw new Error("DATABASE_URL must contain a SQLite database path.");
+  try {
+    const url = new URL(databaseUrl);
+    if (!url.hostname || !url.pathname || url.pathname === "/") {
+      throw new Error();
+    }
+  } catch {
+    throw new Error("DATABASE_URL must include a PostgreSQL host and database name.");
   }
 
   return databaseUrl;
