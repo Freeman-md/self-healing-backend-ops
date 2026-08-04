@@ -10,13 +10,14 @@ export function parseStoredTrialRecord(value: unknown): TrialRecord {
   }
 
   const record = value as Partial<TrialRecord>;
-  if (!record.id || !record.scenarioId || !record.recoveryMode || !record.startedAt || !record.status || !record.outcome || !record.metrics) {
+  if (!record.id || !record.recoveryMode || !record.startedAt || !record.status || !record.outcome || !record.metrics) {
     throw new Error("Stored trial record is missing required fields.");
   }
 
   return {
     ...record,
     id: record.id,
+    triggerSource: record.triggerSource ?? "controlled",
     scenarioId: record.scenarioId,
     recoveryMode: record.recoveryMode,
     startedAt: record.startedAt,

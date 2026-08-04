@@ -1,6 +1,6 @@
 import { config } from "@/config";
 import type { IContainerStateReader } from "@/infrastructure/container-runtime";
-import { OpenAIService } from "@/infrastructure/openai";
+import { canUseOpenAI, OpenAIService } from "@/infrastructure/openai";
 import {
   evidenceSnapshotSchema,
   type EvidenceSignal,
@@ -89,6 +89,12 @@ export class EvidenceService {
 
   async normalizeEvidence(rawEvidence: RawEvidence[]): Promise<EvidenceSnapshot> {
     const createdAt = new Date().toISOString();
+    const deterministicSignals = this.deriveDeterministicSignals(rawEvidence);
+
+    if (!this.openaiService && !canUseOpenAI()) {
+      return this.createDeterministicSnapshot(rawEvidence, deterministicSignals, createdAt);
+    }
+
     const openaiService = this.openaiService ?? new OpenAIService();
 
     const llmSnapshot = await openaiService.parseStructuredOutput({
@@ -101,7 +107,6 @@ export class EvidenceService {
       }),
     });
 
-    const deterministicSignals = this.deriveDeterministicSignals(rawEvidence);
     const deterministicCodes = new Set(deterministicSignals.map((signal) => signal.code));
     const supplementarySignals = llmSnapshot.signals.map((signal) => ({
       ...signal,
@@ -115,6 +120,32 @@ export class EvidenceService {
     });
 
     return snapshot;
+  }
+
+  private createDeterministicSnapshot(
+    rawEvidence: RawEvidence[],
+    signals: EvidenceSignal[],
+    createdAt: string,
+  ): EvidenceSnapshot {
+    const overallState = signals.some((signal) => signal.status === "critical")
+      ? "unhealthy"
+      : signals.some((signal) => signal.status === "unknown")
+        ? "unknown"
+        : signals.some((signal) => signal.status === "warning")
+          ? "degraded"
+          : "healthy";
+
+    return evidenceSnapshotSchema.parse({
+      id: `snapshot-${createdAt}`,
+      rawEvidenceIds: rawEvidence.map((item) => item.id),
+      createdAt,
+      targetSystem: "managed-system",
+      overallState,
+      summary: `Deterministic monitoring observation: ${overallState}.`,
+      signals,
+      suspectedIncidentTypes: this.deriveIncidentCodes(signals),
+      contradictions: [],
+    });
   }
 
   async collectAndNormalize(): Promise<EvidenceSnapshot> {
