@@ -1,6 +1,10 @@
 import { config } from "@/config";
 import type { IContainerStateReader } from "@/infrastructure/container-runtime";
-import { canUseOpenAI, OpenAIService } from "@/infrastructure/openai";
+import {
+  canUseOpenAI,
+  OpenAIService,
+  type OpenAITelemetryContext,
+} from "@/infrastructure/openai";
 import {
   evidenceSnapshotSchema,
   type EvidenceSignal,
@@ -87,7 +91,10 @@ export class EvidenceService {
     return collectedEvidence;
   }
 
-  async normalizeEvidence(rawEvidence: RawEvidence[]): Promise<EvidenceSnapshot> {
+  async normalizeEvidence(
+    rawEvidence: RawEvidence[],
+    telemetryContext?: Pick<OpenAITelemetryContext, "trialRecordId">,
+  ): Promise<EvidenceSnapshot> {
     const createdAt = new Date().toISOString();
     const deterministicSignals = this.deriveDeterministicSignals(rawEvidence);
 
@@ -105,6 +112,11 @@ export class EvidenceService {
         requiredSnapshotValues: { id: `snapshot-${createdAt}`, rawEvidenceIds: rawEvidence.map((item) => item.id), createdAt, targetSystem: "managed-system" },
         rawEvidence,
       }),
+      telemetryContext: {
+        operation: "evidence_normalization",
+        trialRecordId: telemetryContext?.trialRecordId,
+        evidenceSnapshotId: `snapshot-${createdAt}`,
+      },
     });
 
     const deterministicCodes = new Set(deterministicSignals.map((signal) => signal.code));
@@ -148,8 +160,13 @@ export class EvidenceService {
     });
   }
 
-  async collectAndNormalize(): Promise<EvidenceSnapshot> {
-    return this.normalizeEvidence(await this.collectRawEvidence());
+  async collectAndNormalize(
+    telemetryContext?: Pick<OpenAITelemetryContext, "trialRecordId">,
+  ): Promise<EvidenceSnapshot> {
+    return this.normalizeEvidence(
+      await this.collectRawEvidence(),
+      telemetryContext,
+    );
   }
 
   async waitForManagedSystemHealth(): Promise<ManagedSystemHealthWaitResult> {

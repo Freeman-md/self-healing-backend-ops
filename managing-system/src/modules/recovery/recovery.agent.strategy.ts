@@ -20,15 +20,19 @@ export class RecoveryAgentStrategy implements RecoveryStrategy {
 
   async decide(
     evidenceSnapshot: EvidenceSnapshot,
-    _context: RecoveryStrategyContext,
+    context: RecoveryStrategyContext,
   ): Promise<RecoveryDecision> {
     const recoveryAgentService = this.recoveryAgentService ?? new RecoveryAgentService();
-    const diagnosisResult = await recoveryAgentService.diagnoseEvidence(evidenceSnapshot);
+    const diagnosisResult = await recoveryAgentService.diagnoseEvidence(
+      evidenceSnapshot,
+      { trialRecordId: context.trialRecordId },
+    );
     const availableActions = await this.actionService.listActions();
     const recoveryPlan = await recoveryAgentService.createRecoveryPlan({
       evidenceSnapshot,
       diagnosisResult,
       availableActions,
+      trialRecordId: context.trialRecordId,
     });
     const plannedActionIds = [
       ...recoveryPlan.proposedActionIds,

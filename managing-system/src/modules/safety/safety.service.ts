@@ -1,5 +1,8 @@
 import type { Action } from "@/modules/action";
-import type { EvidenceSnapshot } from "@/modules/evidence";
+import {
+  getDeterministicEvidenceState,
+  type EvidenceSnapshot,
+} from "@/modules/evidence";
 
 import type {
   SafetyDecision,
@@ -83,14 +86,17 @@ export class SafetyService {
         const allowedStates = Array.isArray(rule.params.allowedStates)
           ? rule.params.allowedStates.filter((item): item is string => typeof item === "string")
           : [];
-        const passed = allowedStates.includes(context.evidenceSnapshot.overallState);
+        const evidenceState = getDeterministicEvidenceState(
+          context.evidenceSnapshot,
+        );
+        const passed = allowedStates.includes(evidenceState);
 
         return {
           ruleId: rule.id,
           status: passed ? "passed" : "failed",
           reason: passed
             ? "Evidence state is allowed for the selected action."
-            : `Evidence state ${context.evidenceSnapshot.overallState} is not allowed for the selected action.`,
+            : `Deterministic evidence state ${evidenceState} is not allowed for the selected action.`,
           onFail: rule.onFail,
         };
       }

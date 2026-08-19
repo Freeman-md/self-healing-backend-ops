@@ -1,0 +1,49 @@
+model ExperimentBatch {
+  id                   String                @id
+  name                 String
+  status               ExperimentBatchStatus
+  sourceRevision       String                @map("source_revision")
+  measurementVersion   String                @map("measurement_version")
+  configuration        Json
+  requestedRepetitions Int                   @map("requested_repetitions")
+  runOrderSeed         String                @map("run_order_seed")
+  createdAt            DateTime              @map("created_at")
+  completedAt          DateTime?             @map("completed_at")
+  runs                 ExperimentRun[]
+
+  @@index([status])
+  @@map("experiment_batches")
+}
+
+model ExperimentRun {
+  id                       String              @id
+  batchId                  String              @map("batch_id")
+  faultProfile             FaultProfileCode    @map("fault_profile")
+  recoveryMode             RecoveryMode        @map("recovery_mode")
+  repetition               Int
+  status                   ExperimentRunStatus
+  activeLockKey            String?             @unique @map("active_lock_key")
+  startedAt                DateTime             @map("started_at")
+  faultInjectedAt          DateTime?            @map("fault_injected_at")
+  completedAt              DateTime?            @map("completed_at")
+  trialRecordId            String?              @unique @map("trial_record_id")
+  valid                    Boolean?
+  exclusionReason          String?              @map("exclusion_reason")
+  runtimeResolved          Boolean?             @map("runtime_resolved")
+  oracleSucceeded          Boolean?             @map("oracle_succeeded")
+  oracleCheckedAt          DateTime?            @map("oracle_checked_at")
+  oracleDetails            Json?                @map("oracle_details")
+  stabilityWindowMs        Int                  @map("stability_window_ms")
+  diagnosisCorrect         Boolean?             @map("diagnosis_correct")
+  actionSequenceCorrect    Boolean?             @map("action_sequence_correct")
+  unnecessaryActionCount   Int?                 @map("unnecessary_action_count")
+  faultToDetectionMs       Int?                 @map("fault_to_detection_ms")
+  timeToHealMs             Int?                 @map("time_to_heal_ms")
+  timeToTerminationMs      Int?                 @map("time_to_termination_ms")
+  batch                    ExperimentBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  trial                    TrialRecord?         @relation(fields: [trialRecordId], references: [id], onDelete: SetNull)
+
+  @@unique([batchId, faultProfile, recoveryMode, repetition])
+  @@index([batchId, status])
+  @@map("experiment_runs")
+}

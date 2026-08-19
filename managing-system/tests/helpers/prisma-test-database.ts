@@ -30,6 +30,10 @@ export async function createPrismaTestDatabase(options?: {
 async function clearDatabase(prisma: PrismaService): Promise<void> {
   await prisma.$executeRawUnsafe(`
     TRUNCATE TABLE
+      "experiment_runs",
+      "experiment_batches",
+      "model_invocations",
+      "recovery_measurements",
       "action_execution_results",
       "evaluation_summaries",
       "recovery_decisions",

@@ -136,12 +136,15 @@ export class ActionService {
     try {
       const handlerResult = await handler({ action, trialRecordId: context.trialRecordId });
       await this.evidenceService.waitForManagedSystemHealth();
-      const freshEvidenceSnapshot = await this.evidenceService.collectAndNormalize();
+      const freshEvidenceSnapshot = await this.evidenceService.collectAndNormalize({
+        trialRecordId: context.trialRecordId,
+      });
       const savedSnapshot =
         await this.evidenceService.saveEvidenceSnapshot(freshEvidenceSnapshot);
       const outcome = await this.evaluateActionOutcome({
         expectedOutcome: action.expectedOutcome,
         evidenceSnapshot: savedSnapshot,
+        trialRecordId: context.trialRecordId,
       });
 
       return this.actionFactory.createSuccessfulActionExecutionResult({
@@ -172,7 +175,7 @@ export class ActionService {
     }
   }
 
-  async evaluateActionOutcome(input: { expectedOutcome: Action["expectedOutcome"]; evidenceSnapshot: EvidenceSnapshot }) {
+  async evaluateActionOutcome(input: { expectedOutcome: Action["expectedOutcome"]; evidenceSnapshot: EvidenceSnapshot; trialRecordId?: string }) {
     const parsedSnapshot = evidenceSnapshotSchema.parse(input.evidenceSnapshot);
     const openaiService = this.openaiService ?? new OpenAIService();
 
@@ -190,6 +193,11 @@ export class ActionService {
         expectedOutcome: input.expectedOutcome,
         freshEvidenceSnapshot: parsedSnapshot,
       }),
+      telemetryContext: {
+        operation: "outcome_evaluation",
+        trialRecordId: input.trialRecordId,
+        evidenceSnapshotId: parsedSnapshot.id,
+      },
     });
   }
 }

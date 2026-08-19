@@ -16,6 +16,8 @@ import {
   type RecoveryMode,
   RecoveryService,
 } from "@/modules/recovery";
+import { getDeterministicEvidenceState } from "@/modules/evidence";
+import type { MeasurementService } from "@/modules/measurement";
 
 import { TrialFactory } from "./trial.factory";
 import { TrialRepository } from "./trial.repository";
@@ -60,6 +62,12 @@ type TrialRecoveryService = {
     trialRecordId: string,
   ): Awaitable<RecoveryDecision[]>;
 };
+type TrialMeasurementService = Pick<
+  MeasurementService,
+  | "startRecoveryMeasurement"
+  | "recordFirstActionStarted"
+  | "completeRecoveryMeasurement"
+>;
 
 export class TrialService {
   constructor(
@@ -71,6 +79,7 @@ export class TrialService {
     private readonly recoveryService: TrialRecoveryService,
     private readonly maxRecoverySteps = 3,
     private readonly trialFactory = new TrialFactory(),
+    private readonly measurementService?: TrialMeasurementService,
   ) {}
 
   async saveTrialRecord(trialRecord: TrialRecord): Promise<TrialRecord> {
@@ -82,6 +91,9 @@ export class TrialService {
     scenarioId?: string;
     triggerSource?: "controlled" | "monitor";
     snapshot: EvidenceSnapshot;
+    firstUnhealthyObservedAt?: string;
+    firstUnhealthyEvidenceSnapshotId?: string;
+    recoveryTriggeredAt?: string;
   }): Promise<{
     trialRecord: TrialRecord;
     evaluationSummary: EvaluationSummary;
@@ -114,6 +126,13 @@ export class TrialService {
         blockedActionCount: 0,
         failedActionCount: 0,
       },
+    });
+    await this.measurementService?.startRecoveryMeasurement({
+      trialRecordId: context.trialRecordId,
+      firstUnhealthyObservedAt: input.firstUnhealthyObservedAt,
+      firstUnhealthyEvidenceSnapshotId:
+        input.firstUnhealthyEvidenceSnapshotId,
+      recoveryTriggeredAt: input.recoveryTriggeredAt ?? startedAt,
     });
     let currentSnapshot = input.snapshot;
     let recoveryDecision = await strategy.decide(currentSnapshot, context);
@@ -165,6 +184,10 @@ export class TrialService {
         });
 
         executedSteps += 1;
+        await this.measurementService?.recordFirstActionStarted(
+          context.trialRecordId,
+          result.startedAt,
+        );
         recordActionResultInTrialContext(context, action.id, result);
         await this.actionService.saveActionExecutionResult(result);
         currentSnapshot = await this.findAfterSnapshot(result, currentSnapshot);
@@ -225,6 +248,15 @@ export class TrialService {
     );
     await this.saveTrialRecord(trialRecord);
     await this.evaluationService.saveEvaluationSummary(evaluationSummary);
+    await this.measurementService?.completeRecoveryMeasurement({
+      trialRecordId: context.trialRecordId,
+      completedAt,
+      recoveryVerifiedAt:
+        getDeterministicEvidenceState(currentSnapshot) === "healthy"
+          ? currentSnapshot.createdAt
+          : undefined,
+      decisionCount: context.recoveryDecisionIds.length,
+    });
     const recoveryDecisions =
       await this.recoveryService.findRecoveryDecisionHistory(
         context.trialRecordId,

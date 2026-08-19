@@ -21,6 +21,9 @@ model TrialRecord {
   recoveryPlans         RecoveryPlan[]
   actionExecutionResults ActionExecutionResult[]
   evaluationSummary     EvaluationSummary?
+  recoveryMeasurement  RecoveryMeasurement?
+  experimentRun         ExperimentRun?
+  modelInvocations      ModelInvocation[]
 
   @@index([recoveryMode])
   @@index([triggerSource])

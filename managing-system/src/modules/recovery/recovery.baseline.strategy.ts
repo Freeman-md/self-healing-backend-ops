@@ -1,4 +1,7 @@
-import type { EvidenceSnapshot } from "@/modules/evidence";
+import {
+  getDeterministicEvidenceState,
+  type EvidenceSnapshot,
+} from "@/modules/evidence";
 import type {
   RecoveryDecision,
   RecoveryStrategy,
@@ -30,7 +33,8 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
     snapshot: EvidenceSnapshot,
     context: RecoveryStrategyContext,
   ): Promise<RecoveryDecision> {
-    if (snapshot.overallState === "healthy") {
+    const deterministicState = getDeterministicEvidenceState(snapshot);
+    if (deterministicState === "healthy") {
       const diagnosisResult = this.buildDiagnosis(snapshot, {
         incidentType: "no_incident",
         severity: "low",
@@ -70,7 +74,7 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
     const escalationReason = "No deterministic baseline action is available for the current evidence.";
     const diagnosisResult = this.buildDiagnosis(snapshot, {
       incidentType: snapshot.suspectedIncidentTypes[0] ?? "unclassified_incident",
-      severity: snapshot.overallState === "unhealthy" ? "high" : "medium",
+      severity: deterministicState === "unhealthy" ? "high" : "medium",
       sourceIds: [],
       supportingSignals: snapshot.signals
         .filter((signal) => signal.status !== "normal")

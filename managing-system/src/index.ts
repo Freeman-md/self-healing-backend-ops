@@ -1,6 +1,7 @@
 import { config } from "@/config";
 import { DockerContainerRuntimeService } from "@/infrastructure/container-runtime";
 import { PrismaService } from "@/infrastructure/database";
+import { OpenAIService } from "@/infrastructure/openai";
 import {
   ActionHandlerRegistry,
   ActionRepository,
@@ -14,13 +15,18 @@ import {
 } from "@/modules/evaluation";
 import { MonitoringService } from "@/modules/monitor";
 import {
+  MeasurementRepository,
+  MeasurementService,
+} from "@/modules/measurement";
+import {
   RecoveryAgentStrategy,
+  RecoveryAgentService,
   RecoveryBaselineStrategy,
   RecoveryRepository,
   RecoveryService,
 } from "@/modules/recovery";
 import { SafetyService } from "@/modules/safety";
-import { TrialRepository, TrialService } from "@/modules/trial";
+import { TrialFactory, TrialRepository, TrialService } from "@/modules/trial";
 
 async function main(): Promise<void> {
   console.log({
@@ -40,9 +46,13 @@ async function main(): Promise<void> {
 
   await prismaService.open();
   const containerRuntime = new DockerContainerRuntimeService();
+  const measurementService = new MeasurementService(
+    new MeasurementRepository(prismaService),
+  );
+  const openaiService = new OpenAIService(undefined, measurementService);
   const evidenceService = new EvidenceService(
     new EvidenceRepository(prismaService),
-    undefined,
+    openaiService,
     undefined,
     undefined,
     containerRuntime,
@@ -53,20 +63,26 @@ async function main(): Promise<void> {
     new SafetyService(),
     evidenceService,
     undefined,
-    undefined,
+    openaiService,
     config.actions.dockerEnabled,
     new ActionHandlerRegistry(containerRuntime),
   );
   const trialService = new TrialService(
     {
       baseline: new RecoveryBaselineStrategy(recoveryService),
-      agent: new RecoveryAgentStrategy(undefined, actionService),
+      agent: new RecoveryAgentStrategy(
+        new RecoveryAgentService(openaiService),
+        actionService,
+      ),
     },
     new TrialRepository(prismaService),
     actionService,
     evidenceService,
     new EvaluationService(new EvaluationFactory(), new EvaluationRepository(prismaService)),
     recoveryService,
+    3,
+    new TrialFactory(),
+    measurementService,
   );
 
   try {

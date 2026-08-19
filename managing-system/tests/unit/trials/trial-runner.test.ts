@@ -66,7 +66,19 @@ function createSnapshot(
               method: "deterministic",
             },
           ]
-        : [],
+        : overallState === "healthy"
+          ? [
+              {
+                source: "health",
+                name: "managed_system_health",
+                code: "managed_system_health",
+                status: "normal",
+                value: true,
+                description: "Managed system health check passed.",
+                method: "deterministic",
+              },
+            ]
+          : [],
     suspectedIncidentTypes: incidentTypes,
     contradictions: [],
   };

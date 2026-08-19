@@ -29,6 +29,7 @@ model EvidenceSnapshot {
   recoveryDecisions     RecoveryDecision[]
   actionResultsBefore   ActionExecutionResult[] @relation("BeforeEvidence")
   actionResultsAfter    ActionExecutionResult[] @relation("AfterEvidence")
+  firstUnhealthyMeasurements RecoveryMeasurement[] @relation("FirstUnhealthyEvidence")
 
   @@index([createdAt])
   @@index([overallState])

@@ -5,6 +5,14 @@ import { MonitoringService } from "@/modules/monitor";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 
 function snapshot(id: string, overallState: EvidenceSnapshot["overallState"]): EvidenceSnapshot {
+  const status =
+    overallState === "healthy"
+      ? "normal"
+      : overallState === "unhealthy"
+        ? "critical"
+        : overallState === "degraded"
+          ? "warning"
+          : "unknown";
   return {
     id,
     rawEvidenceIds: [],
@@ -12,7 +20,17 @@ function snapshot(id: string, overallState: EvidenceSnapshot["overallState"]): E
     targetSystem: "managed-system",
     overallState,
     summary: overallState,
-    signals: [],
+    signals: [
+      {
+        source: "health",
+        name: "Managed-system health",
+        code: "managed_system_health",
+        status,
+        value: overallState,
+        description: "Deterministic test signal.",
+        method: "deterministic",
+      },
+    ],
     suspectedIncidentTypes: [],
     contradictions: [],
   };
@@ -62,6 +80,37 @@ test("monitor only triggers one recovery after sustained unhealthy evidence and 
   assert.equal(recoveryInputs.length, 1);
   assert.equal(recoveryInputs[0]?.triggerSource, "monitor");
   assert.equal(recoveryInputs[0]?.scenarioId, undefined);
+});
+
+test("monitor ignores descriptive overall state when deterministic evidence is healthy", async () => {
+  const descriptiveMismatch = snapshot("mismatch", "healthy");
+  descriptiveMismatch.overallState = "unhealthy";
+  let recoveryCount = 0;
+  let monitoringService: MonitoringService;
+
+  monitoringService = new MonitoringService(
+    {
+      collectAndNormalize: () => descriptiveMismatch,
+      saveEvidenceSnapshot: (savedSnapshot) => savedSnapshot,
+    },
+    {
+      async runRecoveryTrial() {
+        recoveryCount += 1;
+        return {} as never;
+      },
+    },
+    "baseline",
+    {
+      intervalMs: 1,
+      consecutiveUnhealthyThreshold: 1,
+      cooldownMs: 1,
+      sleep: async () => monitoringService.stopMonitoring(),
+      log: () => undefined,
+    },
+  );
+
+  await monitoringService.startMonitoring();
+  assert.equal(recoveryCount, 0);
 });
 
 test("stopping the monitor interrupts a pending interval wait", async () => {

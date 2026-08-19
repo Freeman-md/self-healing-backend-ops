@@ -7,6 +7,7 @@ export type RecoveryMode = "baseline" | "agent";
 export type RecoveryDecisionStatus = RecoveryDecision["status"];
 
 export type RecoveryStrategyContext = {
+  trialRecordId?: string;
   actionAttemptCounts: Record<string, number>;
   completedActionIds: string[];
 };

@@ -10,7 +10,7 @@
     "test": "npm run prisma:generate && npm run test:unit && npm run test:integration",
     "test:unit": "tsx --tsconfig tsconfig.test.json --test-concurrency=1 --test tests/unit/**/*.test.ts",
     "test:integration": "tsx --tsconfig tsconfig.test.json --test-concurrency=1 --test tests/integration/**/*.test.ts",
-    "test:types": "npm run prisma:generate && tsc -p tsconfig.test.json",
+    "test:types": "npm run prisma:generate && tsc -p tsconfig.test.json && tsc -p tsconfig.scripts.json",
     "start": "node dist/index.js",
     "start:container": "npm run prisma:migrate:deploy && npm run prisma:seed && npm run start",
     "prisma:generate": "prisma generate",
@@ -19,7 +19,9 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
-    "prisma:verify-seed": "tsx prisma/verify-seed.ts"
+    "prisma:verify-seed": "tsx prisma/verify-seed.ts",
+    "experiment:run": "tsx scripts/run-recovery-experiment.ts",
+    "experiment:export": "tsx scripts/export-recovery-experiment.ts"
   },
   "devDependencies": {
     "@types/pg": "^8.15.5",

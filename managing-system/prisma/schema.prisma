@@ -177,3 +177,36 @@ enum ActionEffectiveness {
   ineffective
   unknown
 }
+
+enum ModelInvocationOperation {
+  evidence_normalization
+  diagnosis
+  recovery_planning
+  outcome_evaluation
+}
+
+enum ModelInvocationStatus {
+  succeeded
+  failed
+}
+
+enum ExperimentBatchStatus {
+  active
+  completed
+  failed
+}
+
+enum ExperimentRunStatus {
+  prepared
+  fault_injected
+  trial_linked
+  completed
+  invalid
+  failed
+}
+
+enum FaultProfileCode {
+  managed_system_application_stopped
+  managed_system_postgres_stopped
+  managed_system_application_and_postgres_stopped
+}
