@@ -1,10 +1,11 @@
-import type { FaultProfileCode } from "./experiment.types";
+import type { FaultProfileCode, IncidentCode } from "@/generated/prisma/client";
+import type { ContainerRuntimeTarget } from "@/infrastructure/container-runtime";
 
 export type FaultProfileDefinition = {
   code: FaultProfileCode;
-  expectedIncidentCodes: string[];
+  expectedIncidentCodes: IncidentCode[];
   expectedActionIds: string[];
-  stoppedTargets: Array<"managed-system" | "postgres">;
+  stoppedTargets: ContainerRuntimeTarget[];
 };
 
 export const faultProfiles: Record<FaultProfileCode, FaultProfileDefinition> = {
@@ -30,4 +31,8 @@ export const faultProfiles: Record<FaultProfileCode, FaultProfileDefinition> = {
 
 export function findFaultProfile(code: FaultProfileCode): FaultProfileDefinition {
   return faultProfiles[code];
+}
+
+export function isFaultProfileCode(code: string): code is FaultProfileCode {
+  return Object.hasOwn(faultProfiles, code);
 }

@@ -38,22 +38,22 @@ export class ExperimentService {
       id: `experiment-batch-${randomUUID()}`,
       ...input,
       measurementVersion: RECOVERY_MEASUREMENT_VERSION,
-      createdAt: new Date(this.now()).toISOString(),
+      createdAt: new Date(this.now()),
     });
   }
 
   async createFrozenConfiguration(
     input: Omit<ExperimentConfiguration, "baselineRuleVersions" | "actionCatalogueFingerprint">,
   ): Promise<ExperimentConfiguration> {
-    const provenance = await this.repository.readExperimentProvenance();
+    const configurationInputs = await this.repository.getActiveExperimentConfigurationInputs();
 
     return {
       ...input,
       baselineRuleVersions: Object.fromEntries(
-        provenance.baselineRules.map((rule) => [rule.id, rule.version]),
+        configurationInputs.baselineRules.map((rule) => [rule.id, rule.version]),
       ),
       actionCatalogueFingerprint: createHash("sha256")
-        .update(JSON.stringify(provenance.actionCatalogue))
+        .update(JSON.stringify(configurationInputs.actionCatalogue))
         .digest("hex"),
     };
   }
@@ -68,12 +68,12 @@ export class ExperimentService {
     return this.repository.createExperimentRun({
       id: `experiment-run-${randomUUID()}`,
       ...input,
-      startedAt: new Date(this.now()).toISOString(),
+      startedAt: new Date(this.now()),
     });
   }
 
   markFaultInjected(runId: string): Promise<ExperimentRun> {
-    return this.repository.markFaultInjected(runId, new Date(this.now()).toISOString());
+    return this.repository.markFaultInjected(runId, new Date(this.now()));
   }
 
   async waitForAndLinkMonitorTrial(run: ExperimentRun): Promise<ExperimentTrialCandidate> {
@@ -111,7 +111,7 @@ export class ExperimentService {
       await this.repository.invalidateExperimentRun(
         run.id,
         reason,
-        new Date(this.now()).toISOString(),
+        new Date(this.now()),
       );
       throw new Error(reason);
     }
@@ -133,7 +133,7 @@ export class ExperimentService {
     const profile = findFaultProfile(input.run.faultProfile);
 
     const diagnosisCorrect = input.trial.diagnosisIncidentCodes.some((code) =>
-      profile.expectedIncidentCodes.includes(code),
+      profile.expectedIncidentCodes.some((expectedCode) => expectedCode === code),
     );
 
     const actionSequenceCorrect = arraysEqual(input.trial.actionIds, profile.expectedActionIds);
@@ -142,7 +142,7 @@ export class ExperimentService {
       (actionId) => !profile.expectedActionIds.includes(actionId),
     ).length;
 
-    const faultInjectedMs = new Date(input.run.faultInjectedAt).getTime();
+    const faultInjectedMs = input.run.faultInjectedAt.getTime();
 
     const firstUnhealthyMs = input.trial.measurement?.firstUnhealthyObservedAt
       ? new Date(input.trial.measurement.firstUnhealthyObservedAt).getTime()
@@ -154,7 +154,7 @@ export class ExperimentService {
 
     return this.repository.completeExperimentRun({
       runId: input.run.id,
-      completedAt: new Date(this.now()).toISOString(),
+      completedAt: new Date(this.now()),
       runtimeResolved: input.trial.status === "resolved",
       oracle: input.oracle,
       diagnosisCorrect,
@@ -176,7 +176,7 @@ export class ExperimentService {
     return this.repository.completeExperimentBatch(
       batchId,
       status,
-      new Date(this.now()).toISOString(),
+      new Date(this.now()),
     );
   }
 
@@ -184,7 +184,7 @@ export class ExperimentService {
     return this.repository.invalidateExperimentRun(
       runId,
       reason,
-      new Date(this.now()).toISOString(),
+      new Date(this.now()),
     );
   }
 

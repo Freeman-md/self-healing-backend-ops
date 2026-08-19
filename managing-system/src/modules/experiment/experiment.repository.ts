@@ -1,13 +1,15 @@
-import { Prisma } from "@/generated/prisma/client";
+import {
+  Prisma,
+  type ExperimentBatch,
+  type ExperimentBatchStatus,
+  type ExperimentRun,
+  type FaultProfileCode,
+} from "@/generated/prisma/client";
 import { PrismaService } from "@/infrastructure/database";
 import type {
-  ExperimentBatch,
   ExperimentConfiguration,
-  ExperimentRun,
   ExperimentRunRecord,
   ExperimentTrialCandidate,
-  ExperimentProvenance,
-  FaultProfileCode,
   RecoveryOracleResult,
 } from "./experiment.types";
 import type { RecoveryMode } from "@/modules/recovery";
@@ -23,9 +25,9 @@ export class ExperimentRepository {
     configuration: ExperimentConfiguration;
     requestedRepetitions: number;
     runOrderSeed: string;
-    createdAt: string;
+    createdAt: Date;
   }): Promise<ExperimentBatch> {
-    const row = await this.prisma.experimentBatch.create({
+    return this.prisma.experimentBatch.create({
       data: {
         id: input.id,
         name: input.name,
@@ -35,14 +37,12 @@ export class ExperimentRepository {
         configuration: input.configuration as Prisma.InputJsonValue,
         requestedRepetitions: input.requestedRepetitions,
         runOrderSeed: input.runOrderSeed,
-        createdAt: new Date(input.createdAt),
+        createdAt: input.createdAt,
       },
     });
-
-    return toBatch(row);
   }
 
-  async readExperimentProvenance(): Promise<ExperimentProvenance> {
+  async getActiveExperimentConfigurationInputs() {
     const [actionCatalogue, baselineRules] = await Promise.all([
       this.prisma.action.findMany({
         where: { active: true },
@@ -101,23 +101,19 @@ export class ExperimentRepository {
 
   async completeExperimentBatch(
     batchId: string,
-    status: "completed" | "failed",
-    completedAt: string,
+    status: ExperimentBatchStatus,
+    completedAt: Date,
   ): Promise<ExperimentBatch> {
-    return toBatch(
-      await this.prisma.experimentBatch.update({
-        where: { id: batchId },
-        data: { status, completedAt: new Date(completedAt) },
-      }),
-    );
+    return this.prisma.experimentBatch.update({
+      where: { id: batchId },
+      data: { status, completedAt },
+    });
   }
 
   async findExperimentBatch(batchId: string): Promise<ExperimentBatch | null> {
-    const row = await this.prisma.experimentBatch.findUnique({
+    return this.prisma.experimentBatch.findUnique({
       where: { id: batchId },
     });
-
-    return row ? toBatch(row) : null;
   }
 
   async createExperimentRun(input: {
@@ -126,11 +122,11 @@ export class ExperimentRepository {
     faultProfile: FaultProfileCode;
     recoveryMode: RecoveryMode;
     repetition: number;
-    startedAt: string;
+    startedAt: Date;
     stabilityWindowMs: number;
   }): Promise<ExperimentRun> {
     try {
-      const row = await this.prisma.experimentRun.create({
+      return await this.prisma.experimentRun.create({
         data: {
           id: input.id,
           batchId: input.batchId,
@@ -139,12 +135,10 @@ export class ExperimentRepository {
           repetition: input.repetition,
           status: "prepared",
           activeLockKey: "global",
-          startedAt: new Date(input.startedAt),
+          startedAt: input.startedAt,
           stabilityWindowMs: input.stabilityWindowMs,
         },
       });
-
-      return toRun(row);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new Error("Another controlled experiment run is already active.");
@@ -154,27 +148,25 @@ export class ExperimentRepository {
     }
   }
 
-  async markFaultInjected(runId: string, faultInjectedAt: string): Promise<ExperimentRun> {
-    return toRun(
-      await this.prisma.experimentRun.update({
-        where: { id: runId },
-        data: {
-          status: "fault_injected",
-          faultInjectedAt: new Date(faultInjectedAt),
-        },
-      }),
-    );
+  async markFaultInjected(runId: string, faultInjectedAt: Date): Promise<ExperimentRun> {
+    return this.prisma.experimentRun.update({
+      where: { id: runId },
+      data: {
+        status: "fault_injected",
+        faultInjectedAt,
+      },
+    });
   }
 
   async findCompletedMonitorTrials(input: {
     recoveryMode: RecoveryMode;
-    startedAfter: string;
+    startedAfter: Date;
   }): Promise<ExperimentTrialCandidate[]> {
     const rows = await this.prisma.trialRecord.findMany({
       where: {
         triggerSource: "monitor",
         recoveryMode: input.recoveryMode,
-        startedAt: { gte: new Date(input.startedAfter) },
+        startedAt: { gte: input.startedAfter },
         completedAt: { not: null },
         experimentRun: null,
       },
@@ -247,12 +239,12 @@ export class ExperimentRepository {
       return linkedRun;
     });
 
-    return toRun(row);
+    return row;
   }
 
   async completeExperimentRun(input: {
     runId: string;
-    completedAt: string;
+    completedAt: Date;
     runtimeResolved: boolean;
     oracle: RecoveryOracleResult;
     diagnosisCorrect: boolean;
@@ -262,46 +254,42 @@ export class ExperimentRepository {
     timeToHealMs: number | null;
     timeToTerminationMs: number;
   }): Promise<ExperimentRun> {
-    return toRun(
-      await this.prisma.experimentRun.update({
-        where: { id: input.runId },
-        data: {
-          status: "completed",
-          activeLockKey: null,
-          completedAt: new Date(input.completedAt),
-          valid: true,
-          runtimeResolved: input.runtimeResolved,
-          oracleSucceeded: input.oracle.succeeded,
-          oracleCheckedAt: new Date(input.oracle.checkedAt),
-          oracleDetails: input.oracle.details as Prisma.InputJsonValue,
-          diagnosisCorrect: input.diagnosisCorrect,
-          actionSequenceCorrect: input.actionSequenceCorrect,
-          unnecessaryActionCount: input.unnecessaryActionCount,
-          faultToDetectionMs: input.faultToDetectionMs,
-          timeToHealMs: input.timeToHealMs,
-          timeToTerminationMs: input.timeToTerminationMs,
-        },
-      }),
-    );
+    return this.prisma.experimentRun.update({
+      where: { id: input.runId },
+      data: {
+        status: "completed",
+        activeLockKey: null,
+        completedAt: input.completedAt,
+        valid: true,
+        runtimeResolved: input.runtimeResolved,
+        oracleSucceeded: input.oracle.succeeded,
+        oracleCheckedAt: new Date(input.oracle.checkedAt),
+        oracleDetails: input.oracle.details as Prisma.InputJsonValue,
+        diagnosisCorrect: input.diagnosisCorrect,
+        actionSequenceCorrect: input.actionSequenceCorrect,
+        unnecessaryActionCount: input.unnecessaryActionCount,
+        faultToDetectionMs: input.faultToDetectionMs,
+        timeToHealMs: input.timeToHealMs,
+        timeToTerminationMs: input.timeToTerminationMs,
+      },
+    });
   }
 
   async invalidateExperimentRun(
     runId: string,
     reason: string,
-    completedAt: string,
+    completedAt: Date,
   ): Promise<ExperimentRun> {
-    return toRun(
-      await this.prisma.experimentRun.update({
-        where: { id: runId },
-        data: {
-          status: "invalid",
-          activeLockKey: null,
-          valid: false,
-          exclusionReason: reason,
-          completedAt: new Date(completedAt),
-        },
-      }),
-    );
+    return this.prisma.experimentRun.update({
+      where: { id: runId },
+      data: {
+        status: "invalid",
+        activeLockKey: null,
+        valid: false,
+        exclusionReason: reason,
+        completedAt,
+      },
+    });
   }
 
   async listExperimentRunRecords(batchId: string): Promise<ExperimentRunRecord[]> {
@@ -324,7 +312,7 @@ export class ExperimentRepository {
     });
 
     return rows.map((row) => ({
-      ...toRun(row),
+      ...row,
       trial: row.trial
         ? {
             status: row.trial.status,
@@ -357,63 +345,4 @@ export class ExperimentRepository {
         : null,
     }));
   }
-}
-
-type StoredBatch = {
-  id: string;
-  name: string;
-  status: ExperimentBatch["status"];
-  sourceRevision: string;
-  measurementVersion: string;
-  configuration: unknown;
-  requestedRepetitions: number;
-  runOrderSeed: string;
-  createdAt: Date;
-  completedAt: Date | null;
-};
-
-type StoredRun = {
-  id: string;
-  batchId: string;
-  faultProfile: ExperimentRun["faultProfile"];
-  recoveryMode: ExperimentRun["recoveryMode"];
-  repetition: number;
-  status: ExperimentRun["status"];
-  startedAt: Date;
-  faultInjectedAt: Date | null;
-  completedAt: Date | null;
-  trialRecordId: string | null;
-  valid: boolean | null;
-  exclusionReason: string | null;
-  runtimeResolved: boolean | null;
-  oracleSucceeded: boolean | null;
-  oracleCheckedAt: Date | null;
-  oracleDetails: unknown;
-  stabilityWindowMs: number;
-  diagnosisCorrect: boolean | null;
-  actionSequenceCorrect: boolean | null;
-  unnecessaryActionCount: number | null;
-  faultToDetectionMs: number | null;
-  timeToHealMs: number | null;
-  timeToTerminationMs: number | null;
-};
-
-function toBatch(row: StoredBatch): ExperimentBatch {
-  return {
-    ...row,
-    configuration: row.configuration as ExperimentConfiguration,
-    createdAt: row.createdAt.toISOString(),
-    completedAt: row.completedAt?.toISOString() ?? null,
-  };
-}
-
-function toRun(row: StoredRun): ExperimentRun {
-  return {
-    ...row,
-    startedAt: row.startedAt.toISOString(),
-    faultInjectedAt: row.faultInjectedAt?.toISOString() ?? null,
-    completedAt: row.completedAt?.toISOString() ?? null,
-    oracleCheckedAt: row.oracleCheckedAt?.toISOString() ?? null,
-    oracleDetails: row.oracleDetails as Record<string, unknown> | null,
-  };
 }
