@@ -7,7 +7,7 @@ import { workOrdersCreatedTotal } from "@/observability/metrics/metrics";
 export class WorkOrderService {
   constructor(private readonly repository: IWorkOrderRepository) {}
 
-  createWorkOrder = async(input: CreateWorkOrderInput) => {
+  createWorkOrder = async (input: CreateWorkOrderInput) => {
     const workOrder = await this.repository.create(input);
 
     workOrdersCreatedTotal.inc();
@@ -18,14 +18,14 @@ export class WorkOrderService {
       assignee: workOrder.assignee,
     });
 
-    return workOrder
-  }
+    return workOrder;
+  };
 
-  listWorkOrders = async() => {
+  listWorkOrders = async () => {
     return await this.repository.findAll();
-  }
+  };
 
-  getWorkOrder = async(id: string) => {
+  getWorkOrder = async (id: string) => {
     const workOrder = await this.repository.findById(id);
 
     if (!workOrder) {
@@ -33,9 +33,9 @@ export class WorkOrderService {
     }
 
     return workOrder;
-  }
+  };
 
-  updateWorkOrder = async(id: string, input: UpdateWorkOrderInput) => {
+  updateWorkOrder = async (id: string, input: UpdateWorkOrderInput) => {
     const workOrder = await this.repository.update(id, input);
 
     if (!workOrder) {
@@ -50,9 +50,9 @@ export class WorkOrderService {
     });
 
     return workOrder;
-  }
+  };
 
-  deleteWorkOrder = async(id: string) => {
+  deleteWorkOrder = async (id: string) => {
     const deleted = await this.repository.delete(id);
 
     if (!deleted) {
@@ -64,5 +64,5 @@ export class WorkOrderService {
     });
 
     return deleted;
-  }
+  };
 }

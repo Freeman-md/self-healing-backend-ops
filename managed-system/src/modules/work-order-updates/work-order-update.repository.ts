@@ -6,9 +6,7 @@ import type {
 } from "./work-order-update.model";
 import { IWorkOrderUpdateRepository } from "./work-order-update.repository.interface";
 
-export class WorkOrderUpdateRepository
-  implements IWorkOrderUpdateRepository
-{
+export class WorkOrderUpdateRepository implements IWorkOrderUpdateRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async create(data: CreateWorkOrderUpdateInput): Promise<WorkOrderUpdate> {
@@ -44,20 +42,14 @@ export class WorkOrderUpdateRepository
     });
   }
 
-  async update(
-    id: string,
-    data: UpdateWorkOrderUpdateInput,
-  ): Promise<WorkOrderUpdate | null> {
+  async update(id: string, data: UpdateWorkOrderUpdateInput): Promise<WorkOrderUpdate | null> {
     try {
       return await this.prisma.workOrderUpdate.update({
         where: { id },
         data,
       });
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2025"
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
         return null;
       }
 

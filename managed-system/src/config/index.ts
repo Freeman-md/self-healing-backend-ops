@@ -1,9 +1,4 @@
-import {
-  readBoolean,
-  readInteger,
-  readLogLevel,
-  readString,
-} from "@/config/helpers";
+import { readBoolean, readInteger, readLogLevel, readString } from "@/config/helpers";
 import type {
   DatabaseConfig,
   ObservabilityConfig,
@@ -11,9 +6,7 @@ import type {
   ServerConfig,
 } from "@/types/config";
 
-export function buildDatabaseConnectionUrl(
-  databaseConfig: DatabaseConfig,
-): string {
+export function buildDatabaseConnectionUrl(databaseConfig: DatabaseConfig): string {
   if (databaseConfig.connectionUrl) {
     return databaseConfig.connectionUrl;
   }

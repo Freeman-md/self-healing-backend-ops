@@ -5,6 +5,4 @@ export const metricsRoutes = Router();
 
 const metricsController = new MetricsController();
 
-metricsRoutes.get("/", (request, response) =>
-  metricsController.getMetrics(request, response),
-);
+metricsRoutes.get("/", (request, response) => metricsController.getMetrics(request, response));

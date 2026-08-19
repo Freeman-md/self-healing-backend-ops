@@ -2,14 +2,8 @@ import type { LogLevel } from "@/types/config";
 
 const LOG_LEVELS: LogLevel[] = ["error", "warn", "info", "debug"];
 
-export function readString(
-  value: string | undefined | null,
-  fallback: string,
-): string;
-export function readString(
-  value: string | undefined | null,
-  fallback: null,
-): string | null;
+export function readString(value: string | undefined | null, fallback: string): string;
+export function readString(value: string | undefined | null, fallback: null): string | null;
 export function readString(
   value: string | undefined | null,
   fallback: string | null,
@@ -39,10 +33,7 @@ export function readInteger(
   return parsed;
 }
 
-export function readBoolean(
-  value: string | undefined | null,
-  fallback: boolean,
-): boolean {
+export function readBoolean(value: string | undefined | null, fallback: boolean): boolean {
   if (value === undefined || value === null || value === "") {
     return fallback;
   }

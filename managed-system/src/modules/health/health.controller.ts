@@ -7,6 +7,7 @@ export class HealthController {
 
   getHealth = async (_request: Request, response: Response) => {
     const health = await this.healthService.getHealth();
+
     const statusCode = health.status === "healthy" ? 200 : 503;
 
     return response.status(statusCode).json(health);
