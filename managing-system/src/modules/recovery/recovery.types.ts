@@ -15,10 +15,7 @@ export type RecoveryStrategyContext = {
 export interface RecoveryStrategy {
   readonly mode: RecoveryMode;
 
-  decide(
-    snapshot: EvidenceSnapshot,
-    context: RecoveryStrategyContext,
-  ): Promise<RecoveryDecision>;
+  decide(snapshot: EvidenceSnapshot, context: RecoveryStrategyContext): Promise<RecoveryDecision>;
 }
 
 export type { RecoveryDecision };

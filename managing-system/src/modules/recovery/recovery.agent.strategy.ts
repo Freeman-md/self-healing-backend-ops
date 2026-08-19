@@ -1,10 +1,6 @@
 import { ActionService } from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
-import type {
-  RecoveryDecision,
-  RecoveryStrategy,
-  RecoveryStrategyContext,
-} from "./recovery.types";
+import type { RecoveryDecision, RecoveryStrategy, RecoveryStrategyContext } from "./recovery.types";
 
 import { RecoveryAgentService } from "./recovery.agent.service";
 import { RecoveryFactory } from "./recovery.factory";
@@ -23,31 +19,33 @@ export class RecoveryAgentStrategy implements RecoveryStrategy {
     context: RecoveryStrategyContext,
   ): Promise<RecoveryDecision> {
     const recoveryAgentService = this.recoveryAgentService ?? new RecoveryAgentService();
-    const diagnosisResult = await recoveryAgentService.diagnoseEvidence(
-      evidenceSnapshot,
-      { trialRecordId: context.trialRecordId },
-    );
+
+    const diagnosisResult = await recoveryAgentService.diagnoseEvidence(evidenceSnapshot, {
+      trialRecordId: context.trialRecordId,
+    });
+
     const availableActions = await this.actionService.listActions();
+
     const recoveryPlan = await recoveryAgentService.createRecoveryPlan({
       evidenceSnapshot,
       diagnosisResult,
       availableActions,
       trialRecordId: context.trialRecordId,
     });
-    const plannedActionIds = [
-      ...recoveryPlan.proposedActionIds,
-      ...recoveryPlan.fallbackActionIds,
-    ];
+
+    const plannedActionIds = [...recoveryPlan.proposedActionIds, ...recoveryPlan.fallbackActionIds];
+
     const registeredActions = await Promise.all(
       plannedActionIds.map((actionId) => this.actionService.findActionById(actionId)),
     );
+
     const unregisteredActionIds = plannedActionIds.filter(
       (_actionId, position) => !registeredActions[position],
     );
+
     if (unregisteredActionIds.length > 0) {
       const escalationReason =
-        "Recovery planner proposed unregistered actions: " +
-        unregisteredActionIds.join(", ");
+        "Recovery planner proposed unregistered actions: " + unregisteredActionIds.join(", ");
 
       return this.recoveryFactory.createRecoveryDecision({
         mode: this.mode,

@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import {
-  readBoolean,
-  readNumber,
-  readPostgresDatabaseUrl,
-} from "@/config/helpers";
+import { readBoolean, readNumber, readPostgresDatabaseUrl } from "@/config/helpers";
 
 test("Docker execution configuration defaults safely and requires explicit values", () => {
   assert.equal(readBoolean(undefined, false), false);
@@ -27,8 +23,5 @@ test("PostgreSQL configuration requires a non-empty connection URL", () => {
     () => readPostgresDatabaseUrl("file:./data/test.sqlite"),
     /PostgreSQL connection URL/,
   );
-  assert.throws(
-    () => readPostgresDatabaseUrl("postgresql://localhost"),
-    /host and database name/,
-  );
+  assert.throws(() => readPostgresDatabaseUrl("postgresql://localhost"), /host and database name/);
 });

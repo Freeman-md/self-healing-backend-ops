@@ -63,12 +63,17 @@ export const config: AppConfig = {
     ),
   },
   trial: {
-    runMode: readOptionalEnum(
-      process.env.MANAGING_SYSTEM_RUN_MODE,
-      ["controlled", "monitor"],
-      "MANAGING_SYSTEM_RUN_MODE",
-    ) ?? "controlled",
-    recoveryMode: readOptionalEnum(process.env.RECOVERY_MODE, ["baseline", "agent"], "RECOVERY_MODE"),
+    runMode:
+      readOptionalEnum(
+        process.env.MANAGING_SYSTEM_RUN_MODE,
+        ["controlled", "monitor"],
+        "MANAGING_SYSTEM_RUN_MODE",
+      ) ?? "controlled",
+    recoveryMode: readOptionalEnum(
+      process.env.RECOVERY_MODE,
+      ["baseline", "agent"],
+      "RECOVERY_MODE",
+    ),
     scenarioId: readOptionalEnum(process.env.SCENARIO_ID, ["S1", "S2", "S3"], "SCENARIO_ID"),
   },
   monitoring: {

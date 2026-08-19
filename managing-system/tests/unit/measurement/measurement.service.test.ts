@@ -1,13 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  deriveDurations,
-  type RecoveryMeasurement,
-} from "@/modules/measurement";
+import { deriveDurations, type RecoveryMeasurement } from "@/modules/measurement";
 
-function measurement(
-  overrides: Partial<RecoveryMeasurement> = {},
-): RecoveryMeasurement {
+function measurement(overrides: Partial<RecoveryMeasurement> = {}): RecoveryMeasurement {
   return {
     trialRecordId: "trial-1",
     measurementVersion: "1.0.0",
@@ -28,6 +23,7 @@ function measurement(
 
 test("recovery durations use explicit timeline boundaries", () => {
   const result = deriveDurations(measurement());
+
   assert.equal(result.unhealthyConfirmationDelayMs, 5_000);
   assert.equal(result.timeToFirstActionMs, 3_000);
   assert.equal(result.recoveryLoopDurationMs, 15_000);
@@ -41,6 +37,7 @@ test("unavailable timeline boundaries remain null", () => {
       recoveryVerifiedAt: null,
     }),
   );
+
   assert.equal(result.unhealthyConfirmationDelayMs, null);
   assert.equal(result.recoveryLoopDurationMs, null);
   assert.equal(result.observedTimeToHealMs, null);

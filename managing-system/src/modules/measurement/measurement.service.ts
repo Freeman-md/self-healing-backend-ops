@@ -1,7 +1,4 @@
-import type {
-  IOpenAITelemetrySink,
-  OpenAIInvocationTelemetry,
-} from "@/infrastructure/openai";
+import type { IOpenAITelemetrySink, OpenAIInvocationTelemetry } from "@/infrastructure/openai";
 import { MeasurementRepository } from "./measurement.repository";
 import {
   RECOVERY_MEASUREMENT_VERSION,
@@ -13,9 +10,7 @@ import {
 export class MeasurementService implements IOpenAITelemetrySink {
   constructor(private readonly repository: MeasurementRepository) {}
 
-  startRecoveryMeasurement(
-    input: RecoveryMeasurementStart,
-  ): Promise<RecoveryMeasurement> {
+  startRecoveryMeasurement(input: RecoveryMeasurementStart): Promise<RecoveryMeasurement> {
     return this.repository.startRecoveryMeasurement({
       ...input,
       measurementVersion: RECOVERY_MEASUREMENT_VERSION,
@@ -27,6 +22,7 @@ export class MeasurementService implements IOpenAITelemetrySink {
     firstActionStartedAt: string,
   ): Promise<RecoveryMeasurement> {
     const measurement = await this.requireMeasurement(trialRecordId);
+
     if (measurement.firstActionStartedAt) {
       return measurement;
     }
@@ -40,6 +36,7 @@ export class MeasurementService implements IOpenAITelemetrySink {
     input: RecoveryMeasurementCompletion,
   ): Promise<RecoveryMeasurement> {
     const measurement = await this.requireMeasurement(input.trialRecordId);
+
     return this.repository.updateRecoveryMeasurement(
       deriveDurations({
         ...measurement,
@@ -50,30 +47,28 @@ export class MeasurementService implements IOpenAITelemetrySink {
     );
   }
 
-  recordOpenAIInvocation(
-    invocation: OpenAIInvocationTelemetry,
-  ): Promise<void> {
+  recordOpenAIInvocation(invocation: OpenAIInvocationTelemetry): Promise<void> {
     return this.repository.saveModelInvocation(invocation).then(() => undefined);
   }
 
-  private async requireMeasurement(
-    trialRecordId: string,
-  ): Promise<RecoveryMeasurement> {
-    const measurement =
-      await this.repository.findRecoveryMeasurement(trialRecordId);
+  private async requireMeasurement(trialRecordId: string): Promise<RecoveryMeasurement> {
+    const measurement = await this.repository.findRecoveryMeasurement(trialRecordId);
+
     if (!measurement) {
       throw new Error(`Recovery measurement ${trialRecordId} was not started.`);
     }
+
     return measurement;
   }
 }
 
-export function deriveDurations(
-  measurement: RecoveryMeasurement,
-): RecoveryMeasurement {
+export function deriveDurations(measurement: RecoveryMeasurement): RecoveryMeasurement {
   const triggerMs = timestamp(measurement.recoveryTriggeredAt);
+
   const firstUnhealthyMs = timestamp(measurement.firstUnhealthyObservedAt);
+
   const firstActionMs = timestamp(measurement.firstActionStartedAt);
+
   const verifiedMs = timestamp(measurement.recoveryVerifiedAt);
 
   return {
@@ -93,5 +88,6 @@ function difference(end: number | null, start: number | null): number | null {
   if (end === null || start === null) {
     return null;
   }
+
   return Math.max(0, end - start);
 }

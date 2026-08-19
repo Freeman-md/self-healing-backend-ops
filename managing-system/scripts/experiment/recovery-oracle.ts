@@ -11,10 +11,12 @@ export class RecoveryOracle {
 
   async verifyStableRecovery(stabilityWindowMs: number): Promise<RecoveryOracleResult> {
     const startedAt = Date.now();
+
     let lastDetails: Record<string, unknown> = {};
 
     while (Date.now() - startedAt <= stabilityWindowMs) {
       const observation = await this.observe();
+
       lastDetails = observation.details;
       if (!observation.healthy) {
         return {
@@ -27,6 +29,7 @@ export class RecoveryOracle {
           },
         };
       }
+
       await sleep(this.pollIntervalMs);
     }
 
@@ -43,12 +46,15 @@ export class RecoveryOracle {
 
   async waitForHealthy(timeoutMs: number): Promise<boolean> {
     const deadline = Date.now() + timeoutMs;
+
     while (Date.now() < deadline) {
       if ((await this.observe()).healthy) {
         return true;
       }
+
       await sleep(this.pollIntervalMs);
     }
+
     return false;
   }
 
@@ -56,13 +62,13 @@ export class RecoveryOracle {
     healthy: boolean;
     details: Record<string, unknown>;
   }> {
-    const [health, metrics, applicationContainer, postgresContainer] =
-      await Promise.all([
-        this.fetchHealth(),
-        this.fetchMetrics(),
-        this.containerStateReader.inspectTarget("managed-system"),
-        this.containerStateReader.inspectTarget("postgres"),
-      ]);
+    const [health, metrics, applicationContainer, postgresContainer] = await Promise.all([
+      this.fetchHealth(),
+      this.fetchMetrics(),
+      this.containerStateReader.inspectTarget("managed-system"),
+      this.containerStateReader.inspectTarget("postgres"),
+    ]);
+
     const healthy =
       health.reachable &&
       health.status === "healthy" &&
@@ -93,7 +99,9 @@ export class RecoveryOracle {
       const response = await fetch(`${this.baseUrl}/health`, {
         signal: AbortSignal.timeout(this.requestTimeoutMs),
       });
+
       const body: unknown = await response.json();
+
       return {
         reachable: response.ok,
         status: nestedString(body, "status"),
@@ -115,6 +123,7 @@ export class RecoveryOracle {
       const response = await fetch(`${this.baseUrl}/metrics`, {
         signal: AbortSignal.timeout(this.requestTimeoutMs),
       });
+
       return { reachable: response.ok };
     } catch {
       return { reachable: false };
@@ -124,12 +133,15 @@ export class RecoveryOracle {
 
 function nestedString(value: unknown, ...path: string[]): string | null {
   let current: unknown = value;
+
   for (const key of path) {
     if (typeof current !== "object" || current === null || !(key in current)) {
       return null;
     }
+
     current = (current as Record<string, unknown>)[key];
   }
+
   return typeof current === "string" ? current : null;
 }
 

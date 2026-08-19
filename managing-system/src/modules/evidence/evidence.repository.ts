@@ -24,9 +24,7 @@ export class EvidenceRepository {
     return parsed;
   }
 
-  async saveEvidenceSnapshot(
-    snapshot: EvidenceSnapshot,
-  ): Promise<EvidenceSnapshot> {
+  async saveEvidenceSnapshot(snapshot: EvidenceSnapshot): Promise<EvidenceSnapshot> {
     const parsed = evidenceSnapshotSchema.parse(snapshot);
 
     await this.prisma.$transaction(async (transaction) => {
@@ -88,9 +86,7 @@ export class EvidenceRepository {
       await transaction.rawEvidence.updateMany({
         where: {
           snapshotId: parsed.id,
-          ...(parsed.rawEvidenceIds.length > 0
-            ? { id: { notIn: parsed.rawEvidenceIds } }
-            : {}),
+          ...(parsed.rawEvidenceIds.length > 0 ? { id: { notIn: parsed.rawEvidenceIds } } : {}),
         },
         data: { snapshotId: null },
       });
@@ -103,9 +99,7 @@ export class EvidenceRepository {
     return parsed;
   }
 
-  async findEvidenceSnapshotById(
-    snapshotId: string,
-  ): Promise<EvidenceSnapshot | null> {
+  async findEvidenceSnapshotById(snapshotId: string): Promise<EvidenceSnapshot | null> {
     const row = await this.prisma.evidenceSnapshot.findUnique({
       where: { id: snapshotId },
       select: {
@@ -154,9 +148,7 @@ export class EvidenceRepository {
         source: fromPersistedSource(signal.source),
         value: signal.value,
       })),
-      suspectedIncidentTypes: row.incidents.map(
-        (incident) => incident.incidentCode,
-      ),
+      suspectedIncidentTypes: row.incidents.map((incident) => incident.incidentCode),
       contradictions: row.contradictions,
     });
   }

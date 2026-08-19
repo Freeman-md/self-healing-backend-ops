@@ -4,15 +4,15 @@ import type { FaultProfileCode } from "../../src/modules/experiment/experiment.t
 import { findFaultProfile } from "../../src/modules/experiment/experiment.profiles";
 
 const executeFile = promisify(execFile);
+
 const containerNames = {
   "managed-system": "managed-system-app",
   postgres: "managed-system-postgres",
 } as const;
 
-export async function injectFaultProfile(
-  profileCode: FaultProfileCode,
-): Promise<void> {
+export async function injectFaultProfile(profileCode: FaultProfileCode): Promise<void> {
   const profile = findFaultProfile(profileCode);
+
   for (const target of profile.stoppedTargets) {
     await executeFile("docker", ["stop", containerNames[target]], {
       timeout: 10_000,

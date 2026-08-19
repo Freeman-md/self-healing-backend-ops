@@ -11,9 +11,7 @@ export const persistedSafetyRuleSchema = z.discriminatedUnion("checkType", [
     ...safetyRuleBase,
     checkType: z.literal("evidence_state_matches"),
     params: z.strictObject({
-      allowedStates: z
-        .array(z.enum(["healthy", "degraded", "unhealthy", "unknown"]))
-        .min(1),
+      allowedStates: z.array(z.enum(["healthy", "degraded", "unhealthy", "unknown"])).min(1),
     }),
   }),
   z.object({

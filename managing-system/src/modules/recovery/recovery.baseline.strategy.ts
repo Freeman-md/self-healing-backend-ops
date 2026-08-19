@@ -1,19 +1,9 @@
-import {
-  getDeterministicEvidenceState,
-  type EvidenceSnapshot,
-} from "@/modules/evidence";
-import type {
-  RecoveryDecision,
-  RecoveryStrategy,
-  RecoveryStrategyContext,
-} from "./recovery.types";
+import { getDeterministicEvidenceState, type EvidenceSnapshot } from "@/modules/evidence";
+import type { RecoveryDecision, RecoveryStrategy, RecoveryStrategyContext } from "./recovery.types";
 import type { DiagnosisResult, RecoveryPlan } from "./recovery.schema";
 import { RecoveryFactory } from "./recovery.factory";
 
-import type {
-  BaselineRule,
-  BaselineRuleMatch,
-} from "./recovery.baseline.rules";
+import type { BaselineRule, BaselineRuleMatch } from "./recovery.baseline.rules";
 
 type BaselineRuleSource = {
   findMatchingBaselineRule(
@@ -34,6 +24,7 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
     context: RecoveryStrategyContext,
   ): Promise<RecoveryDecision> {
     const deterministicState = getDeterministicEvidenceState(snapshot);
+
     if (deterministicState === "healthy") {
       const diagnosisResult = this.buildDiagnosis(snapshot, {
         incidentType: "no_incident",
@@ -44,6 +35,7 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
           .map((signal) => signal.name),
         reasoningSummary: "The evidence snapshot reports a healthy managed system.",
       });
+
       const recoveryPlan = this.buildRecoveryPlan(diagnosisResult, {
         proposedActionIds: [],
         fallbackActionIds: [],
@@ -63,15 +55,30 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
     }
 
     const matched = await this.baselineRuleSource.findMatchingBaselineRule(snapshot);
+
     if (matched) {
-      const proposedActionIds = matched.rule.proposedActionIds.filter((actionId) => !this.wasAttempted(actionId, context));
-      const fallbackActionIds = matched.rule.fallbackActionIds.filter((actionId) => !this.wasAttempted(actionId, context));
+      const proposedActionIds = matched.rule.proposedActionIds.filter(
+        (actionId) => !this.wasAttempted(actionId, context),
+      );
+
+      const fallbackActionIds = matched.rule.fallbackActionIds.filter(
+        (actionId) => !this.wasAttempted(actionId, context),
+      );
+
       if (proposedActionIds.length > 0 || fallbackActionIds.length > 0) {
-        return this.buildMatchedDecision(snapshot, matched.rule, matched.match, proposedActionIds, fallbackActionIds);
+        return this.buildMatchedDecision(
+          snapshot,
+          matched.rule,
+          matched.match,
+          proposedActionIds,
+          fallbackActionIds,
+        );
       }
     }
 
-    const escalationReason = "No deterministic baseline action is available for the current evidence.";
+    const escalationReason =
+      "No deterministic baseline action is available for the current evidence.";
+
     const diagnosisResult = this.buildDiagnosis(snapshot, {
       incidentType: snapshot.suspectedIncidentTypes[0] ?? "unclassified_incident",
       severity: deterministicState === "unhealthy" ? "high" : "medium",
@@ -79,8 +86,10 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
       supportingSignals: snapshot.signals
         .filter((signal) => signal.status !== "normal")
         .map((signal) => signal.name),
-      reasoningSummary: "The evidence indicates an incident, but no configured baseline rule matched it.",
+      reasoningSummary:
+        "The evidence indicates an incident, but no configured baseline rule matched it.",
     });
+
     const recoveryPlan = this.buildRecoveryPlan(diagnosisResult, {
       proposedActionIds: [],
       fallbackActionIds: [],
@@ -114,6 +123,7 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
       supportingSignals: match.matchedSignalNames,
       reasoningSummary: match.reason,
     });
+
     const recoveryPlan = this.buildRecoveryPlan(diagnosisResult, {
       proposedActionIds,
       fallbackActionIds,
@@ -133,7 +143,10 @@ export class RecoveryBaselineStrategy implements RecoveryStrategy {
   }
 
   private wasAttempted(actionId: string, context: RecoveryStrategyContext): boolean {
-    return (context.actionAttemptCounts[actionId] ?? 0) > 0 || context.completedActionIds.includes(actionId);
+    return (
+      (context.actionAttemptCounts[actionId] ?? 0) > 0 ||
+      context.completedActionIds.includes(actionId)
+    );
   }
 
   private buildDiagnosis(

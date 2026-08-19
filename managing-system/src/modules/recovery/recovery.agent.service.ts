@@ -2,11 +2,7 @@ import { OpenAIService } from "@/infrastructure/openai";
 import type { OpenAITelemetryContext } from "@/infrastructure/openai";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 
-import {
-  diagnosisResultSchema,
-  recoveryPlanSchema,
-  type DiagnosisResult,
-} from "./recovery.schema";
+import { diagnosisResultSchema, recoveryPlanSchema, type DiagnosisResult } from "./recovery.schema";
 
 export class RecoveryAgentService {
   constructor(private readonly openaiService = new OpenAIService()) {}
@@ -16,6 +12,7 @@ export class RecoveryAgentService {
     telemetryContext?: Pick<OpenAITelemetryContext, "trialRecordId">,
   ): Promise<DiagnosisResult> {
     const createdAt = new Date().toISOString();
+
     const diagnosisId = `diagnosis-${createdAt}`;
 
     const diagnosisResult = await this.openaiService.parseStructuredOutput({
@@ -61,13 +58,32 @@ export class RecoveryAgentService {
     return this.diagnose(evidenceSnapshot, telemetryContext);
   }
 
-  async createRecoveryPlan(input: { evidenceSnapshot: EvidenceSnapshot; diagnosisResult: DiagnosisResult; availableActions: Array<{ id: string; name: string; description: string; riskLevel: string; expectedOutcome: unknown }>; trialRecordId?: string }) {
+  async createRecoveryPlan(input: {
+    evidenceSnapshot: EvidenceSnapshot;
+    diagnosisResult: DiagnosisResult;
+    availableActions: Array<{
+      id: string;
+      name: string;
+      description: string;
+      riskLevel: string;
+      expectedOutcome: unknown;
+    }>;
+    trialRecordId?: string;
+  }) {
     const createdAt = new Date().toISOString();
+
     return this.openaiService.parseStructuredOutput({
       schema: recoveryPlanSchema,
       schemaName: "recovery_plan",
       systemPrompt: "Create a bounded recovery plan using only the provided action IDs.",
-      userPrompt: JSON.stringify({ requiredRecoveryPlanValues: { id: `recovery-plan-${createdAt}`, diagnosisResultId: input.diagnosisResult.id, createdAt }, ...input }),
+      userPrompt: JSON.stringify({
+        requiredRecoveryPlanValues: {
+          id: `recovery-plan-${createdAt}`,
+          diagnosisResultId: input.diagnosisResult.id,
+          createdAt,
+        },
+        ...input,
+      }),
       telemetryContext: {
         operation: "recovery_planning",
         trialRecordId: input.trialRecordId,

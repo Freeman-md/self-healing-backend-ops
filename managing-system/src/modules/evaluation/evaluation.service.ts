@@ -10,16 +10,11 @@ export class EvaluationService {
     private readonly evaluationRepository: EvaluationRepository,
   ) {}
 
-  createEvaluationSummary(
-    trialRecord: TrialRecord,
-    reason: string,
-  ): EvaluationSummary {
+  createEvaluationSummary(trialRecord: TrialRecord, reason: string): EvaluationSummary {
     return this.evaluationFactory.createEvaluationSummary(trialRecord, reason);
   }
 
-  async saveEvaluationSummary(
-    summary: EvaluationSummary,
-  ): Promise<EvaluationSummary> {
+  async saveEvaluationSummary(summary: EvaluationSummary): Promise<EvaluationSummary> {
     return this.evaluationRepository.saveEvaluationSummary(summary);
   }
 }

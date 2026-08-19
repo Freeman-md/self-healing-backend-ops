@@ -1,14 +1,7 @@
 import type { Action } from "@/modules/action";
-import {
-  getDeterministicEvidenceState,
-  type EvidenceSnapshot,
-} from "@/modules/evidence";
+import { getDeterministicEvidenceState, type EvidenceSnapshot } from "@/modules/evidence";
 
-import type {
-  SafetyDecision,
-  SafetyRule,
-  SafetyRuleEvaluation,
-} from "./safety.types";
+import type { SafetyDecision, SafetyRule, SafetyRuleEvaluation } from "./safety.types";
 
 type SafetyContext = {
   evidenceSnapshot: EvidenceSnapshot;
@@ -86,9 +79,9 @@ export class SafetyService {
         const allowedStates = Array.isArray(rule.params.allowedStates)
           ? rule.params.allowedStates.filter((item): item is string => typeof item === "string")
           : [];
-        const evidenceState = getDeterministicEvidenceState(
-          context.evidenceSnapshot,
-        );
+
+        const evidenceState = getDeterministicEvidenceState(context.evidenceSnapshot);
+
         const passed = allowedStates.includes(evidenceState);
 
         return {
@@ -103,8 +96,12 @@ export class SafetyService {
 
       case "max_attempts_not_exceeded": {
         const maxAttempts =
-          typeof rule.params.maxAttempts === "number" ? rule.params.maxAttempts : Number.POSITIVE_INFINITY;
+          typeof rule.params.maxAttempts === "number"
+            ? rule.params.maxAttempts
+            : Number.POSITIVE_INFINITY;
+
         const currentAttempts = context.actionAttemptCounts?.[action.id] ?? 0;
+
         const passed = currentAttempts < maxAttempts;
 
         return {
@@ -133,6 +130,7 @@ export class SafetyService {
       case "previous_action_completed": {
         const requiredActionId =
           typeof rule.params.requiredActionId === "string" ? rule.params.requiredActionId : "";
+
         const passed = context.completedActionIds?.includes(requiredActionId) ?? false;
 
         return {
@@ -148,6 +146,7 @@ export class SafetyService {
       case "previous_action_not_run": {
         const blockedActionId =
           typeof rule.params.blockedActionId === "string" ? rule.params.blockedActionId : "";
+
         const passed = !(context.completedActionIds?.includes(blockedActionId) ?? false);
 
         return {

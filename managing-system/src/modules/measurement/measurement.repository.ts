@@ -17,53 +17,47 @@ export class MeasurementRepository {
         trialRecordId: input.trialRecordId,
         measurementVersion: input.measurementVersion,
         firstUnhealthyObservedAt: toDate(input.firstUnhealthyObservedAt),
-        firstUnhealthyEvidenceSnapshotId:
-          input.firstUnhealthyEvidenceSnapshotId ?? null,
+        firstUnhealthyEvidenceSnapshotId: input.firstUnhealthyEvidenceSnapshotId ?? null,
         recoveryTriggeredAt: new Date(input.recoveryTriggeredAt),
       },
       update: {
         measurementVersion: input.measurementVersion,
         firstUnhealthyObservedAt: toDate(input.firstUnhealthyObservedAt),
-        firstUnhealthyEvidenceSnapshotId:
-          input.firstUnhealthyEvidenceSnapshotId ?? null,
+        firstUnhealthyEvidenceSnapshotId: input.firstUnhealthyEvidenceSnapshotId ?? null,
         recoveryTriggeredAt: new Date(input.recoveryTriggeredAt),
       },
     });
+
     return toRecoveryMeasurement(row);
   }
 
-  async findRecoveryMeasurement(
-    trialRecordId: string,
-  ): Promise<RecoveryMeasurement | null> {
+  async findRecoveryMeasurement(trialRecordId: string): Promise<RecoveryMeasurement | null> {
     const row = await this.prisma.recoveryMeasurement.findUnique({
       where: { trialRecordId },
     });
+
     return row ? toRecoveryMeasurement(row) : null;
   }
 
-  async updateRecoveryMeasurement(
-    measurement: RecoveryMeasurement,
-  ): Promise<RecoveryMeasurement> {
+  async updateRecoveryMeasurement(measurement: RecoveryMeasurement): Promise<RecoveryMeasurement> {
     const row = await this.prisma.recoveryMeasurement.update({
       where: { trialRecordId: measurement.trialRecordId },
       data: {
         firstActionStartedAt: toDate(measurement.firstActionStartedAt),
         recoveryVerifiedAt: toDate(measurement.recoveryVerifiedAt),
         completedAt: toDate(measurement.completedAt),
-        unhealthyConfirmationDelayMs:
-          measurement.unhealthyConfirmationDelayMs,
+        unhealthyConfirmationDelayMs: measurement.unhealthyConfirmationDelayMs,
         timeToFirstActionMs: measurement.timeToFirstActionMs,
         recoveryLoopDurationMs: measurement.recoveryLoopDurationMs,
         observedTimeToHealMs: measurement.observedTimeToHealMs,
         decisionCount: measurement.decisionCount,
       },
     });
+
     return toRecoveryMeasurement(row);
   }
 
-  async saveModelInvocation(
-    invocation: ModelInvocationRecord,
-  ): Promise<ModelInvocationRecord> {
+  async saveModelInvocation(invocation: ModelInvocationRecord): Promise<ModelInvocationRecord> {
     await this.prisma.modelInvocation.create({
       data: {
         id: invocation.id,
@@ -83,6 +77,7 @@ export class MeasurementRepository {
         actionExecutionResultId: invocation.actionExecutionResultId ?? null,
       },
     });
+
     return invocation;
   }
 }
@@ -107,9 +102,7 @@ function toDate(value?: string | null): Date | null {
   return value ? new Date(value) : null;
 }
 
-function toRecoveryMeasurement(
-  row: StoredRecoveryMeasurement,
-): RecoveryMeasurement {
+function toRecoveryMeasurement(row: StoredRecoveryMeasurement): RecoveryMeasurement {
   return {
     trialRecordId: row.trialRecordId,
     measurementVersion: row.measurementVersion,

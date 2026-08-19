@@ -19,18 +19,15 @@ export class RecoveryService {
     return this.recoveryRepository.saveRecoveryDecisionHistory(input);
   }
 
-  async findRecoveryDecisionHistory(
-    trialRecordId: string,
-  ): Promise<RecoveryDecision[]> {
-    return this.recoveryRepository.findRecoveryDecisionsByTrialRecordId(
-      trialRecordId,
-    );
+  async findRecoveryDecisionHistory(trialRecordId: string): Promise<RecoveryDecision[]> {
+    return this.recoveryRepository.findRecoveryDecisionsByTrialRecordId(trialRecordId);
   }
 
   async findMatchingBaselineRule(
     snapshot: EvidenceSnapshot,
   ): Promise<{ rule: BaselineRule; match: BaselineRuleMatch } | null> {
     const rules = await this.recoveryRepository.listActiveBaselineRules();
+
     return findMatchingBaselineRule(snapshot, rules);
   }
 }

@@ -32,6 +32,7 @@ export class OpenAIService {
     telemetryContext?: OpenAITelemetryContext;
   }): Promise<z.infer<TSchema>> {
     const startedAtMs = this.now();
+
     const startedAt = new Date(startedAtMs).toISOString();
 
     try {
@@ -63,6 +64,7 @@ export class OpenAIService {
         status: "succeeded",
         usage: response.usage,
       });
+
       return response.output_parsed;
     } catch (error) {
       await this.emitTelemetry({
@@ -93,6 +95,7 @@ export class OpenAIService {
     }
 
     const completedAtMs = this.now();
+
     try {
       await this.telemetrySink.recordOpenAIInvocation({
         id: `model-invocation-${randomUUID()}`,

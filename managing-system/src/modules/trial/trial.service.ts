@@ -1,31 +1,13 @@
-import {
-  ActionService,
-  type Action,
-  type ActionExecutionResult,
-} from "@/modules/action";
-import {
-  EvaluationService,
-  type EvaluationSummary,
-} from "@/modules/evaluation";
-import {
-  EvidenceService,
-  type EvidenceSnapshot,
-} from "@/modules/evidence";
-import {
-  type RecoveryDecision,
-  type RecoveryMode,
-  RecoveryService,
-} from "@/modules/recovery";
+import { ActionService, type Action, type ActionExecutionResult } from "@/modules/action";
+import { EvaluationService, type EvaluationSummary } from "@/modules/evaluation";
+import { type EvidenceSnapshot } from "@/modules/evidence";
+import { type RecoveryDecision, type RecoveryMode } from "@/modules/recovery";
 import { getDeterministicEvidenceState } from "@/modules/evidence";
 import type { MeasurementService } from "@/modules/measurement";
 
 import { TrialFactory } from "./trial.factory";
 import { TrialRepository } from "./trial.repository";
-import type {
-  RecoveryStrategies,
-  TrialContext,
-  TrialRecord,
-} from "./trial.types";
+import type { RecoveryStrategies, TrialContext, TrialRecord } from "./trial.types";
 import {
   getOrderedRecoveryActionIds,
   recordActionResultInTrialContext,
@@ -37,20 +19,14 @@ type Awaitable<T> = T | Promise<T>;
 type TrialActionService = {
   executeAction: ActionService["executeAction"];
   findActionById(actionId: string): Awaitable<Action | null>;
-  saveActionExecutionResult(
-    result: ActionExecutionResult,
-  ): Awaitable<ActionExecutionResult>;
+  saveActionExecutionResult(result: ActionExecutionResult): Awaitable<ActionExecutionResult>;
 };
 type TrialEvidenceService = {
-  findEvidenceSnapshotById(
-    snapshotId: string,
-  ): Awaitable<EvidenceSnapshot | null>;
+  findEvidenceSnapshotById(snapshotId: string): Awaitable<EvidenceSnapshot | null>;
 };
 type TrialEvaluationService = {
   createEvaluationSummary: EvaluationService["createEvaluationSummary"];
-  saveEvaluationSummary(
-    summary: EvaluationSummary,
-  ): Awaitable<EvaluationSummary>;
+  saveEvaluationSummary(summary: EvaluationSummary): Awaitable<EvaluationSummary>;
 };
 type TrialRecoveryService = {
   recordRecoveryDecision(input: {
@@ -58,15 +34,11 @@ type TrialRecoveryService = {
     sequenceNumber: number;
     recoveryDecision: RecoveryDecision;
   }): Awaitable<RecoveryDecision>;
-  findRecoveryDecisionHistory(
-    trialRecordId: string,
-  ): Awaitable<RecoveryDecision[]>;
+  findRecoveryDecisionHistory(trialRecordId: string): Awaitable<RecoveryDecision[]>;
 };
 type TrialMeasurementService = Pick<
   MeasurementService,
-  | "startRecoveryMeasurement"
-  | "recordFirstActionStarted"
-  | "completeRecoveryMeasurement"
+  "startRecoveryMeasurement" | "recordFirstActionStarted" | "completeRecoveryMeasurement"
 >;
 
 export class TrialService {
@@ -101,8 +73,11 @@ export class TrialService {
     recoveryDecisions: RecoveryDecision[];
   }> {
     const startedAt = new Date().toISOString();
+
     const context = this.trialFactory.createTrialContext(input.snapshot);
+
     const strategy = this.strategies[input.mode];
+
     await this.saveTrialRecord({
       id: context.trialRecordId,
       triggerSource: input.triggerSource ?? "controlled",
@@ -130,23 +105,22 @@ export class TrialService {
     await this.measurementService?.startRecoveryMeasurement({
       trialRecordId: context.trialRecordId,
       firstUnhealthyObservedAt: input.firstUnhealthyObservedAt,
-      firstUnhealthyEvidenceSnapshotId:
-        input.firstUnhealthyEvidenceSnapshotId,
+      firstUnhealthyEvidenceSnapshotId: input.firstUnhealthyEvidenceSnapshotId,
       recoveryTriggeredAt: input.recoveryTriggeredAt ?? startedAt,
     });
     let currentSnapshot = input.snapshot;
+
     let recoveryDecision = await strategy.decide(currentSnapshot, context);
+
     await this.recordRecoveryDecision(context, recoveryDecision);
     let trialState = this.trialFactory.createTrialStateFromDecision(
       recoveryDecision,
       currentSnapshot,
     );
+
     let executedSteps = 0;
 
-    while (
-      recoveryDecision.status === "action_selected" &&
-      executedSteps < this.maxRecoverySteps
-    ) {
+    while (recoveryDecision.status === "action_selected" && executedSteps < this.maxRecoverySteps) {
       const plannedActionIds = getOrderedRecoveryActionIds(recoveryDecision);
 
       if (plannedActionIds.length === 0) {
@@ -230,6 +204,7 @@ export class TrialService {
     }
 
     const completedAt = new Date().toISOString();
+
     const trialRecord = this.trialFactory.createTrialRecord({
       triggerSource: input.triggerSource ?? "controlled",
       scenarioId: input.scenarioId,
@@ -242,10 +217,12 @@ export class TrialService {
       recoveryDecision,
       trialState,
     });
+
     const evaluationSummary = this.evaluationService.createEvaluationSummary(
       trialRecord,
       trialState.reason,
     );
+
     await this.saveTrialRecord(trialRecord);
     await this.evaluationService.saveEvaluationSummary(evaluationSummary);
     await this.measurementService?.completeRecoveryMeasurement({
@@ -257,10 +234,9 @@ export class TrialService {
           : undefined,
       decisionCount: context.recoveryDecisionIds.length,
     });
-    const recoveryDecisions =
-      await this.recoveryService.findRecoveryDecisionHistory(
-        context.trialRecordId,
-      );
+    const recoveryDecisions = await this.recoveryService.findRecoveryDecisionHistory(
+      context.trialRecordId,
+    );
 
     return {
       trialRecord,
@@ -279,9 +255,7 @@ export class TrialService {
     }
 
     return (
-      (await this.evidenceService.findEvidenceSnapshotById(
-        result.afterEvidenceSnapshotId,
-      )) ??
+      (await this.evidenceService.findEvidenceSnapshotById(result.afterEvidenceSnapshotId)) ??
       fallback
     );
   }
@@ -297,5 +271,4 @@ export class TrialService {
     });
     recordRecoveryDecisionInTrialContext(context, recoveryDecision);
   }
-
 }

@@ -1,4 +1,1 @@
-export type {
-  ActionEffectiveness,
-  EvaluationSummary,
-} from "./evaluation.schema";
+export type { ActionEffectiveness, EvaluationSummary } from "./evaluation.schema";

@@ -54,8 +54,15 @@ export function readOptionalEnum<T extends string>(
   name: string,
 ): T | undefined {
   const resolvedValue = readOptionalString(value);
-  if (!resolvedValue) return undefined;
-  if ((allowedValues as readonly string[]).includes(resolvedValue)) return resolvedValue as T;
+
+  if (!resolvedValue) {
+    return undefined;
+  }
+
+  if ((allowedValues as readonly string[]).includes(resolvedValue)) {
+    return resolvedValue as T;
+  }
+
   throw new Error(`${name} must be one of: ${allowedValues.join(", ")}.`);
 }
 
@@ -68,6 +75,7 @@ export function readPostgresDatabaseUrl(value: string | undefined): string {
 
   try {
     const url = new URL(databaseUrl);
+
     if (!url.hostname || !url.pathname || url.pathname === "/") {
       throw new Error();
     }

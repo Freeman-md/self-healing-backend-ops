@@ -32,6 +32,7 @@ function experimentRun(): ExperimentRun {
 
 test("post-run correlation rejects multiple monitor trials instead of guessing", async () => {
   let invalidReason = "";
+
   const candidate = {
     id: "trial-1",
     startedAt: "2026-08-17T10:00:02.000Z",
@@ -42,11 +43,13 @@ test("post-run correlation rejects multiple monitor trials instead of guessing",
     diagnosisIncidentCodes: [],
     actionIds: [],
   };
+
   const service = new ExperimentService(
     {
       findCompletedMonitorTrials: () => [candidate, { ...candidate, id: "trial-2" }],
       invalidateExperimentRun(_runId: string, reason: string) {
         invalidReason = reason;
+
         return experimentRun();
       },
     } as never,

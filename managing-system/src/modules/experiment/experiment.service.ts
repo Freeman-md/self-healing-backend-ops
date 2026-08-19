@@ -42,11 +42,11 @@ export class ExperimentService {
     });
   }
 
-  async createFrozenConfiguration(input: Omit<
-    ExperimentConfiguration,
-    "baselineRuleVersions" | "actionCatalogueFingerprint"
-  >): Promise<ExperimentConfiguration> {
+  async createFrozenConfiguration(
+    input: Omit<ExperimentConfiguration, "baselineRuleVersions" | "actionCatalogueFingerprint">,
+  ): Promise<ExperimentConfiguration> {
     const provenance = await this.repository.readExperimentProvenance();
+
     return {
       ...input,
       baselineRuleVersions: Object.fromEntries(
@@ -73,20 +73,16 @@ export class ExperimentService {
   }
 
   markFaultInjected(runId: string): Promise<ExperimentRun> {
-    return this.repository.markFaultInjected(
-      runId,
-      new Date(this.now()).toISOString(),
-    );
+    return this.repository.markFaultInjected(runId, new Date(this.now()).toISOString());
   }
 
-  async waitForAndLinkMonitorTrial(
-    run: ExperimentRun,
-  ): Promise<ExperimentTrialCandidate> {
+  async waitForAndLinkMonitorTrial(run: ExperimentRun): Promise<ExperimentTrialCandidate> {
     if (!run.faultInjectedAt) {
       throw new Error(`Experiment run ${run.id} has no fault injection time.`);
     }
 
     const deadline = this.now() + (this.options.trialWaitTimeoutMs ?? 180_000);
+
     let candidates: ExperimentTrialCandidate[] = [];
 
     while (this.now() < deadline) {
@@ -102,6 +98,7 @@ export class ExperimentService {
         });
         break;
       }
+
       await this.sleep(this.options.pollIntervalMs ?? 1_000);
     }
 
@@ -110,6 +107,7 @@ export class ExperimentService {
         candidates.length === 0
           ? "No completed monitor-triggered trial was found after fault injection."
           : `Expected one monitor-triggered trial but found ${candidates.length}.`;
+
       await this.repository.invalidateExperimentRun(
         run.id,
         reason,
@@ -119,6 +117,7 @@ export class ExperimentService {
     }
 
     await this.repository.linkExperimentRunToTrial(run.id, candidates[0].id);
+
     return candidates[0];
   }
 
@@ -132,21 +131,25 @@ export class ExperimentService {
     }
 
     const profile = findFaultProfile(input.run.faultProfile);
+
     const diagnosisCorrect = input.trial.diagnosisIncidentCodes.some((code) =>
       profile.expectedIncidentCodes.includes(code),
     );
-    const actionSequenceCorrect = arraysEqual(
-      input.trial.actionIds,
-      profile.expectedActionIds,
-    );
+
+    const actionSequenceCorrect = arraysEqual(input.trial.actionIds, profile.expectedActionIds);
+
     const unnecessaryActionCount = input.trial.actionIds.filter(
       (actionId) => !profile.expectedActionIds.includes(actionId),
     ).length;
+
     const faultInjectedMs = new Date(input.run.faultInjectedAt).getTime();
+
     const firstUnhealthyMs = input.trial.measurement?.firstUnhealthyObservedAt
       ? new Date(input.trial.measurement.firstUnhealthyObservedAt).getTime()
       : null;
+
     const oracleCheckedMs = new Date(input.oracle.checkedAt).getTime();
+
     const completedMs = new Date(input.trial.completedAt).getTime();
 
     return this.repository.completeExperimentRun({
@@ -158,9 +161,7 @@ export class ExperimentService {
       actionSequenceCorrect,
       unnecessaryActionCount,
       faultToDetectionMs:
-        firstUnhealthyMs === null
-          ? null
-          : nonNegativeDifference(firstUnhealthyMs, faultInjectedMs),
+        firstUnhealthyMs === null ? null : nonNegativeDifference(firstUnhealthyMs, faultInjectedMs),
       timeToHealMs: input.oracle.succeeded
         ? nonNegativeDifference(oracleCheckedMs, faultInjectedMs)
         : null,
@@ -179,10 +180,7 @@ export class ExperimentService {
     );
   }
 
-  invalidateExperimentRun(
-    runId: string,
-    reason: string,
-  ): Promise<ExperimentRun> {
+  invalidateExperimentRun(runId: string, reason: string): Promise<ExperimentRun> {
     return this.repository.invalidateExperimentRun(
       runId,
       reason,
@@ -195,9 +193,11 @@ export class ExperimentService {
     runs: ExperimentRunRecord[];
   }> {
     const batch = await this.repository.findExperimentBatch(batchId);
+
     if (!batch) {
       throw new Error(`Experiment batch ${batchId} was not found.`);
     }
+
     return {
       batch,
       runs: await this.repository.listExperimentRunRecords(batchId),
@@ -221,8 +221,5 @@ function nonNegativeDifference(end: number, start: number): number {
 }
 
 function arraysEqual(left: string[], right: string[]): boolean {
-  return (
-    left.length === right.length &&
-    left.every((value, index) => value === right[index])
-  );
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 }

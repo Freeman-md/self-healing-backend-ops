@@ -1,8 +1,4 @@
-import {
-  rawEvidenceSchema,
-  type RawEvidence,
-  type RawEvidenceSource,
-} from "./evidence.schema";
+import { rawEvidenceSchema, type RawEvidence, type RawEvidenceSource } from "./evidence.schema";
 
 type RawEvidenceInput = {
   source: RawEvidenceSource;
@@ -20,9 +16,7 @@ type FailedRawEvidenceInput = RawEvidenceInput & {
 };
 
 export class EvidenceFactory {
-  createCollectedRawEvidence(
-    input: CollectedRawEvidenceInput,
-  ): RawEvidence {
+  createCollectedRawEvidence(input: CollectedRawEvidenceInput): RawEvidence {
     return rawEvidenceSchema.parse({
       ...input,
       id: this.createRawEvidenceId(input.source, input.collectedAt),
@@ -39,10 +33,7 @@ export class EvidenceFactory {
     });
   }
 
-  private createRawEvidenceId(
-    source: RawEvidenceSource,
-    collectedAt: string,
-  ): string {
+  private createRawEvidenceId(source: RawEvidenceSource, collectedAt: string): string {
     return `raw-${source}-${collectedAt}`;
   }
 }

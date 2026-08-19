@@ -23,19 +23,16 @@ const actions = [
   {
     id: "restart_postgres_container",
     name: "Restart PostgreSQL container",
-    description:
-      "Restart the PostgreSQL container used by the managed system testbed.",
+    description: "Restart the PostgreSQL container used by the managed system testbed.",
     handlerKey: "restart_postgres_container",
     riskLevel: "medium" as const,
     expectedOutcome: {
       id: "restart_postgres_container_outcome",
-      description:
-        "Database readiness should recover after the PostgreSQL container restart.",
+      description: "Database readiness should recover after the PostgreSQL container restart.",
       criteria: [
         {
           id: "health_ready_after_postgres_restart",
-          description:
-            "Health endpoint should report a healthy state after the restart.",
+          description: "Health endpoint should report a healthy state after the restart.",
           checkType: "health_status_is" as const,
           parameters: { expectedState: "healthy" },
         },
@@ -51,13 +48,11 @@ const actions = [
     riskLevel: "medium" as const,
     expectedOutcome: {
       id: "restart_managed_system_service_outcome",
-      description:
-        "The managed system should return to a healthy state after the service restart.",
+      description: "The managed system should return to a healthy state after the service restart.",
       criteria: [
         {
           id: "health_ready_after_service_restart",
-          description:
-            "Health endpoint should report a healthy state after the restart.",
+          description: "Health endpoint should report a healthy state after the restart.",
           checkType: "health_status_is" as const,
           parameters: { expectedState: "healthy" },
         },
@@ -69,12 +64,10 @@ const actions = [
 const baselineRules = [
   {
     id: "database_connectivity_failure",
-    description:
-      "Recover the database before considering the managed-system application.",
+    description: "Recover the database before considering the managed-system application.",
     incidentCode: "database_connectivity_failure",
     severity: "high" as const,
-    expectedOutcome:
-      "Database readiness and managed-system health return to a healthy state.",
+    expectedOutcome: "Database readiness and managed-system health return to a healthy state.",
     priority: 100,
     version: 1,
     conditionGroups: [
@@ -104,8 +97,7 @@ const baselineRules = [
   },
   {
     id: "managed_system_service_down",
-    description:
-      "Restart the managed-system application only when PostgreSQL remains available.",
+    description: "Restart the managed-system application only when PostgreSQL remains available.",
     incidentCode: "managed_system_service_down",
     severity: "high" as const,
     expectedOutcome: "The managed system returns to a healthy state.",
@@ -342,14 +334,8 @@ export const expectedCatalogueCounts = {
   baselineConditions: baselineRules.reduce(
     (count, rule) =>
       count +
-      rule.conditionGroups.reduce(
-        (groupCount, group) => groupCount + group.conditions.length,
-        0,
-      ),
+      rule.conditionGroups.reduce((groupCount, group) => groupCount + group.conditions.length, 0),
     0,
   ),
-  baselineActions: baselineRules.reduce(
-    (count, rule) => count + rule.actions.length,
-    0,
-  ),
+  baselineActions: baselineRules.reduce((count, rule) => count + rule.actions.length, 0),
 };

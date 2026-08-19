@@ -1,13 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  createExperimentSummary,
-  type ExperimentRunRecord,
-} from "@/modules/experiment";
+import { createExperimentSummary, type ExperimentRunRecord } from "@/modules/experiment";
 
-function run(
-  overrides: Partial<ExperimentRunRecord> = {},
-): ExperimentRunRecord {
+function run(overrides: Partial<ExperimentRunRecord> = {}): ExperimentRunRecord {
   return {
     id: "run-1",
     batchId: "batch-1",
@@ -94,10 +89,7 @@ test("experiment summaries retain failed outcomes without fabricating healing ti
   assert.equal(summary.counts.actionCount?.mean, 1);
   assert.equal(summary.counts.successfulActionCount?.mean, 1);
   assert.equal(summary.safetyMaintainedRuns, 2);
-  assert.equal(
-    summary.exclusions["Ambiguous monitor-trial correlation."],
-    1,
-  );
+  assert.equal(summary.exclusions["Ambiguous monitor-trial correlation."], 1);
   assert.equal(summary.model.callCount, 2);
   assert.equal(summary.model.tokenUsage.totalTokens?.mean, 15);
 });

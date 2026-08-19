@@ -20,21 +20,23 @@ const baselineRules: BaselineRule[] = [
     version: 1,
     proposedActionIds: ["restart_postgres_container"],
     fallbackActionIds: [],
-    conditionGroups: [{
-      matchMode: "ANY",
-      conditions: [
-        {
-          signalCode: "postgres_container_state",
-          operator: "EQUALS",
-          expectedStatus: "critical",
-        },
-        {
-          signalCode: "database_connectivity",
-          operator: "EQUALS",
-          expectedStatus: "critical",
-        },
-      ],
-    }],
+    conditionGroups: [
+      {
+        matchMode: "ANY",
+        conditions: [
+          {
+            signalCode: "postgres_container_state",
+            operator: "EQUALS",
+            expectedStatus: "critical",
+          },
+          {
+            signalCode: "database_connectivity",
+            operator: "EQUALS",
+            expectedStatus: "critical",
+          },
+        ],
+      },
+    ],
   },
 ];
 
@@ -56,25 +58,29 @@ function createSnapshot(
     overallState,
     summary: overallState,
     signals: suspectedIncidentTypes.includes("database_connectivity_failure")
-      ? [{
-        source: "health",
-        name: "database_connectivity",
-        code: "database_connectivity",
-        status: "critical",
-        value: false,
-        description: "Database connectivity failed.",
-        method: "deterministic",
-      }]
+      ? [
+          {
+            source: "health",
+            name: "database_connectivity",
+            code: "database_connectivity",
+            status: "critical",
+            value: false,
+            description: "Database connectivity failed.",
+            method: "deterministic",
+          },
+        ]
       : overallState === "healthy"
-        ? [{
-          source: "health",
-          name: "managed_system_health",
-          code: "managed_system_health",
-          status: "normal",
-          value: true,
-          description: "Managed system health check passed.",
-          method: "deterministic",
-        }]
+        ? [
+            {
+              source: "health",
+              name: "managed_system_health",
+              code: "managed_system_health",
+              status: "normal",
+              value: true,
+              description: "Managed system health check passed.",
+              method: "deterministic",
+            },
+          ]
         : [],
     suspectedIncidentTypes,
     contradictions: [],
@@ -93,13 +99,12 @@ test("baseline rules select only the PostgreSQL restart for database evidence", 
 
 test("baseline strategy retains healthy and unmatched escalation decisions", async () => {
   const strategy = new RecoveryBaselineStrategy(baselineRuleSource);
+
   const context = { actionAttemptCounts: {}, completedActionIds: [] };
 
   const healthy = await strategy.decide(createSnapshot("healthy"), context);
-  const unmatched = await strategy.decide(
-    createSnapshot("unknown", ["unclassified"]),
-    context,
-  );
+
+  const unmatched = await strategy.decide(createSnapshot("unknown", ["unclassified"]), context);
 
   assert.equal(healthy.status, "no_action");
   assert.equal(unmatched.status, "escalate");
@@ -107,17 +112,21 @@ test("baseline strategy retains healthy and unmatched escalation decisions", asy
 
 test("baseline strategy delegates deterministic construction to RecoveryFactory", async () => {
   const calls: string[] = [];
+
   const factory = {
     createDiagnosisResult(input: Record<string, unknown>) {
       calls.push("diagnosis");
+
       return { ...input, id: "diagnosis-test", createdAt: "2026-07-23T00:00:00.000Z" };
     },
     createRecoveryPlan(input: Record<string, unknown>) {
       calls.push("plan");
+
       return { ...input, id: "plan-test", createdAt: "2026-07-23T00:00:00.000Z" };
     },
     createRecoveryDecision(input: Record<string, unknown>) {
       calls.push("decision");
+
       return {
         ...input,
         snapshotId: (input.snapshot as EvidenceSnapshot).id,
@@ -125,6 +134,7 @@ test("baseline strategy delegates deterministic construction to RecoveryFactory"
       };
     },
   } as unknown as RecoveryFactory;
+
   const strategy = new RecoveryBaselineStrategy(baselineRuleSource, factory);
 
   const decision = await strategy.decide(
@@ -138,8 +148,8 @@ test("baseline strategy delegates deterministic construction to RecoveryFactory"
 
 test("unsupported baseline operators fail safely", () => {
   const invalidRules = structuredClone(baselineRules);
-  invalidRules[0]!.conditionGroups[0]!.conditions[0]!.operator =
-    "UNSUPPORTED" as "EQUALS";
+
+  invalidRules[0]!.conditionGroups[0]!.conditions[0]!.operator = "UNSUPPORTED" as "EQUALS";
 
   assert.throws(
     () =>

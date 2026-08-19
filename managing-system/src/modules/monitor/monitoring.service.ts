@@ -1,7 +1,4 @@
-import {
-  getDeterministicEvidenceState,
-  type EvidenceSnapshot,
-} from "@/modules/evidence";
+import { getDeterministicEvidenceState, type EvidenceSnapshot } from "@/modules/evidence";
 import type { RecoveryMode } from "@/modules/recovery";
 import type { TrialService } from "@/modules/trial";
 
@@ -25,12 +22,19 @@ type MonitoringServiceOptions = {
 
 export class MonitoringService {
   private stopRequested = false;
+
   private recoveryInProgress = false;
+
   private consecutiveUnhealthyCount = 0;
+
   private cooldownUntilMs = 0;
+
   private firstUnhealthyObservedAt?: string;
+
   private firstUnhealthyEvidenceSnapshotId?: string;
+
   private pendingWait?: () => void;
+
   private pendingTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
@@ -68,7 +72,9 @@ export class MonitoringService {
   private async executeCollectionCycle(): Promise<void> {
     try {
       const snapshot = await this.evidenceService.collectAndNormalize();
+
       const savedSnapshot = await this.evidenceService.saveEvidenceSnapshot(snapshot);
+
       this.log({
         event: "monitor_snapshot_observed",
         snapshotId: savedSnapshot.id,
@@ -89,6 +95,7 @@ export class MonitoringService {
       this.consecutiveUnhealthyCount = 0;
       this.firstUnhealthyObservedAt = undefined;
       this.firstUnhealthyEvidenceSnapshotId = undefined;
+
       return;
     }
 
@@ -96,6 +103,7 @@ export class MonitoringService {
       this.firstUnhealthyObservedAt = new Date(this.now()).toISOString();
       this.firstUnhealthyEvidenceSnapshotId = snapshot.id;
     }
+
     this.consecutiveUnhealthyCount += 1;
     if (this.consecutiveUnhealthyCount < this.options.consecutiveUnhealthyThreshold) {
       return;
@@ -107,11 +115,13 @@ export class MonitoringService {
         reason: this.recoveryInProgress ? "recovery_in_progress" : "cooldown",
         snapshotId: snapshot.id,
       });
+
       return;
     }
 
     this.recoveryInProgress = true;
     const recoveryTriggeredAt = new Date(this.now()).toISOString();
+
     this.log({
       event: "monitor_recovery_triggered",
       recoveryMode: this.recoveryMode,
@@ -125,8 +135,7 @@ export class MonitoringService {
         triggerSource: "monitor",
         snapshot,
         firstUnhealthyObservedAt: this.firstUnhealthyObservedAt,
-        firstUnhealthyEvidenceSnapshotId:
-          this.firstUnhealthyEvidenceSnapshotId,
+        firstUnhealthyEvidenceSnapshotId: this.firstUnhealthyEvidenceSnapshotId,
         recoveryTriggeredAt,
       });
     } catch (error) {
@@ -150,6 +159,7 @@ export class MonitoringService {
           clearTimeout(this.pendingTimer);
           this.pendingTimer = undefined;
         }
+
         this.pendingWait = undefined;
         resolve();
       };
@@ -158,6 +168,7 @@ export class MonitoringService {
 
       if (this.options.sleep) {
         void this.options.sleep(milliseconds).then(finishWait, finishWait);
+
         return;
       }
 

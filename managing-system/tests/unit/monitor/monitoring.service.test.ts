@@ -13,6 +13,7 @@ function snapshot(id: string, overallState: EvidenceSnapshot["overallState"]): E
         : overallState === "degraded"
           ? "warning"
           : "unknown";
+
   return {
     id,
     rawEvidenceIds: [],
@@ -44,9 +45,13 @@ test("monitor only triggers one recovery after sustained unhealthy evidence and 
     snapshot("unhealthy-2", "unhealthy"),
     snapshot("unhealthy-3", "unhealthy"),
   ];
+
   const recoveryInputs: Array<{ triggerSource?: string; scenarioId?: string }> = [];
+
   let now = 0;
+
   let monitoringService: MonitoringService;
+
   let cycles = 0;
 
   monitoringService = new MonitoringService(
@@ -57,6 +62,7 @@ test("monitor only triggers one recovery after sustained unhealthy evidence and 
     {
       async runRecoveryTrial(input) {
         recoveryInputs.push(input);
+
         return {} as never;
       },
     },
@@ -69,7 +75,9 @@ test("monitor only triggers one recovery after sustained unhealthy evidence and 
       sleep: async () => {
         cycles += 1;
         now += 1;
-        if (cycles >= observations.length) monitoringService.stopMonitoring();
+        if (cycles >= observations.length) {
+          monitoringService.stopMonitoring();
+        }
       },
       log: () => undefined,
     },
@@ -84,8 +92,10 @@ test("monitor only triggers one recovery after sustained unhealthy evidence and 
 
 test("monitor ignores descriptive overall state when deterministic evidence is healthy", async () => {
   const descriptiveMismatch = snapshot("mismatch", "healthy");
+
   descriptiveMismatch.overallState = "unhealthy";
   let recoveryCount = 0;
+
   let monitoringService: MonitoringService;
 
   monitoringService = new MonitoringService(
@@ -96,6 +106,7 @@ test("monitor ignores descriptive overall state when deterministic evidence is h
     {
       async runRecoveryTrial() {
         recoveryCount += 1;
+
         return {} as never;
       },
     },
@@ -115,18 +126,21 @@ test("monitor ignores descriptive overall state when deterministic evidence is h
 
 test("stopping the monitor interrupts a pending interval wait", async () => {
   let resolveCollectionStarted: (() => void) | undefined;
+
   const collectionStarted = new Promise<void>((resolve) => {
     resolveCollectionStarted = resolve;
   });
+
   const monitoringService = new MonitoringService(
     {
       async collectAndNormalize() {
         resolveCollectionStarted?.();
+
         return snapshot("healthy", "healthy");
       },
       saveEvidenceSnapshot: (savedSnapshot) => savedSnapshot,
     },
-    { runRecoveryTrial: async () => ({} as never) },
+    { runRecoveryTrial: async () => ({}) as never },
     "baseline",
     {
       intervalMs: 60000,
@@ -138,6 +152,7 @@ test("stopping the monitor interrupts a pending interval wait", async () => {
   );
 
   const monitoring = monitoringService.startMonitoring();
+
   await collectionStarted;
   monitoringService.stopMonitoring();
   await monitoring;

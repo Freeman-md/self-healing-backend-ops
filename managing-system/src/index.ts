@@ -2,22 +2,11 @@ import { config } from "@/config";
 import { DockerContainerRuntimeService } from "@/infrastructure/container-runtime";
 import { PrismaService } from "@/infrastructure/database";
 import { OpenAIService } from "@/infrastructure/openai";
-import {
-  ActionHandlerRegistry,
-  ActionRepository,
-  ActionService,
-} from "@/modules/action";
+import { ActionHandlerRegistry, ActionRepository, ActionService } from "@/modules/action";
 import { EvidenceRepository, EvidenceService } from "@/modules/evidence";
-import {
-  EvaluationFactory,
-  EvaluationRepository,
-  EvaluationService,
-} from "@/modules/evaluation";
+import { EvaluationFactory, EvaluationRepository, EvaluationService } from "@/modules/evaluation";
 import { MonitoringService } from "@/modules/monitor";
-import {
-  MeasurementRepository,
-  MeasurementService,
-} from "@/modules/measurement";
+import { MeasurementRepository, MeasurementService } from "@/modules/measurement";
 import {
   RecoveryAgentStrategy,
   RecoveryAgentService,
@@ -37,19 +26,25 @@ async function main(): Promise<void> {
   });
 
   const prismaService = new PrismaService();
+
   let closed = false;
+
   const closeResources = async (): Promise<void> => {
-    if (closed) return;
+    if (closed) {
+      return;
+    }
+
     closed = true;
     await prismaService.close();
   };
 
   await prismaService.open();
   const containerRuntime = new DockerContainerRuntimeService();
-  const measurementService = new MeasurementService(
-    new MeasurementRepository(prismaService),
-  );
+
+  const measurementService = new MeasurementService(new MeasurementRepository(prismaService));
+
   const openaiService = new OpenAIService(undefined, measurementService);
+
   const evidenceService = new EvidenceService(
     new EvidenceRepository(prismaService),
     openaiService,
@@ -57,7 +52,9 @@ async function main(): Promise<void> {
     undefined,
     containerRuntime,
   );
+
   const recoveryService = new RecoveryService(new RecoveryRepository(prismaService));
+
   const actionService = new ActionService(
     new ActionRepository(prismaService),
     new SafetyService(),
@@ -67,13 +64,11 @@ async function main(): Promise<void> {
     config.actions.dockerEnabled,
     new ActionHandlerRegistry(containerRuntime),
   );
+
   const trialService = new TrialService(
     {
       baseline: new RecoveryBaselineStrategy(recoveryService),
-      agent: new RecoveryAgentStrategy(
-        new RecoveryAgentService(openaiService),
-        actionService,
-      ),
+      agent: new RecoveryAgentStrategy(new RecoveryAgentService(openaiService), actionService),
     },
     new TrialRepository(prismaService),
     actionService,
@@ -88,17 +83,21 @@ async function main(): Promise<void> {
   try {
     if (config.trial.runMode === "controlled") {
       await runControlledTrial(evidenceService, trialService);
+
       return;
     }
 
     const recoveryMode = resolveMonitorRecoveryMode();
+
     const monitoringService = new MonitoringService(
       evidenceService,
       trialService,
       recoveryMode,
       config.monitoring,
     );
+
     const stopMonitoring = (): void => monitoringService.stopMonitoring();
+
     process.once("SIGINT", stopMonitoring);
     process.once("SIGTERM", stopMonitoring);
 
@@ -118,8 +117,11 @@ async function runControlledTrial(
   trialService: TrialService,
 ): Promise<void> {
   const { recoveryMode, scenarioId } = resolveControlledTrialInput();
+
   const snapshot = await evidenceService.collectAndNormalize();
+
   const savedSnapshot = await evidenceService.saveEvidenceSnapshot(snapshot);
+
   console.log({
     event: "controlled_snapshot_observed",
     snapshotId: savedSnapshot.id,
@@ -131,6 +133,7 @@ async function runControlledTrial(
     scenarioId,
     snapshot: savedSnapshot,
   });
+
   console.log({
     event: "controlled_trial_recorded",
     recoveryMode,
@@ -149,6 +152,7 @@ function resolveControlledTrialInput(): {
   if (!config.trial.recoveryMode || !config.trial.scenarioId) {
     throw new Error("RECOVERY_MODE and SCENARIO_ID are required for controlled mode.");
   }
+
   return { recoveryMode: config.trial.recoveryMode, scenarioId: config.trial.scenarioId };
 }
 
@@ -156,9 +160,11 @@ function resolveMonitorRecoveryMode(): "baseline" | "agent" {
   if (!config.trial.recoveryMode) {
     throw new Error("RECOVERY_MODE is required for monitor mode.");
   }
+
   if (config.trial.scenarioId) {
     throw new Error("SCENARIO_ID is not allowed for monitor mode.");
   }
+
   return config.trial.recoveryMode;
 }
 

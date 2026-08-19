@@ -19,22 +19,31 @@ test("measurement and experiment evidence persist as one queryable recovery reco
 
   try {
     const evidenceRepository = new EvidenceRepository(testDatabase.prisma);
+
     const trialRepository = new TrialRepository(testDatabase.prisma);
+
     const actionRepository = new ActionRepository(testDatabase.prisma);
+
     const evaluationRepository = new EvaluationRepository(testDatabase.prisma);
+
     const measurementService = new MeasurementService(
       new MeasurementRepository(testDatabase.prisma),
     );
+
     let now = Date.parse("2026-08-17T09:59:59.000Z");
+
     const experimentRepository = new ExperimentRepository(testDatabase.prisma);
+
     const experimentService = new ExperimentService(experimentRepository, {
       now: () => now,
     });
+
     const initialSnapshot = createSnapshot(
       "snapshot-experiment-unhealthy",
       "2026-08-17T10:00:01.000Z",
       "critical",
     );
+
     const finalSnapshot = createSnapshot(
       "snapshot-experiment-healthy",
       "2026-08-17T10:00:06.000Z",
@@ -45,6 +54,7 @@ test("measurement and experiment evidence persist as one queryable recovery reco
     await evidenceRepository.saveEvidenceSnapshot(finalSnapshot);
 
     const trial = createTrial(initialSnapshot.id, finalSnapshot.id);
+
     await trialRepository.saveTrialRecord({
       ...trial,
       completedAt: undefined,
@@ -64,10 +74,7 @@ test("measurement and experiment evidence persist as one queryable recovery reco
       firstUnhealthyEvidenceSnapshotId: initialSnapshot.id,
       recoveryTriggeredAt: "2026-08-17T10:00:02.000Z",
     });
-    await measurementService.recordFirstActionStarted(
-      trial.id,
-      "2026-08-17T10:00:03.000Z",
-    );
+    await measurementService.recordFirstActionStarted(trial.id, "2026-08-17T10:00:03.000Z");
     await actionRepository.saveActionExecutionResult({
       id: "action-result-experiment",
       trialRecordId: trial.id,
@@ -132,12 +139,13 @@ test("measurement and experiment evidence persist as one queryable recovery reco
       stabilityWindowMs: 10_000,
       preFaultSettleMs: 15_000,
     };
-    const configuration = await experimentService.createFrozenConfiguration(
-      unfrozenConfiguration,
-    );
+
+    const configuration = await experimentService.createFrozenConfiguration(unfrozenConfiguration);
+
     await seedCatalogue(testDatabase.prisma);
     const repeatedConfiguration =
       await experimentService.createFrozenConfiguration(unfrozenConfiguration);
+
     assert.equal(
       configuration.actionCatalogueFingerprint,
       repeatedConfiguration.actionCatalogueFingerprint,
@@ -150,6 +158,7 @@ test("measurement and experiment evidence persist as one queryable recovery reco
       requestedRepetitions: 1,
       runOrderSeed: "test-seed",
     });
+
     const preparedRun = await experimentService.prepareExperimentRun({
       batchId: batch.id,
       faultProfile: "managed_system_postgres_stopped",
@@ -157,12 +166,11 @@ test("measurement and experiment evidence persist as one queryable recovery reco
       repetition: 1,
       stabilityWindowMs: 10_000,
     });
+
     now = Date.parse("2026-08-17T10:00:00.000Z");
     const injectedRun = await experimentService.markFaultInjected(preparedRun.id);
-    await experimentRepository.linkExperimentRunToTrial(
-      injectedRun.id,
-      trial.id,
-    );
+
+    await experimentRepository.linkExperimentRunToTrial(injectedRun.id, trial.id);
     now = Date.parse("2026-08-17T10:00:09.000Z");
     await experimentService.completeExperimentRun({
       run: injectedRun,
@@ -189,6 +197,7 @@ test("measurement and experiment evidence persist as one queryable recovery reco
     await experimentService.completeExperimentBatch(batch.id);
 
     const evidence = await experimentService.getExperimentEvidence(batch.id);
+
     assert.equal(evidence.runs.length, 1);
     assert.equal(evidence.runs[0]?.trialRecordId, trial.id);
     assert.equal(evidence.runs[0]?.faultToDetectionMs, 1_000);
@@ -215,17 +224,18 @@ function createSnapshot(
     targetSystem: "managed-system",
     overallState: status === "normal" ? "healthy" : "unhealthy",
     summary: "Deterministic experiment fixture.",
-    signals: [{
-      source: "health",
-      name: "database_connectivity",
-      code: "database_connectivity",
-      status,
-      value: status === "normal",
-      description: "Deterministic database connectivity.",
-      method: "deterministic",
-    }],
-    suspectedIncidentTypes:
-      status === "critical" ? ["database_connectivity_failure"] : [],
+    signals: [
+      {
+        source: "health",
+        name: "database_connectivity",
+        code: "database_connectivity",
+        status,
+        value: status === "normal",
+        description: "Deterministic database connectivity.",
+        method: "deterministic",
+      },
+    ],
+    suspectedIncidentTypes: status === "critical" ? ["database_connectivity_failure"] : [],
     contradictions: [],
   };
 }
@@ -242,10 +252,7 @@ function createTrial(
     completedAt: "2026-08-17T10:00:07.000Z",
     initialEvidenceSnapshotId,
     finalEvidenceSnapshotId,
-    evidenceSnapshotIds: [
-      initialEvidenceSnapshotId,
-      finalEvidenceSnapshotId,
-    ],
+    evidenceSnapshotIds: [initialEvidenceSnapshotId, finalEvidenceSnapshotId],
     recoveryDecisionIds: [],
     diagnosisResultIds: [],
     recoveryPlanIds: [],

@@ -11,10 +11,7 @@ import type {
   ContainerStateResult,
 } from "./container-runtime.types";
 
-type DockerActionConfig = Pick<
-  typeof config.actions,
-  "dockerEnabled" | "dockerTimeoutMs"
->;
+type DockerActionConfig = Pick<typeof config.actions, "dockerEnabled" | "dockerTimeoutMs">;
 
 type ExecFileCallback = (
   error: Error | null,
@@ -42,14 +39,13 @@ export class DockerContainerRuntimeService implements IContainerRuntime, IContai
     private readonly executeFile: ExecFileImplementation = executeWithExecFile,
   ) {}
 
-  async restartTarget(
-    target: ContainerRuntimeTarget,
-  ): Promise<ContainerRestartResult> {
+  async restartTarget(target: ContainerRuntimeTarget): Promise<ContainerRestartResult> {
     if (!this.actionConfig.dockerEnabled) {
       throw new Error("Docker action execution is disabled.");
     }
 
     const containerName = this.resolveContainerName(target);
+
     const output = await this.executeDockerRestart(containerName);
 
     return { target, containerName, output };
@@ -60,6 +56,7 @@ export class DockerContainerRuntimeService implements IContainerRuntime, IContai
 
     try {
       const output = await this.executeDockerInspect(containerName);
+
       return { target, containerName, state: this.toContainerState(output) };
     } catch {
       return { target, containerName, state: "unknown" };
@@ -77,24 +74,32 @@ export class DockerContainerRuntimeService implements IContainerRuntime, IContai
   private executeDockerRestart(containerName: string): Promise<string> {
     return new Promise((resolve, reject) => {
       let completed = false;
+
       let timeout: NodeJS.Timeout | undefined;
-      const child = this.executeFile("docker", ["restart", containerName], (error, stdout, stderr) => {
-        if (completed) {
-          return;
-        }
 
-        completed = true;
-        if (timeout) {
-          clearTimeout(timeout);
-        }
+      const child = this.executeFile(
+        "docker",
+        ["restart", containerName],
+        (error, stdout, stderr) => {
+          if (completed) {
+            return;
+          }
 
-        if (error) {
-          reject(new Error(`Docker restart failed for ${containerName}: ${error.message}`));
-          return;
-        }
+          completed = true;
+          if (timeout) {
+            clearTimeout(timeout);
+          }
 
-        resolve([stdout.toString(), stderr.toString()].filter(Boolean).join("\n").trim());
-      });
+          if (error) {
+            reject(new Error(`Docker restart failed for ${containerName}: ${error.message}`));
+
+            return;
+          }
+
+          resolve([stdout.toString(), stderr.toString()].filter(Boolean).join("\n").trim());
+        },
+      );
+
       if (completed) {
         return;
       }
@@ -114,18 +119,35 @@ export class DockerContainerRuntimeService implements IContainerRuntime, IContai
   private executeDockerInspect(containerName: string): Promise<string> {
     return new Promise((resolve, reject) => {
       let completed = false;
-      const child = this.executeFile("docker", ["inspect", "--format", "{{.State.Status}}", containerName], (error, stdout, stderr) => {
-        if (completed) return;
-        completed = true;
-        if (timeout) clearTimeout(timeout);
-        if (error) {
-          reject(new Error(`Docker inspection failed for ${containerName}: ${error.message}`));
+
+      const child = this.executeFile(
+        "docker",
+        ["inspect", "--format", "{{.State.Status}}", containerName],
+        (error, stdout, stderr) => {
+          if (completed) {
+            return;
+          }
+
+          completed = true;
+          if (timeout) {
+            clearTimeout(timeout);
+          }
+
+          if (error) {
+            reject(new Error(`Docker inspection failed for ${containerName}: ${error.message}`));
+
+            return;
+          }
+
+          resolve([stdout.toString(), stderr.toString()].filter(Boolean).join("\n").trim());
+        },
+      );
+
+      const timeout = setTimeout(() => {
+        if (completed) {
           return;
         }
-        resolve([stdout.toString(), stderr.toString()].filter(Boolean).join("\n").trim());
-      });
-      const timeout = setTimeout(() => {
-        if (completed) return;
+
         completed = true;
         child.kill();
         reject(new Error(`Docker inspection timed out for ${containerName}.`));
@@ -135,8 +157,15 @@ export class DockerContainerRuntimeService implements IContainerRuntime, IContai
 
   private toContainerState(output: string): ContainerState {
     const normalized = output.trim().toLowerCase();
-    if (normalized === "running" || normalized === "restarting" || normalized === "exited") return normalized;
-    if (normalized === "created" || normalized === "paused" || normalized === "dead") return "stopped";
+
+    if (normalized === "running" || normalized === "restarting" || normalized === "exited") {
+      return normalized;
+    }
+
+    if (normalized === "created" || normalized === "paused" || normalized === "dead") {
+      return "stopped";
+    }
+
     return "unknown";
   }
 }

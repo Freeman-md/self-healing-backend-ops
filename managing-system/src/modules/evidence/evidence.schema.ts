@@ -10,12 +10,7 @@ export const rawEvidenceSourceSchema = z.enum([
 
 export const rawEvidenceStatusSchema = z.enum(["collected", "failed"]);
 
-export const evidenceSignalStatusSchema = z.enum([
-  "normal",
-  "warning",
-  "critical",
-  "unknown",
-]);
+export const evidenceSignalStatusSchema = z.enum(["normal", "warning", "critical", "unknown"]);
 
 export const evidenceSignalCodeSchema = z.enum([
   "managed_system_reachability",
@@ -37,12 +32,7 @@ export const incidentTypeCodeSchema = z.enum([
   "unclassified",
 ]);
 
-export const evidenceSnapshotStateSchema = z.enum([
-  "healthy",
-  "degraded",
-  "unhealthy",
-  "unknown",
-]);
+export const evidenceSnapshotStateSchema = z.enum(["healthy", "degraded", "unhealthy", "unknown"]);
 
 export const rawEvidenceSchema = z.object({
   id: z.string(),

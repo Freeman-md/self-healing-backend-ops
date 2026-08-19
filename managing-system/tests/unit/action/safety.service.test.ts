@@ -37,46 +37,40 @@ function snapshot(input: {
     targetSystem: "managed-system",
     overallState: input.overallState,
     summary: "Descriptive model output.",
-    signals: [{
-      source: "health",
-      name: "managed_system_health",
-      code: "managed_system_health",
-      status: input.signalStatus,
-      value: input.signalStatus === "normal",
-      description: "Deterministic health observation.",
-      method: "deterministic",
-    }],
+    signals: [
+      {
+        source: "health",
+        name: "managed_system_health",
+        code: "managed_system_health",
+        status: input.signalStatus,
+        value: input.signalStatus === "normal",
+        description: "Deterministic health observation.",
+        method: "deterministic",
+      },
+    ],
     suspectedIncidentTypes: [],
     contradictions: [],
   };
 }
 
 test("safety evaluation allows deterministic failure despite descriptive healthy state", () => {
-  const decision = new SafetyService().evaluateActionSafety(
-    action,
-    [safetyRule],
-    {
-      evidenceSnapshot: snapshot({
-        overallState: "healthy",
-        signalStatus: "critical",
-      }),
-    },
-  );
+  const decision = new SafetyService().evaluateActionSafety(action, [safetyRule], {
+    evidenceSnapshot: snapshot({
+      overallState: "healthy",
+      signalStatus: "critical",
+    }),
+  });
 
   assert.equal(decision.status, "allowed");
 });
 
 test("safety evaluation blocks deterministic health despite descriptive unhealthy state", () => {
-  const decision = new SafetyService().evaluateActionSafety(
-    action,
-    [safetyRule],
-    {
-      evidenceSnapshot: snapshot({
-        overallState: "unhealthy",
-        signalStatus: "normal",
-      }),
-    },
-  );
+  const decision = new SafetyService().evaluateActionSafety(action, [safetyRule], {
+    evidenceSnapshot: snapshot({
+      overallState: "unhealthy",
+      signalStatus: "normal",
+    }),
+  });
 
   assert.equal(decision.status, "blocked");
 });

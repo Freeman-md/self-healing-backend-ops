@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import {
-  RecoveryFactory,
-  RecoveryRepository,
-  type RecoveryDecision,
-} from "@/modules/recovery";
+import { RecoveryFactory, RecoveryRepository, type RecoveryDecision } from "@/modules/recovery";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 import { EvidenceRepository } from "@/modules/evidence";
 import { TrialRepository } from "@/modules/trial";
@@ -25,8 +21,12 @@ function createSnapshot(id: string): EvidenceSnapshot {
   };
 }
 
-function createDecision(snapshot: EvidenceSnapshot, status: RecoveryDecision["status"]): RecoveryDecision {
+function createDecision(
+  snapshot: EvidenceSnapshot,
+  status: RecoveryDecision["status"],
+): RecoveryDecision {
   const factory = new RecoveryFactory();
+
   const diagnosisResult = factory.createDiagnosisResult({
     evidenceSnapshotId: snapshot.id,
     method: "deterministic",
@@ -38,6 +38,7 @@ function createDecision(snapshot: EvidenceSnapshot, status: RecoveryDecision["st
     supportingSignals: [],
     contradictions: [],
   });
+
   const recoveryPlan = factory.createRecoveryPlan({
     diagnosisResultId: diagnosisResult.id,
     proposedActionIds: status === "action_selected" ? ["restart_postgres_container"] : [],
@@ -60,7 +61,9 @@ function createDecision(snapshot: EvidenceSnapshot, status: RecoveryDecision["st
 
 test("RecoveryFactory assigns a unique durable ID to each decision", () => {
   const snapshot = createSnapshot("snapshot-id-test");
+
   const first = createDecision(snapshot, "no_action");
+
   const second = createDecision(snapshot, "no_action");
 
   assert.match(first.id, /^recovery-decision-/);
@@ -69,11 +72,17 @@ test("RecoveryFactory assigns a unique durable ID to each decision", () => {
 
 test("RecoveryRepository persists and retrieves ordered decision history in one isolated database", async () => {
   const testDatabase = await createPrismaTestDatabase({ seed: true });
+
   const repository = new RecoveryRepository(testDatabase.prisma);
+
   const evidenceRepository = new EvidenceRepository(testDatabase.prisma);
+
   const trialRepository = new TrialRepository(testDatabase.prisma);
+
   const trialRecordId = "trial-history-test";
+
   const first = createDecision(createSnapshot("snapshot-first"), "action_selected");
+
   const second = createDecision(createSnapshot("snapshot-second"), "escalate");
 
   try {
@@ -112,11 +121,16 @@ test("RecoveryRepository persists and retrieves ordered decision history in one 
       recoveryDecision: second,
     });
 
-    const history =
-      await repository.findRecoveryDecisionsByTrialRecordId(trialRecordId);
+    const history = await repository.findRecoveryDecisionsByTrialRecordId(trialRecordId);
 
-    assert.deepEqual(history.map((decision) => decision.id), [first.id, second.id]);
-    assert.deepEqual(history.map((decision) => decision.snapshotId), ["snapshot-first", "snapshot-second"]);
+    assert.deepEqual(
+      history.map((decision) => decision.id),
+      [first.id, second.id],
+    );
+    assert.deepEqual(
+      history.map((decision) => decision.snapshotId),
+      ["snapshot-first", "snapshot-second"],
+    );
     assert.equal(history[0]?.diagnosisResult.id, first.diagnosisResult.id);
     assert.equal(history[1]?.recoveryPlan.id, second.recoveryPlan.id);
   } finally {

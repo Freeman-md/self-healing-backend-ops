@@ -1,13 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { ActionRepository, type ActionExecutionResult } from "@/modules/action";
+import { type ActionExecutionResult } from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
-import type {
-  RecoveryDecision,
-  RecoveryMode,
-  RecoveryStrategy,
-} from "@/modules/recovery";
+import type { RecoveryDecision, RecoveryMode, RecoveryStrategy } from "@/modules/recovery";
 import { TrialService, type TrialRecord } from "@/modules/trial";
 
 function createHealthySnapshot(): EvidenceSnapshot {
@@ -67,7 +63,9 @@ function createStrategy(mode: RecoveryMode): RecoveryStrategy {
 
 test("baseline and agent strategies produce separate comparable trial records", async () => {
   const baseline = createStrategy("baseline");
+
   const agent = createStrategy("agent");
+
   const runner = new TrialService(
     { baseline, agent },
     { saveTrialRecord: (trialRecord: TrialRecord) => trialRecord } as never,
@@ -92,6 +90,7 @@ test("baseline and agent strategies produce separate comparable trial records", 
       },
     } as never,
   );
+
   const snapshot = createHealthySnapshot();
 
   const baselineResult = await runner.runRecoveryTrial({
@@ -99,6 +98,7 @@ test("baseline and agent strategies produce separate comparable trial records", 
     scenarioId: "comparison-scenario",
     snapshot,
   });
+
   const agentResult = await runner.runRecoveryTrial({
     mode: "agent",
     scenarioId: "comparison-scenario",

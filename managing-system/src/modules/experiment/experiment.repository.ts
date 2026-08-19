@@ -38,6 +38,7 @@ export class ExperimentRepository {
         createdAt: new Date(input.createdAt),
       },
     });
+
     return toBatch(row);
   }
 
@@ -91,6 +92,7 @@ export class ExperimentRepository {
         orderBy: { id: "asc" },
       }),
     ]);
+
     return {
       actionCatalogue,
       baselineRules,
@@ -114,6 +116,7 @@ export class ExperimentRepository {
     const row = await this.prisma.experimentBatch.findUnique({
       where: { id: batchId },
     });
+
     return row ? toBatch(row) : null;
   }
 
@@ -140,22 +143,18 @@ export class ExperimentRepository {
           stabilityWindowMs: input.stabilityWindowMs,
         },
       });
+
       return toRun(row);
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new Error("Another controlled experiment run is already active.");
       }
+
       throw error;
     }
   }
 
-  async markFaultInjected(
-    runId: string,
-    faultInjectedAt: string,
-  ): Promise<ExperimentRun> {
+  async markFaultInjected(runId: string, faultInjectedAt: string): Promise<ExperimentRun> {
     return toRun(
       await this.prisma.experimentRun.update({
         where: { id: runId },
@@ -213,34 +212,28 @@ export class ExperimentRepository {
       measurement: row.recoveryMeasurement
         ? {
             firstUnhealthyObservedAt:
-              row.recoveryMeasurement.firstUnhealthyObservedAt?.toISOString() ??
-              null,
-            recoveryTriggeredAt:
-              row.recoveryMeasurement.recoveryTriggeredAt.toISOString(),
-            recoveryVerifiedAt:
-              row.recoveryMeasurement.recoveryVerifiedAt?.toISOString() ?? null,
+              row.recoveryMeasurement.firstUnhealthyObservedAt?.toISOString() ?? null,
+            recoveryTriggeredAt: row.recoveryMeasurement.recoveryTriggeredAt.toISOString(),
+            recoveryVerifiedAt: row.recoveryMeasurement.recoveryVerifiedAt?.toISOString() ?? null,
           }
         : null,
-      diagnosisIncidentCodes: row.diagnosisResults.map(
-        (diagnosis) => diagnosis.incidentCode,
-      ),
+      diagnosisIncidentCodes: row.diagnosisResults.map((diagnosis) => diagnosis.incidentCode),
       actionIds: row.actionExecutionResults.map((result) => result.actionId),
     }));
   }
 
-  async linkExperimentRunToTrial(
-    runId: string,
-    trialRecordId: string,
-  ): Promise<ExperimentRun> {
+  async linkExperimentRunToTrial(runId: string, trialRecordId: string): Promise<ExperimentRun> {
     const row = await this.prisma.$transaction(async (transaction) => {
       const linkedRun = await transaction.experimentRun.update({
         where: { id: runId },
         data: { status: "trial_linked", trialRecordId },
       });
+
       const evidenceLinks = await transaction.trialEvidenceSnapshot.findMany({
         where: { trialRecordId },
         select: { evidenceSnapshotId: true },
       });
+
       await transaction.modelInvocation.updateMany({
         where: {
           trialRecordId: null,
@@ -250,8 +243,10 @@ export class ExperimentRepository {
         },
         data: { trialRecordId },
       });
+
       return linkedRun;
     });
+
     return toRun(row);
   }
 
@@ -309,9 +304,7 @@ export class ExperimentRepository {
     );
   }
 
-  async listExperimentRunRecords(
-    batchId: string,
-  ): Promise<ExperimentRunRecord[]> {
+  async listExperimentRunRecords(batchId: string): Promise<ExperimentRunRecord[]> {
     const rows = await this.prisma.experimentRun.findMany({
       where: { batchId },
       include: {
@@ -339,23 +332,17 @@ export class ExperimentRepository {
             actionCount: row.trial.actionCount,
             blockedActionCount: row.trial.blockedActionCount,
             failedActionCount: row.trial.failedActionCount,
-            safetyMaintained:
-              row.trial.evaluationSummary?.safetyMaintained ?? null,
+            safetyMaintained: row.trial.evaluationSummary?.safetyMaintained ?? null,
             timeToRecoveryMs: row.trial.timeToRecoveryMs,
             timeToEscalationMs: row.trial.timeToEscalationMs,
             measurement: row.trial.recoveryMeasurement
               ? {
                   unhealthyConfirmationDelayMs:
-                    row.trial.recoveryMeasurement
-                      .unhealthyConfirmationDelayMs,
-                  timeToFirstActionMs:
-                    row.trial.recoveryMeasurement.timeToFirstActionMs,
-                  recoveryLoopDurationMs:
-                    row.trial.recoveryMeasurement.recoveryLoopDurationMs,
-                  observedTimeToHealMs:
-                    row.trial.recoveryMeasurement.observedTimeToHealMs,
-                  decisionCount:
-                    row.trial.recoveryMeasurement.decisionCount,
+                    row.trial.recoveryMeasurement.unhealthyConfirmationDelayMs,
+                  timeToFirstActionMs: row.trial.recoveryMeasurement.timeToFirstActionMs,
+                  recoveryLoopDurationMs: row.trial.recoveryMeasurement.recoveryLoopDurationMs,
+                  observedTimeToHealMs: row.trial.recoveryMeasurement.observedTimeToHealMs,
+                  decisionCount: row.trial.recoveryMeasurement.decisionCount,
                 }
               : null,
             modelInvocations: row.trial.modelInvocations.map((invocation) => ({

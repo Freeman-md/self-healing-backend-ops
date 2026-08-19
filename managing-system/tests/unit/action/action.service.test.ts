@@ -32,6 +32,7 @@ const action: Action = {
 
 test("ActionFactory constructs blocked, failed, and successful action results", () => {
   const factory = new ActionFactory();
+
   const base = {
     actionId: action.id,
     trialRecordId: "trial-test",
@@ -40,16 +41,22 @@ test("ActionFactory constructs blocked, failed, and successful action results", 
     failedSafetyRuleIds: [],
   };
 
-  assert.equal(factory.createBlockedActionExecutionResult({
-    ...base,
-    safetyCheckStatus: "failed",
-    continuation: "escalated",
-  }).status, "blocked");
+  assert.equal(
+    factory.createBlockedActionExecutionResult({
+      ...base,
+      safetyCheckStatus: "failed",
+      continuation: "escalated",
+    }).status,
+    "blocked",
+  );
   assert.equal(factory.createFailedActionExecutionResult(base).status, "failed");
-  assert.equal(factory.createSuccessfulActionExecutionResult({
-    ...base,
-    continuation: "resolved",
-  }).status, "executed");
+  assert.equal(
+    factory.createSuccessfulActionExecutionResult({
+      ...base,
+      continuation: "resolved",
+    }).status,
+    "executed",
+  );
 });
 
 test("ActionService routes every execution result path through ActionFactory", async () => {
@@ -60,6 +67,7 @@ test("ActionService routes every execution result path through ActionFactory", a
       ...input: Parameters<ActionFactory["createBlockedActionExecutionResult"]>
     ) {
       constructedPaths.push("blocked");
+
       return super.createBlockedActionExecutionResult(...input);
     }
 
@@ -67,6 +75,7 @@ test("ActionService routes every execution result path through ActionFactory", a
       ...input: Parameters<ActionFactory["createFailedActionExecutionResult"]>
     ) {
       constructedPaths.push("failed");
+
       return super.createFailedActionExecutionResult(...input);
     }
 
@@ -74,21 +83,29 @@ test("ActionService routes every execution result path through ActionFactory", a
       ...input: Parameters<ActionFactory["createSuccessfulActionExecutionResult"]>
     ) {
       constructedPaths.push("successful");
+
       return super.createSuccessfulActionExecutionResult(...input);
     }
   }
 
   const factory = new RecordingActionFactory();
+
   const allowedSafetyService = {
     evaluateActionSafety() {
       return { status: "allowed" as const, failedRuleIds: [] };
     },
   };
+
   const blockedSafetyService = {
     evaluateActionSafety() {
-      return { status: "blocked" as const, failedRuleIds: ["max_one_attempt_per_cycle"], reason: "blocked" };
+      return {
+        status: "blocked" as const,
+        failedRuleIds: ["max_one_attempt_per_cycle"],
+        reason: "blocked",
+      };
     },
   };
+
   const context = { trialRecordId: "trial-test" };
 
   await new ActionService(
@@ -117,7 +134,11 @@ test("ActionService routes every execution result path through ActionFactory", a
     factory,
     undefined,
     true,
-    { findActionHandler: () => async () => { throw new Error("handler failed"); } } as never,
+    {
+      findActionHandler: () => async () => {
+        throw new Error("handler failed");
+      },
+    } as never,
   ).executeAction(action, snapshot, context);
 
   await new ActionService(
@@ -149,9 +170,11 @@ test("ActionService routes every execution result path through ActionFactory", a
 
 test("ActionService evaluates outcomes with the validated fresh snapshot and bounded resolution instructions", async () => {
   let structuredRequest: { systemPrompt: string; userPrompt: string } | undefined;
+
   const openaiService = {
     async parseStructuredOutput(request: { systemPrompt: string; userPrompt: string }) {
       structuredRequest = request;
+
       return {
         expectedOutcomeMet: true,
         outcomeSummary: "Database connectivity is restored.",
@@ -161,6 +184,7 @@ test("ActionService evaluates outcomes with the validated fresh snapshot and bou
       };
     },
   };
+
   const service = new ActionService(
     {} as never,
     {} as never,
@@ -175,7 +199,10 @@ test("ActionService evaluates outcomes with the validated fresh snapshot and bou
   });
 
   assert.ok(structuredRequest);
-  assert.match(structuredRequest.systemPrompt, /Return resolved when the expected outcome is met; otherwise return continue/);
+  assert.match(
+    structuredRequest.systemPrompt,
+    /Return resolved when the expected outcome is met; otherwise return continue/,
+  );
   assert.deepEqual(JSON.parse(structuredRequest.userPrompt), {
     expectedOutcome: action.expectedOutcome,
     freshEvidenceSnapshot: snapshot,
@@ -184,8 +211,11 @@ test("ActionService evaluates outcomes with the validated fresh snapshot and bou
 
 test("ActionService resolves safety rules and persists post-action evidence through EvidenceService", async () => {
   const evaluatedRules: string[][] = [];
+
   let persistedSnapshot: EvidenceSnapshot | undefined;
+
   const actionWithRule = { ...action, safetyRuleIds: ["healthy_only"] };
+
   const service = new ActionService(
     {
       findSafetyRuleById(ruleId: string) {
@@ -201,6 +231,7 @@ test("ActionService resolves safety rules and persists post-action evidence thro
     {
       evaluateActionSafety(_action: Action, safetyRules: SafetyRule[]) {
         evaluatedRules.push(safetyRules.map((rule: SafetyRule) => rule.id));
+
         return { status: "allowed" as const, failedRuleIds: [] };
       },
     } as never,
@@ -211,6 +242,7 @@ test("ActionService resolves safety rules and persists post-action evidence thro
       },
       saveEvidenceSnapshot(candidate: EvidenceSnapshot) {
         persistedSnapshot = candidate;
+
         return candidate;
       },
     } as never,
@@ -238,6 +270,7 @@ test("ActionService resolves safety rules and persists post-action evidence thro
 
 test("ActionService blocks disabled Docker execution after safety without invoking a handler", async () => {
   let handlerInvoked = false;
+
   const service = new ActionService(
     {} as never,
     { evaluateActionSafety: () => ({ status: "allowed" as const, failedRuleIds: [] }) } as never,
@@ -245,7 +278,13 @@ test("ActionService blocks disabled Docker execution after safety without invoki
     new ActionFactory(),
     undefined,
     false,
-    { findActionHandler: () => async () => { handlerInvoked = true; return { output: "unexpected" }; } } as never,
+    {
+      findActionHandler: () => async () => {
+        handlerInvoked = true;
+
+        return { output: "unexpected" };
+      },
+    } as never,
   );
 
   const result = await service.executeAction(action, snapshot, { trialRecordId: "trial-disabled" });
@@ -258,6 +297,7 @@ test("ActionService blocks disabled Docker execution after safety without invoki
 
 test("ActionService saves fresh evidence after readiness polling times out", async () => {
   let savedSnapshot: EvidenceSnapshot | undefined;
+
   const service = new ActionService(
     {} as never,
     { evaluateActionSafety: () => ({ status: "allowed" as const, failedRuleIds: [] }) } as never,
@@ -266,11 +306,22 @@ test("ActionService saves fresh evidence after readiness polling times out", asy
       collectAndNormalize: async () => snapshot,
       saveEvidenceSnapshot: (candidate: EvidenceSnapshot) => {
         savedSnapshot = candidate;
+
         return candidate;
       },
     } as never,
     new ActionFactory(),
-    { async parseStructuredOutput() { return { expectedOutcomeMet: false, outcomeSummary: "not recovered", matchedCriterionIds: [], unmetCriterionIds: [], continuation: "continue" as const }; } } as never,
+    {
+      async parseStructuredOutput() {
+        return {
+          expectedOutcomeMet: false,
+          outcomeSummary: "not recovered",
+          matchedCriterionIds: [],
+          unmetCriterionIds: [],
+          continuation: "continue" as const,
+        };
+      },
+    } as never,
     true,
     { findActionHandler: () => async () => ({ output: "restarted" }) } as never,
   );

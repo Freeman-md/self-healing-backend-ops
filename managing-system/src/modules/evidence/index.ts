@@ -2,10 +2,7 @@ export { EvidenceRepository } from "./evidence.repository";
 export { EvidenceService } from "./evidence.service";
 export type { ManagedSystemHealthWaitResult } from "./evidence.service";
 export { EvidenceFactory } from "./evidence.factory";
-export {
-  getDeterministicEvidenceState,
-  isDeterministicallyUnhealthy,
-} from "./evidence.helpers";
+export { getDeterministicEvidenceState, isDeterministicallyUnhealthy } from "./evidence.helpers";
 export {
   evidenceSignalCodeSchema,
   evidenceSignalStatusSchema,

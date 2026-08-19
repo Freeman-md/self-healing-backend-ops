@@ -7,12 +7,7 @@ export type FaultProfileCode =
 
 export type ExperimentBatchStatus = "active" | "completed" | "failed";
 export type ExperimentRunStatus =
-  | "prepared"
-  | "fault_injected"
-  | "trial_linked"
-  | "completed"
-  | "invalid"
-  | "failed";
+  "prepared" | "fault_injected" | "trial_linked" | "completed" | "invalid" | "failed";
 
 export type ExperimentConfiguration = {
   recoveryMode: RecoveryMode;

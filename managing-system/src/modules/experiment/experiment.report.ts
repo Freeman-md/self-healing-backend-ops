@@ -1,7 +1,4 @@
-import type {
-  ExperimentBatch,
-  ExperimentRunRecord,
-} from "./experiment.types";
+import type { ExperimentBatch, ExperimentRunRecord } from "./experiment.types";
 
 export type ExperimentEvidencePackage = {
   batch: ExperimentBatch;
@@ -59,28 +56,21 @@ export function createExperimentEvidencePackage(
   return { batch, runs, summary: createExperimentSummary(runs) };
 }
 
-export function createExperimentSummary(
-  runs: ExperimentRunRecord[],
-): ExperimentSummary {
+export function createExperimentSummary(runs: ExperimentRunRecord[]): ExperimentSummary {
   const validRuns = runs.filter((run) => run.valid === true);
-  const invocations = validRuns.flatMap(
-    (run) => run.trial?.modelInvocations ?? [],
-  );
-  const verifiedRecoveries = validRuns.filter(
-    (run) => run.oracleSucceeded,
-  ).length;
-  const automaticResolutions = validRuns.filter(
-    (run) => run.runtimeResolved,
-  ).length;
-  const diagnosisCorrectRuns = validRuns.filter(
-    (run) => run.diagnosisCorrect,
-  ).length;
-  const actionSequenceCorrectRuns = validRuns.filter(
-    (run) => run.actionSequenceCorrect,
-  ).length;
-  const safetyMaintainedRuns = validRuns.filter(
-    (run) => run.trial?.safetyMaintained,
-  ).length;
+
+  const invocations = validRuns.flatMap((run) => run.trial?.modelInvocations ?? []);
+
+  const verifiedRecoveries = validRuns.filter((run) => run.oracleSucceeded).length;
+
+  const automaticResolutions = validRuns.filter((run) => run.runtimeResolved).length;
+
+  const diagnosisCorrectRuns = validRuns.filter((run) => run.diagnosisCorrect).length;
+
+  const actionSequenceCorrectRuns = validRuns.filter((run) => run.actionSequenceCorrect).length;
+
+  const safetyMaintainedRuns = validRuns.filter((run) => run.trial?.safetyMaintained).length;
+
   const timingValues: Record<string, number[]> = {
     faultToDetectionMs: values(validRuns, (run) => run.faultToDetectionMs),
     timeToHealMs: values(validRuns, (run) => run.timeToHealMs),
@@ -89,46 +79,30 @@ export function createExperimentSummary(
       validRuns,
       (run) => run.trial?.measurement?.unhealthyConfirmationDelayMs,
     ),
-    timeToFirstActionMs: values(
-      validRuns,
-      (run) => run.trial?.measurement?.timeToFirstActionMs,
-    ),
+    timeToFirstActionMs: values(validRuns, (run) => run.trial?.measurement?.timeToFirstActionMs),
     recoveryLoopDurationMs: values(
       validRuns,
       (run) => run.trial?.measurement?.recoveryLoopDurationMs,
     ),
-    observedTimeToHealMs: values(
-      validRuns,
-      (run) => run.trial?.measurement?.observedTimeToHealMs,
-    ),
+    observedTimeToHealMs: values(validRuns, (run) => run.trial?.measurement?.observedTimeToHealMs),
   };
+
   const countValues: Record<string, number[]> = {
-    decisionCount: values(
-      validRuns,
-      (run) => run.trial?.measurement?.decisionCount,
-    ),
+    decisionCount: values(validRuns, (run) => run.trial?.measurement?.decisionCount),
     actionCount: values(validRuns, (run) => run.trial?.actionCount),
     successfulActionCount: values(validRuns, (run) => {
-      if (!run.trial) return null;
+      if (!run.trial) {
+        return null;
+      }
+
       return Math.max(
         0,
-        run.trial.actionCount -
-          run.trial.blockedActionCount -
-          run.trial.failedActionCount,
+        run.trial.actionCount - run.trial.blockedActionCount - run.trial.failedActionCount,
       );
     }),
-    blockedActionCount: values(
-      validRuns,
-      (run) => run.trial?.blockedActionCount,
-    ),
-    failedActionCount: values(
-      validRuns,
-      (run) => run.trial?.failedActionCount,
-    ),
-    unnecessaryActionCount: values(
-      validRuns,
-      (run) => run.unnecessaryActionCount,
-    ),
+    blockedActionCount: values(validRuns, (run) => run.trial?.blockedActionCount),
+    failedActionCount: values(validRuns, (run) => run.trial?.failedActionCount),
+    unnecessaryActionCount: values(validRuns, (run) => run.unnecessaryActionCount),
   };
 
   return {
@@ -154,7 +128,9 @@ export function createExperimentSummary(
       .filter((run) => run.valid !== true)
       .reduce<Record<string, number>>((counts, run) => {
         const reason = run.exclusionReason ?? "Unspecified exclusion";
+
         counts[reason] = (counts[reason] ?? 0) + 1;
+
         return counts;
       }, {}),
     timing: Object.fromEntries(
@@ -169,24 +145,16 @@ export function createExperimentSummary(
     ),
     model: {
       callCount: invocations.length,
-      failedCallCount: invocations.filter(
-        (invocation) => invocation.status === "failed",
-      ).length,
+      failedCallCount: invocations.filter((invocation) => invocation.status === "failed").length,
       latencyMs: summarize(invocations.map((invocation) => invocation.durationMs)),
       totalTokens: invocations.reduce(
         (total, invocation) => total + (invocation.totalTokens ?? 0),
         0,
       ),
       tokenUsage: {
-        inputTokens: summarize(
-          present(invocations.map((invocation) => invocation.inputTokens)),
-        ),
-        outputTokens: summarize(
-          present(invocations.map((invocation) => invocation.outputTokens)),
-        ),
-        totalTokens: summarize(
-          present(invocations.map((invocation) => invocation.totalTokens)),
-        ),
+        inputTokens: summarize(present(invocations.map((invocation) => invocation.inputTokens))),
+        outputTokens: summarize(present(invocations.map((invocation) => invocation.outputTokens))),
+        totalTokens: summarize(present(invocations.map((invocation) => invocation.totalTokens))),
       },
     },
   };
@@ -223,6 +191,7 @@ export function createExperimentCsv(runs: ExperimentRunRecord[]): string {
     "modelTotalTokens",
     "exclusionReason",
   ];
+
   const rows = runs.map((run) => [
     run.id,
     run.batchId,
@@ -250,9 +219,7 @@ export function createExperimentCsv(runs: ExperimentRunRecord[]): string {
     run.trial
       ? Math.max(
           0,
-          run.trial.actionCount -
-            run.trial.blockedActionCount -
-            run.trial.failedActionCount,
+          run.trial.actionCount - run.trial.blockedActionCount - run.trial.failedActionCount,
         )
       : null,
     run.trial?.safetyMaintained,
@@ -263,15 +230,13 @@ export function createExperimentCsv(runs: ExperimentRunRecord[]): string {
     ) ?? 0,
     run.exclusionReason,
   ]);
-  return [columns, ...rows]
-    .map((row) => row.map(csvCell).join(","))
-    .join("\n");
+
+  return [columns, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
 }
 
-export function createExperimentMarkdown(
-  evidence: ExperimentEvidencePackage,
-): string {
+export function createExperimentMarkdown(evidence: ExperimentEvidencePackage): string {
   const { batch, summary } = evidence;
+
   const lines = [
     `# Experiment Batch ${batch.name}`,
     "",
@@ -294,25 +259,25 @@ export function createExperimentMarkdown(
     "",
     "| Measure | N | Mean | Median | SD | IQR | Min | Max |",
     "|---|---:|---:|---:|---:|---:|---:|---:|",
-    ...Object.entries(summary.timing).map(([name, value]) =>
-      `| ${name} | ${value.count} | ${round(value.mean)} | ${round(value.median)} | ${round(value.standardDeviation)} | ${round(value.interquartileRange)} | ${value.minimum} | ${value.maximum} |`,
+    ...Object.entries(summary.timing).map(
+      ([name, value]) =>
+        `| ${name} | ${value.count} | ${round(value.mean)} | ${round(value.median)} | ${round(value.standardDeviation)} | ${round(value.interquartileRange)} | ${value.minimum} | ${value.maximum} |`,
     ),
     "",
     "## Decisions and Actions",
     "",
     "| Measure | N | Mean | Median | SD | IQR | Min | Max |",
     "|---|---:|---:|---:|---:|---:|---:|---:|",
-    ...Object.entries(summary.counts).map(([name, value]) =>
-      `| ${name} | ${value.count} | ${round(value.mean)} | ${round(value.median)} | ${round(value.standardDeviation)} | ${round(value.interquartileRange)} | ${value.minimum} | ${value.maximum} |`,
+    ...Object.entries(summary.counts).map(
+      ([name, value]) =>
+        `| ${name} | ${value.count} | ${round(value.mean)} | ${round(value.median)} | ${round(value.standardDeviation)} | ${round(value.interquartileRange)} | ${value.minimum} | ${value.maximum} |`,
     ),
     "",
     "## Exclusions",
     "",
     ...(Object.keys(summary.exclusions).length === 0
       ? ["No runs were excluded."]
-      : Object.entries(summary.exclusions).map(
-          ([reason, count]) => `- ${reason}: ${count}`,
-        )),
+      : Object.entries(summary.exclusions).map(([reason, count]) => `- ${reason}: ${count}`)),
     "",
     "## Model Usage",
     "",
@@ -324,6 +289,7 @@ export function createExperimentMarkdown(
     "",
     "Pilot results validate instrumentation only and do not establish comparative superiority.",
   ];
+
   return lines.join("\n");
 }
 
@@ -331,13 +297,18 @@ export function summarize(values: number[]): StatisticalSummary | null {
   if (values.length === 0) {
     return null;
   }
+
   const ordered = [...values].sort((left, right) => left - right);
+
   const mean = ordered.reduce((total, value) => total + value, 0) / ordered.length;
+
   const variance =
-    ordered.reduce((total, value) => total + (value - mean) ** 2, 0) /
-    ordered.length;
+    ordered.reduce((total, value) => total + (value - mean) ** 2, 0) / ordered.length;
+
   const firstQuartile = percentile(ordered, 0.25);
+
   const thirdQuartile = percentile(ordered, 0.75);
+
   return {
     count: ordered.length,
     mean,
@@ -366,15 +337,25 @@ function rate(count: number, total: number): number | null {
 
 function percentile(ordered: number[], percentileValue: number): number {
   const index = (ordered.length - 1) * percentileValue;
+
   const lower = Math.floor(index);
+
   const upper = Math.ceil(index);
-  if (lower === upper) return ordered[lower];
+
+  if (lower === upper) {
+    return ordered[lower];
+  }
+
   return ordered[lower] + (ordered[upper] - ordered[lower]) * (index - lower);
 }
 
 function csvCell(value: unknown): string {
-  if (value === null || value === undefined) return "";
+  if (value === null || value === undefined) {
+    return "";
+  }
+
   const text = String(value);
+
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 

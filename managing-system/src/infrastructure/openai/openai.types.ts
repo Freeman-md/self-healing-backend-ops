@@ -1,8 +1,5 @@
 export type OpenAIInvocationOperation =
-  | "evidence_normalization"
-  | "diagnosis"
-  | "recovery_planning"
-  | "outcome_evaluation";
+  "evidence_normalization" | "diagnosis" | "recovery_planning" | "outcome_evaluation";
 
 export type OpenAITelemetryContext = {
   operation: OpenAIInvocationOperation;
