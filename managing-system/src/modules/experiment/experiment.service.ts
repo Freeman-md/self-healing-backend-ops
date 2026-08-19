@@ -7,7 +7,7 @@ import type {
   ExperimentBatch,
   ExperimentConfiguration,
   ExperimentRun,
-  ExperimentRunRecord,
+  ExperimentRunReportData,
   ExperimentTrialCandidate,
   FaultProfileCode,
   RecoveryOracleResult,
@@ -108,11 +108,7 @@ export class ExperimentService {
           ? "No completed monitor-triggered trial was found after fault injection."
           : `Expected one monitor-triggered trial but found ${candidates.length}.`;
 
-      await this.repository.invalidateExperimentRun(
-        run.id,
-        reason,
-        new Date(this.now()),
-      );
+      await this.repository.invalidateExperimentRun(run.id, reason, new Date(this.now()));
       throw new Error(reason);
     }
 
@@ -173,24 +169,16 @@ export class ExperimentService {
     batchId: string,
     status: "completed" | "failed" = "completed",
   ): Promise<ExperimentBatch> {
-    return this.repository.completeExperimentBatch(
-      batchId,
-      status,
-      new Date(this.now()),
-    );
+    return this.repository.completeExperimentBatch(batchId, status, new Date(this.now()));
   }
 
   invalidateExperimentRun(runId: string, reason: string): Promise<ExperimentRun> {
-    return this.repository.invalidateExperimentRun(
-      runId,
-      reason,
-      new Date(this.now()),
-    );
+    return this.repository.invalidateExperimentRun(runId, reason, new Date(this.now()));
   }
 
   async getExperimentEvidence(batchId: string): Promise<{
     batch: ExperimentBatch;
-    runs: ExperimentRunRecord[];
+    runs: ExperimentRunReportData[];
   }> {
     const batch = await this.repository.findExperimentBatch(batchId);
 
@@ -200,7 +188,7 @@ export class ExperimentService {
 
     return {
       batch,
-      runs: await this.repository.listExperimentRunRecords(batchId),
+      runs: await this.repository.listExperimentRunReportData(batchId),
     };
   }
 

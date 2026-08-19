@@ -8,7 +8,7 @@ import {
 import { PrismaService } from "@/infrastructure/database";
 import type {
   ExperimentConfiguration,
-  ExperimentRunRecord,
+  ExperimentRunReportData,
   ExperimentTrialCandidate,
   RecoveryOracleResult,
 } from "./experiment.types";
@@ -292,7 +292,7 @@ export class ExperimentRepository {
     });
   }
 
-  async listExperimentRunRecords(batchId: string): Promise<ExperimentRunRecord[]> {
+  async listExperimentRunReportData(batchId: string): Promise<ExperimentRunReportData[]> {
     const rows = await this.prisma.experimentRun.findMany({
       where: { batchId },
       include: {

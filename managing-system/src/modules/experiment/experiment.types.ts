@@ -1,8 +1,4 @@
-import type {
-  ExperimentBatch,
-  ExperimentRun,
-  FaultProfileCode,
-} from "@/generated/prisma/client";
+import type { ExperimentRun, FaultProfileCode } from "@/generated/prisma/client";
 import type { RecoveryMode } from "@/modules/recovery";
 
 export type { ExperimentBatch, ExperimentRun, FaultProfileCode } from "@/generated/prisma/client";
@@ -10,13 +6,11 @@ export type { ExperimentBatch, ExperimentRun, FaultProfileCode } from "@/generat
 export type ExperimentConfiguration = {
   recoveryMode: RecoveryMode;
   model: string;
-  promptVersion: string;
   baselineRuleVersions: Record<string, number>;
   actionCatalogueFingerprint: string;
   monitorIntervalMs: number;
   consecutiveUnhealthyThreshold: number;
   cooldownMs: number;
-  maxRecoverySteps: number;
   faultProfiles: FaultProfileCode[];
   stabilityWindowMs: number;
   preFaultSettleMs: number;
@@ -43,7 +37,7 @@ export type RecoveryOracleResult = {
   details: Record<string, unknown>;
 };
 
-export type ExperimentRunRecord = ExperimentRun & {
+export type ExperimentRunReportData = ExperimentRun & {
   trial: null | {
     status: string;
     outcome: string;

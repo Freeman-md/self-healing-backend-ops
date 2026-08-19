@@ -1,4 +1,3 @@
-import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { config } from "../src/config/index";
@@ -7,15 +6,22 @@ import { PrismaService } from "../src/infrastructure/database/prisma.service";
 import {
   ExperimentRepository,
   ExperimentService,
-  createExperimentCsv,
   createExperimentReport,
-  createExperimentMarkdown,
   faultProfiles,
   isFaultProfileCode,
   type FaultProfileCode,
+  writeExperimentReport,
 } from "../src/modules/experiment/index";
 import { injectFaultProfile, restoreExperimentTargets } from "./experiment/fault-injector";
 import { RecoveryOracle } from "./experiment/recovery-oracle";
+
+const experimentDefaults = {
+  seed: "milestone-7-pilot",
+  stabilityWindowMs: 10_000,
+  trialWaitTimeoutMs: 180_000,
+  environmentResetTimeoutMs: 60_000,
+  outputDirectory: "/managing-system/experiment-output",
+} as const;
 
 async function main(): Promise<void> {
   const input = parseArguments(process.argv.slice(2));
@@ -25,7 +31,7 @@ async function main(): Promise<void> {
 
   await prisma.open();
   const experimentService = new ExperimentService(new ExperimentRepository(prisma), {
-    trialWaitTimeoutMs: input.trialWaitTimeoutMs,
+    trialWaitTimeoutMs: experimentDefaults.trialWaitTimeoutMs,
   });
 
   const oracle = new RecoveryOracle(
@@ -37,14 +43,12 @@ async function main(): Promise<void> {
     const configuration = await experimentService.createFrozenConfiguration({
       recoveryMode: input.recoveryMode,
       model: config.openai.model,
-      promptVersion: "1.0.0",
       monitorIntervalMs: config.monitoring.intervalMs,
       consecutiveUnhealthyThreshold: config.monitoring.consecutiveUnhealthyThreshold,
       cooldownMs: config.monitoring.cooldownMs,
-      maxRecoverySteps: 3,
       faultProfiles: input.profiles,
-      stabilityWindowMs: input.stabilityWindowMs,
-      preFaultSettleMs: input.preFaultSettleMs,
+      stabilityWindowMs: experimentDefaults.stabilityWindowMs,
+      preFaultSettleMs: config.monitoring.cooldownMs,
     });
 
     const batch = await experimentService.createExperimentBatch({
@@ -52,10 +56,10 @@ async function main(): Promise<void> {
       sourceRevision: input.sourceRevision,
       configuration,
       requestedRepetitions: input.repetitions,
-      runOrderSeed: input.seed,
+      runOrderSeed: experimentDefaults.seed,
     });
 
-    const runOrder = shuffledRunOrder(input.profiles, input.repetitions, input.seed);
+    const runOrder = shuffledRunOrder(input.profiles, input.repetitions, experimentDefaults.seed);
 
     for (const runInput of runOrder) {
       const run = await experimentService.prepareExperimentRun({
@@ -63,7 +67,7 @@ async function main(): Promise<void> {
         faultProfile: runInput.faultProfile,
         recoveryMode: input.recoveryMode,
         repetition: runInput.repetition,
-        stabilityWindowMs: input.stabilityWindowMs,
+        stabilityWindowMs: experimentDefaults.stabilityWindowMs,
       });
 
       console.log({
@@ -75,8 +79,8 @@ async function main(): Promise<void> {
         repetition: run.repetition,
       });
       try {
-        await restoreAndVerify(oracle, input.environmentResetTimeoutMs);
-        await sleep(input.preFaultSettleMs);
+        await restoreAndVerify(oracle, experimentDefaults.environmentResetTimeoutMs);
+        await sleep(config.monitoring.cooldownMs);
         const injectedRun = await experimentService.markFaultInjected(run.id);
 
         console.log({
@@ -93,7 +97,9 @@ async function main(): Promise<void> {
           runId: run.id,
           trialRecordId: trial.id,
         });
-        const oracleResult = await oracle.verifyStableRecovery(input.stabilityWindowMs);
+        const oracleResult = await oracle.verifyStableRecovery(
+          experimentDefaults.stabilityWindowMs,
+        );
 
         const completedRun = await experimentService.completeExperimentRun({
           run: injectedRun,
@@ -119,7 +125,7 @@ async function main(): Promise<void> {
           reason,
         });
       } finally {
-        await restoreAndVerify(oracle, input.environmentResetTimeoutMs);
+        await restoreAndVerify(oracle, experimentDefaults.environmentResetTimeoutMs);
         console.log({
           event: "experiment_environment_restored",
           runId: run.id,
@@ -132,17 +138,9 @@ async function main(): Promise<void> {
 
     const report = createExperimentReport(evidence.batch, evidence.runs);
 
-    const outputDirectory = resolve(input.outputDirectory, batch.id);
+    const outputDirectory = resolve(experimentDefaults.outputDirectory, batch.id);
 
-    await mkdir(outputDirectory, { recursive: true });
-    await Promise.all([
-      writeFile(
-        resolve(outputDirectory, "experiment.json"),
-        JSON.stringify(report, null, 2),
-      ),
-      writeFile(resolve(outputDirectory, "runs.csv"), createExperimentCsv(evidence.runs)),
-      writeFile(resolve(outputDirectory, "summary.md"), createExperimentMarkdown(report)),
-    ]);
+    await writeExperimentReport({ report, outputDirectory });
     console.log({
       event: "experiment_batch_completed",
       batchId: batch.id,
@@ -167,12 +165,6 @@ type RunnerInput = {
   recoveryMode: "baseline" | "agent";
   profiles: FaultProfileCode[];
   repetitions: number;
-  seed: string;
-  stabilityWindowMs: number;
-  preFaultSettleMs: number;
-  trialWaitTimeoutMs: number;
-  environmentResetTimeoutMs: number;
-  outputDirectory: string;
 };
 
 function parseArguments(argumentsList: string[]): RunnerInput {
@@ -186,16 +178,11 @@ function parseArguments(argumentsList: string[]): RunnerInput {
       mode: { type: "string" },
       profiles: { type: "string" },
       repetitions: { type: "string" },
-      seed: { type: "string" },
-      "stability-window-ms": { type: "string" },
-      "pre-fault-settle-ms": { type: "string" },
-      "trial-wait-timeout-ms": { type: "string" },
-      "reset-timeout-ms": { type: "string" },
-      "output-directory": { type: "string" },
     },
   });
 
   const sourceRevision = requiredOption(values["source-revision"], "source-revision");
+
   const recoveryMode = requiredOption(values.mode, "mode");
 
   if (recoveryMode !== "baseline" && recoveryMode !== "agent") {
@@ -210,24 +197,6 @@ function parseArguments(argumentsList: string[]): RunnerInput {
     recoveryMode,
     profiles,
     repetitions: positiveInteger(values.repetitions ?? "2", "repetitions"),
-    seed: values.seed ?? "milestone-7-pilot",
-    stabilityWindowMs: nonNegativeInteger(
-      values["stability-window-ms"] ?? "10000",
-      "stability-window-ms",
-    ),
-    preFaultSettleMs: nonNegativeInteger(
-      values["pre-fault-settle-ms"] ?? String(config.monitoring.cooldownMs),
-      "pre-fault-settle-ms",
-    ),
-    trialWaitTimeoutMs: positiveInteger(
-      values["trial-wait-timeout-ms"] ?? "180000",
-      "trial-wait-timeout-ms",
-    ),
-    environmentResetTimeoutMs: positiveInteger(
-      values["reset-timeout-ms"] ?? "60000",
-      "reset-timeout-ms",
-    ),
-    outputDirectory: values["output-directory"] ?? "/managing-system/experiment-output",
   };
 }
 
@@ -312,16 +281,6 @@ function positiveInteger(value: string, name: string): number {
 
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error(`--${name} must be a positive integer.`);
-  }
-
-  return parsed;
-}
-
-function nonNegativeInteger(value: string, name: string): number {
-  const parsed = Number(value);
-
-  if (!Number.isInteger(parsed) || parsed < 0) {
-    throw new Error(`--${name} must be a non-negative integer.`);
   }
 
   return parsed;

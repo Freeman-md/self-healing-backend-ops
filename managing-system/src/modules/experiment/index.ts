@@ -6,13 +6,14 @@ export {
   createExperimentMarkdown,
   createExperimentSummary,
   summarize,
+  writeExperimentReport,
 } from "./experiment.report";
 export { faultProfiles, findFaultProfile, isFaultProfileCode } from "./experiment.profiles";
 export type {
   ExperimentBatch,
   ExperimentConfiguration,
   ExperimentRun,
-  ExperimentRunRecord,
+  ExperimentRunReportData,
   ExperimentTrialCandidate,
   FaultProfileCode,
   RecoveryOracleResult,

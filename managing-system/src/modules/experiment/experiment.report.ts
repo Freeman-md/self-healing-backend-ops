@@ -1,8 +1,11 @@
-import type { ExperimentBatch, ExperimentRunRecord } from "./experiment.types";
+import { mkdir, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+
+import type { ExperimentBatch, ExperimentRunReportData } from "./experiment.types";
 
 export type ExperimentReport = {
   batch: ExperimentBatch;
-  runs: ExperimentRunRecord[];
+  runs: ExperimentRunReportData[];
   summary: ExperimentSummary;
 };
 
@@ -51,12 +54,12 @@ export type StatisticalSummary = {
 
 export function createExperimentReport(
   batch: ExperimentBatch,
-  runs: ExperimentRunRecord[],
+  runs: ExperimentRunReportData[],
 ): ExperimentReport {
   return { batch, runs, summary: createExperimentSummary(runs) };
 }
 
-export function createExperimentSummary(runs: ExperimentRunRecord[]): ExperimentSummary {
+export function createExperimentSummary(runs: ExperimentRunReportData[]): ExperimentSummary {
   const validRuns = runs.filter((run) => run.valid === true);
 
   const invocations = validRuns.flatMap((run) => run.trial?.modelInvocations ?? []);
@@ -160,7 +163,7 @@ export function createExperimentSummary(runs: ExperimentRunRecord[]): Experiment
   };
 }
 
-export function createExperimentCsv(runs: ExperimentRunRecord[]): string {
+export function createExperimentCsv(runs: ExperimentRunReportData[]): string {
   const columns = [
     "runId",
     "batchId",
@@ -293,6 +296,22 @@ export function createExperimentMarkdown(evidence: ExperimentReport): string {
   return lines.join("\n");
 }
 
+export async function writeExperimentReport({
+  report,
+  outputDirectory,
+}: {
+  report: ExperimentReport;
+  outputDirectory: string;
+}): Promise<void> {
+  await mkdir(outputDirectory, { recursive: true });
+
+  await Promise.all([
+    writeFile(resolve(outputDirectory, "experiment.json"), JSON.stringify(report, null, 2)),
+    writeFile(resolve(outputDirectory, "runs.csv"), createExperimentCsv(report.runs)),
+    writeFile(resolve(outputDirectory, "summary.md"), createExperimentMarkdown(report)),
+  ]);
+}
+
 export function summarize(values: number[]): StatisticalSummary | null {
   if (values.length === 0) {
     return null;
@@ -321,8 +340,8 @@ export function summarize(values: number[]): StatisticalSummary | null {
 }
 
 function values(
-  runs: ExperimentRunRecord[],
-  select: (run: ExperimentRunRecord) => number | null | undefined,
+  runs: ExperimentRunReportData[],
+  select: (run: ExperimentRunReportData) => number | null | undefined,
 ): number[] {
   return runs.map(select).filter((value): value is number => value !== null && value !== undefined);
 }

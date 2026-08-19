@@ -1,12 +1,10 @@
-import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { PrismaService } from "../src/infrastructure/database/prisma.service";
 import {
   ExperimentRepository,
   ExperimentService,
-  createExperimentCsv,
   createExperimentReport,
-  createExperimentMarkdown,
+  writeExperimentReport,
 } from "../src/modules/experiment/index";
 
 async function main(): Promise<void> {
@@ -31,15 +29,7 @@ async function main(): Promise<void> {
 
     const report = createExperimentReport(evidence.batch, evidence.runs);
 
-    await mkdir(outputDirectory, { recursive: true });
-    await Promise.all([
-      writeFile(
-        resolve(outputDirectory, "experiment.json"),
-        JSON.stringify(report, null, 2),
-      ),
-      writeFile(resolve(outputDirectory, "runs.csv"), createExperimentCsv(evidence.runs)),
-      writeFile(resolve(outputDirectory, "summary.md"), createExperimentMarkdown(report)),
-    ]);
+    await writeExperimentReport({ report, outputDirectory });
     console.log({ event: "experiment_exported", batchId, outputDirectory });
   } finally {
     await prisma.close();

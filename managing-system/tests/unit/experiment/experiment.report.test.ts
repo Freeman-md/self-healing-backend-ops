@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createExperimentSummary, type ExperimentRunRecord } from "@/modules/experiment";
+import { createExperimentSummary, type ExperimentRunReportData } from "@/modules/experiment";
 
-function run(overrides: Partial<ExperimentRunRecord> = {}): ExperimentRunRecord {
+function run(overrides: Partial<ExperimentRunReportData> = {}): ExperimentRunReportData {
   return {
     id: "run-1",
     batchId: "batch-1",

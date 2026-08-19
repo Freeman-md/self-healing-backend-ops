@@ -130,11 +130,9 @@ test("measurement and experiment evidence persist as one queryable recovery reco
     > = {
       recoveryMode: "baseline",
       model: "test-model",
-      promptVersion: "1.0.0",
       monitorIntervalMs: 5_000,
       consecutiveUnhealthyThreshold: 2,
       cooldownMs: 15_000,
-      maxRecoverySteps: 3,
       faultProfiles: ["managed_system_postgres_stopped"],
       stabilityWindowMs: 10_000,
       preFaultSettleMs: 15_000,
