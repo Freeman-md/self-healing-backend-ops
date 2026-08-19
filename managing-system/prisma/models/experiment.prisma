@@ -1,3 +1,24 @@
+enum ExperimentBatchStatus {
+  active
+  completed
+  failed
+}
+
+enum ExperimentRunStatus {
+  prepared
+  fault_injected
+  trial_linked
+  completed
+  invalid
+  failed
+}
+
+enum FaultProfileCode {
+  managed_system_application_stopped
+  managed_system_postgres_stopped
+  managed_system_application_and_postgres_stopped
+}
+
 model ExperimentBatch {
   id                   String                @id
   name                 String

@@ -1,3 +1,30 @@
+enum TrialStatus {
+  started
+  resolved
+  unresolved
+  escalated
+  failed
+}
+
+enum TrialOutcome {
+  resolved_safely
+  unresolved_escalated
+  unresolved_not_escalated
+  resolved_unsafely
+  failed
+}
+
+enum TrialEvidenceRole {
+  initial
+  intermediate
+  final
+}
+
+enum TrialTriggerSource {
+  controlled
+  monitor
+}
+
 model TrialRecord {
   id                    String                  @id
   triggerSource         TrialTriggerSource      @default(controlled) @map("trigger_source")

@@ -1,3 +1,49 @@
+enum RiskLevel {
+  low
+  medium
+  high
+}
+
+enum SafetyCheckType {
+  evidence_state_matches
+  max_attempts_not_exceeded
+}
+
+enum SafetyFailureAction {
+  block
+  escalate
+}
+
+enum OutcomeCheckType {
+  health_status_is
+  endpoint_returns_status
+  metric_below_threshold
+  container_running
+  file_exists
+  action_completed
+}
+
+enum ActionExecutionStatus {
+  skipped
+  blocked
+  executed
+  failed
+}
+
+enum ActionExecutionContinuation {
+  resolved
+  continue
+  blocked
+  escalated
+  failed
+}
+
+enum SafetyCheckStatus {
+  passed
+  failed
+  not_checked
+}
+
 model Action {
   id                 String                  @id
   name               String

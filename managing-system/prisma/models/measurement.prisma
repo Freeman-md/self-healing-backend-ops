@@ -1,3 +1,15 @@
+enum ModelInvocationOperation {
+  evidence_normalization
+  diagnosis
+  recovery_planning
+  outcome_evaluation
+}
+
+enum ModelInvocationStatus {
+  succeeded
+  failed
+}
+
 model RecoveryMeasurement {
   trialRecordId                    String            @id @map("trial_record_id")
   measurementVersion              String            @map("measurement_version")
