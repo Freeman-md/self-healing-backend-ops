@@ -5,7 +5,7 @@ import {
   ExperimentRepository,
   ExperimentService,
   createExperimentCsv,
-  createExperimentEvidencePackage,
+  createExperimentReport,
   createExperimentMarkdown,
 } from "../src/modules/experiment/index";
 
@@ -29,16 +29,16 @@ async function main(): Promise<void> {
       new ExperimentRepository(prisma),
     ).getExperimentEvidence(batchId);
 
-    const evidencePackage = createExperimentEvidencePackage(evidence.batch, evidence.runs);
+    const report = createExperimentReport(evidence.batch, evidence.runs);
 
     await mkdir(outputDirectory, { recursive: true });
     await Promise.all([
       writeFile(
         resolve(outputDirectory, "experiment.json"),
-        JSON.stringify(evidencePackage, null, 2),
+        JSON.stringify(report, null, 2),
       ),
       writeFile(resolve(outputDirectory, "runs.csv"), createExperimentCsv(evidence.runs)),
-      writeFile(resolve(outputDirectory, "summary.md"), createExperimentMarkdown(evidencePackage)),
+      writeFile(resolve(outputDirectory, "summary.md"), createExperimentMarkdown(report)),
     ]);
     console.log({ event: "experiment_exported", batchId, outputDirectory });
   } finally {

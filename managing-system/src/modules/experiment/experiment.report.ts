@@ -1,6 +1,6 @@
 import type { ExperimentBatch, ExperimentRunRecord } from "./experiment.types";
 
-export type ExperimentEvidencePackage = {
+export type ExperimentReport = {
   batch: ExperimentBatch;
   runs: ExperimentRunRecord[];
   summary: ExperimentSummary;
@@ -49,10 +49,10 @@ export type StatisticalSummary = {
   maximum: number;
 };
 
-export function createExperimentEvidencePackage(
+export function createExperimentReport(
   batch: ExperimentBatch,
   runs: ExperimentRunRecord[],
-): ExperimentEvidencePackage {
+): ExperimentReport {
   return { batch, runs, summary: createExperimentSummary(runs) };
 }
 
@@ -234,7 +234,7 @@ export function createExperimentCsv(runs: ExperimentRunRecord[]): string {
   return [columns, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
 }
 
-export function createExperimentMarkdown(evidence: ExperimentEvidencePackage): string {
+export function createExperimentMarkdown(evidence: ExperimentReport): string {
   const { batch, summary } = evidence;
 
   const lines = [

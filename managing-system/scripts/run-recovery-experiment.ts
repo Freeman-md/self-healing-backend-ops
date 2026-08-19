@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { parseArgs } from "node:util";
 import { config } from "../src/config/index";
 import { DockerContainerRuntimeService } from "../src/infrastructure/container-runtime/docker-container-runtime.service";
 import { PrismaService } from "../src/infrastructure/database/prisma.service";
@@ -7,18 +8,14 @@ import {
   ExperimentRepository,
   ExperimentService,
   createExperimentCsv,
-  createExperimentEvidencePackage,
+  createExperimentReport,
   createExperimentMarkdown,
+  faultProfiles,
+  isFaultProfileCode,
   type FaultProfileCode,
 } from "../src/modules/experiment/index";
 import { injectFaultProfile, restoreExperimentTargets } from "./experiment/fault-injector";
 import { RecoveryOracle } from "./experiment/recovery-oracle";
-
-const validProfiles: FaultProfileCode[] = [
-  "managed_system_application_stopped",
-  "managed_system_postgres_stopped",
-  "managed_system_application_and_postgres_stopped",
-];
 
 async function main(): Promise<void> {
   const input = parseArguments(process.argv.slice(2));
@@ -133,7 +130,7 @@ async function main(): Promise<void> {
     await experimentService.completeExperimentBatch(batch.id);
     const evidence = await experimentService.getExperimentEvidence(batch.id);
 
-    const evidencePackage = createExperimentEvidencePackage(evidence.batch, evidence.runs);
+    const report = createExperimentReport(evidence.batch, evidence.runs);
 
     const outputDirectory = resolve(input.outputDirectory, batch.id);
 
@@ -141,16 +138,16 @@ async function main(): Promise<void> {
     await Promise.all([
       writeFile(
         resolve(outputDirectory, "experiment.json"),
-        JSON.stringify(evidencePackage, null, 2),
+        JSON.stringify(report, null, 2),
       ),
       writeFile(resolve(outputDirectory, "runs.csv"), createExperimentCsv(evidence.runs)),
-      writeFile(resolve(outputDirectory, "summary.md"), createExperimentMarkdown(evidencePackage)),
+      writeFile(resolve(outputDirectory, "summary.md"), createExperimentMarkdown(report)),
     ]);
     console.log({
       event: "experiment_batch_completed",
       batchId: batch.id,
       outputDirectory,
-      summary: evidencePackage.summary,
+      summary: report.summary,
     });
   } finally {
     await prisma.close();
@@ -179,61 +176,71 @@ type RunnerInput = {
 };
 
 function parseArguments(argumentsList: string[]): RunnerInput {
-  const values = new Map<string, string>();
+  const { values } = parseArgs({
+    args: argumentsList,
+    allowPositionals: false,
+    strict: true,
+    options: {
+      name: { type: "string" },
+      "source-revision": { type: "string" },
+      mode: { type: "string" },
+      profiles: { type: "string" },
+      repetitions: { type: "string" },
+      seed: { type: "string" },
+      "stability-window-ms": { type: "string" },
+      "pre-fault-settle-ms": { type: "string" },
+      "trial-wait-timeout-ms": { type: "string" },
+      "reset-timeout-ms": { type: "string" },
+      "output-directory": { type: "string" },
+    },
+  });
 
-  for (let index = 0; index < argumentsList.length; index += 2) {
-    const key = argumentsList[index];
-
-    const value = argumentsList[index + 1];
-
-    if (!key?.startsWith("--") || value === undefined) {
-      throw new Error("Experiment arguments must use --name value pairs.");
-    }
-
-    values.set(key.slice(2), value);
-  }
-
-  const sourceRevision = required(values, "source-revision");
-
-  const recoveryMode = required(values, "mode");
+  const sourceRevision = requiredOption(values["source-revision"], "source-revision");
+  const recoveryMode = requiredOption(values.mode, "mode");
 
   if (recoveryMode !== "baseline" && recoveryMode !== "agent") {
     throw new Error("--mode must be baseline or agent.");
   }
 
-  const profiles = (values.get("profiles") ?? validProfiles.join(","))
-    .split(",")
-    .map((profile) => profile.trim()) as FaultProfileCode[];
-
-  if (profiles.some((profile) => !validProfiles.includes(profile))) {
-    throw new Error("--profiles contains an unsupported fault profile.");
-  }
+  const profiles = parseProfiles(values.profiles ?? Object.keys(faultProfiles).join(","));
 
   return {
-    name: values.get("name") ?? `pilot-${recoveryMode}`,
+    name: values.name ?? `pilot-${recoveryMode}`,
     sourceRevision,
     recoveryMode,
     profiles,
-    repetitions: positiveInteger(values.get("repetitions") ?? "2", "repetitions"),
-    seed: values.get("seed") ?? "milestone-7-pilot",
+    repetitions: positiveInteger(values.repetitions ?? "2", "repetitions"),
+    seed: values.seed ?? "milestone-7-pilot",
     stabilityWindowMs: nonNegativeInteger(
-      values.get("stability-window-ms") ?? "10000",
+      values["stability-window-ms"] ?? "10000",
       "stability-window-ms",
     ),
     preFaultSettleMs: nonNegativeInteger(
-      values.get("pre-fault-settle-ms") ?? String(config.monitoring.cooldownMs),
+      values["pre-fault-settle-ms"] ?? String(config.monitoring.cooldownMs),
       "pre-fault-settle-ms",
     ),
     trialWaitTimeoutMs: positiveInteger(
-      values.get("trial-wait-timeout-ms") ?? "180000",
+      values["trial-wait-timeout-ms"] ?? "180000",
       "trial-wait-timeout-ms",
     ),
     environmentResetTimeoutMs: positiveInteger(
-      values.get("reset-timeout-ms") ?? "60000",
+      values["reset-timeout-ms"] ?? "60000",
       "reset-timeout-ms",
     ),
-    outputDirectory: values.get("output-directory") ?? "/managing-system/experiment-output",
+    outputDirectory: values["output-directory"] ?? "/managing-system/experiment-output",
   };
+}
+
+function parseProfiles(value: string): FaultProfileCode[] {
+  return value.split(",").map((candidate) => {
+    const profileCode = candidate.trim();
+
+    if (!isFaultProfileCode(profileCode)) {
+      throw new Error(`Unsupported fault profile: ${profileCode}.`);
+    }
+
+    return profileCode;
+  });
 }
 
 function validateRuntimeConfiguration(input: RunnerInput): void {
@@ -292,11 +299,9 @@ function seededRandom(seed: string): () => number {
   };
 }
 
-function required(values: Map<string, string>, key: string): string {
-  const value = values.get(key);
-
+function requiredOption(value: string | undefined, name: string): string {
   if (!value) {
-    throw new Error(`--${key} is required.`);
+    throw new Error(`--${name} is required.`);
   }
 
   return value;

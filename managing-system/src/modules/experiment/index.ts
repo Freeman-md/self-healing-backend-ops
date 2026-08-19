@@ -2,12 +2,12 @@ export { ExperimentRepository } from "./experiment.repository";
 export { ExperimentService } from "./experiment.service";
 export {
   createExperimentCsv,
-  createExperimentEvidencePackage,
+  createExperimentReport,
   createExperimentMarkdown,
   createExperimentSummary,
   summarize,
 } from "./experiment.report";
-export { faultProfiles, findFaultProfile } from "./experiment.profiles";
+export { faultProfiles, findFaultProfile, isFaultProfileCode } from "./experiment.profiles";
 export type {
   ExperimentBatch,
   ExperimentConfiguration,
