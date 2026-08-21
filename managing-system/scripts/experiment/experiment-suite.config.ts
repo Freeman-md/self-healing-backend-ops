@@ -13,6 +13,7 @@ export const canonicalRecoverySuite = {
     FaultProfileCode.managed_system_postgres_stopped,
     FaultProfileCode.managed_system_application_and_postgres_stopped,
   ],
+  healthyControlDurationMs: 30_000,
   stabilityWindowMs: 10_000,
   monitorStartTimeoutMs: 120_000,
   reportRoot: "recovery-experiment-reports",

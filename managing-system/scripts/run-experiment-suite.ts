@@ -29,6 +29,18 @@ type BatchSummary = {
   modelTotalTokens: number;
 };
 
+type HealthyControlResult = {
+  recoveryMode: RecoveryMode;
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+  healthStable: boolean;
+  monitorTrialCount: number;
+  actionExecutionCount: number;
+  passed: boolean;
+  oracleDetails: Record<string, unknown>;
+};
+
 const execFileAsync = promisify(execFile);
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -71,6 +83,8 @@ async function main(): Promise<void> {
 
   const batchSummaries: BatchSummary[] = [];
 
+  const healthyControls: HealthyControlResult[] = [];
+
   for (const recoveryMode of canonicalRecoverySuite.recoveryModes) {
     const environment = environmentFor(recoveryMode);
 
@@ -84,6 +98,18 @@ async function main(): Promise<void> {
       environment,
     );
     await waitForMonitor(recoveryMode, canonicalRecoverySuite.monitorStartTimeoutMs, environment);
+
+    const healthyControl = await runHealthyControl(environment);
+
+    healthyControls.push(healthyControl);
+    await writeFile(
+      resolve(hostModeDirectory, "healthy-control.json"),
+      JSON.stringify(healthyControl, null, 2),
+    );
+
+    if (!healthyControl.passed) {
+      throw new Error(`Healthy control failed in ${recoveryMode} mode.`);
+    }
 
     await runCommand(
       "docker",
@@ -129,6 +155,7 @@ async function main(): Promise<void> {
     sourceRevision,
     campaignId,
     campaignDirectory: hostCampaignDirectory,
+    healthyControls,
     batches: batchSummaries,
   });
 
@@ -140,6 +167,35 @@ async function main(): Promise<void> {
     campaignDirectory: hostCampaignDirectory,
     batches: batchSummaries.map(({ mode, batchId }) => ({ mode, batchId })),
   });
+}
+
+async function runHealthyControl(environment: NodeJS.ProcessEnv): Promise<HealthyControlResult> {
+  const { stdout } = await execFileAsync(
+    "docker",
+    [
+      "exec",
+      "managing-system-app",
+      "npm",
+      "run",
+      "experiment:healthy-control",
+      "--",
+      "--duration-ms",
+      String(canonicalRecoverySuite.healthyControlDurationMs),
+    ],
+    {
+      cwd: repositoryRoot,
+      env: environment,
+      maxBuffer: 10 * 1024 * 1024,
+    },
+  );
+
+  const resultLine = stdout.split("\n").find((line) => line.startsWith("HEALTHY_CONTROL_RESULT="));
+
+  if (!resultLine) {
+    throw new Error("Healthy-control command did not return a result.");
+  }
+
+  return JSON.parse(resultLine.slice("HEALTHY_CONTROL_RESULT=".length)) as HealthyControlResult;
 }
 
 function parseInput(argumentsList: string[]): {
@@ -263,12 +319,14 @@ async function writeSuiteReport({
   sourceRevision,
   campaignId,
   campaignDirectory,
+  healthyControls,
   batches,
 }: {
   phase: ExperimentSuitePhase;
   sourceRevision: string;
   campaignId: string;
   campaignDirectory: string;
+  healthyControls: HealthyControlResult[];
   batches: BatchSummary[];
 }): Promise<void> {
   const manifest = {
@@ -279,6 +337,7 @@ async function writeSuiteReport({
     sourceRevision,
     createdAt: new Date().toISOString(),
     configuration: canonicalRecoverySuite,
+    healthyControls,
     batches,
   };
 
@@ -292,6 +351,17 @@ async function writeSuiteReport({
     `- Suite version: \`${canonicalRecoverySuite.version}\``,
     `- Repetitions per mode/profile cell: ${phaseConfiguration.repetitions}`,
     `- Comparative claims permitted: ${phaseConfiguration.permitsComparativeClaims ? "yes" : "no"}`,
+    "",
+    "## Healthy Controls",
+    "",
+    "| Mode | Duration (ms) | Health stable | Monitor trials | Action executions | Passed |",
+    "|---|---:|---:|---:|---:|---:|",
+    ...healthyControls.map(
+      (control) =>
+        `| ${control.recoveryMode} | ${control.durationMs} | ${control.healthStable} | ${control.monitorTrialCount} | ${control.actionExecutionCount} | ${control.passed} |`,
+    ),
+    "",
+    "## Fault-Injection Runs",
     "",
     "| Mode | Batch ID | Runs | Valid | Invalid | Verified | Automatic | Disagreements | Safety maintained | Median time to heal (ms) | Model calls | Tokens |",
     "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
