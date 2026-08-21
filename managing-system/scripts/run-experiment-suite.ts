@@ -98,6 +98,7 @@ async function main(): Promise<void> {
       environment,
     );
     await waitForMonitor(recoveryMode, canonicalRecoverySuite.monitorStartTimeoutMs, environment);
+    await mkdir(hostModeDirectory, { recursive: true });
 
     const healthyControl = await runHealthyControl(environment);
 
@@ -140,7 +141,6 @@ async function main(): Promise<void> {
       environment,
     );
 
-    await mkdir(hostModeDirectory, { recursive: true });
     await runCommand(
       "docker",
       ["cp", `managing-system-app:${containerModeDirectory}/.`, hostModeDirectory],
