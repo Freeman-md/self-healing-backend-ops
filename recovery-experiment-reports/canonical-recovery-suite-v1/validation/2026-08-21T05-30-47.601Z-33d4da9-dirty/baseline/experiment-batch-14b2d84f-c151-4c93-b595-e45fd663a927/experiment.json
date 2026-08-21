@@ -1,0 +1,482 @@
+{
+  "batch": {
+    "id": "experiment-batch-14b2d84f-c151-4c93-b595-e45fd663a927",
+    "name": "canonical-recovery-suite-v1-validation-baseline",
+    "status": "completed",
+    "sourceRevision": "33d4da9-dirty",
+    "measurementVersion": "1.0.0",
+    "configuration": {
+      "model": "gpt-4.1-mini",
+      "cooldownMs": 15000,
+      "recoveryMode": "baseline",
+      "faultProfiles": [
+        "managed_system_application_stopped",
+        "managed_system_postgres_stopped",
+        "managed_system_application_and_postgres_stopped"
+      ],
+      "preFaultSettleMs": 15000,
+      "monitorIntervalMs": 30000,
+      "stabilityWindowMs": 10000,
+      "baselineRuleVersions": {
+        "managed_system_service_down": 1,
+        "database_connectivity_failure": 1
+      },
+      "actionCatalogueFingerprint": "5deebd94960f4a3f835d9f1558fb35414a93be1ab29ebe83cce75d227e8397cc",
+      "consecutiveUnhealthyThreshold": 2
+    },
+    "requestedRepetitions": 1,
+    "runOrderSeed": "canonical-recovery-suite-v1-validation",
+    "createdAt": "2026-08-21T05:31:41.074Z",
+    "completedAt": "2026-08-21T05:37:55.927Z"
+  },
+  "runs": [
+    {
+      "id": "experiment-run-80f28d69-d5d5-4ae9-9933-b880d231669b",
+      "batchId": "experiment-batch-14b2d84f-c151-4c93-b595-e45fd663a927",
+      "faultProfile": "managed_system_application_stopped",
+      "recoveryMode": "baseline",
+      "repetition": 1,
+      "status": "completed",
+      "activeLockKey": null,
+      "startedAt": "2026-08-21T05:31:41.295Z",
+      "faultInjectedAt": "2026-08-21T05:31:59.811Z",
+      "completedAt": "2026-08-21T05:33:17.295Z",
+      "trialRecordId": "trial-f35467ec-cade-40b8-b869-4a0b063c51d0",
+      "valid": true,
+      "exclusionReason": null,
+      "runtimeResolved": true,
+      "oracleSucceeded": true,
+      "oracleCheckedAt": "2026-08-21T05:33:17.295Z",
+      "oracleDetails": {
+        "health": {
+          "status": "healthy",
+          "appStatus": "healthy",
+          "reachable": true,
+          "databaseStatus": "healthy"
+        },
+        "metrics": {
+          "reachable": true
+        },
+        "stableForMs": 10230,
+        "stabilityWindowMs": 10000,
+        "postgresContainerState": "running",
+        "applicationContainerState": "running"
+      },
+      "stabilityWindowMs": 10000,
+      "diagnosisCorrect": true,
+      "actionSequenceCorrect": true,
+      "unnecessaryActionCount": 0,
+      "faultToDetectionMs": 21107,
+      "timeToHealMs": 77484,
+      "timeToTerminationMs": 65684,
+      "trial": {
+        "status": "resolved",
+        "outcome": "resolved_safely",
+        "actionCount": 1,
+        "blockedActionCount": 0,
+        "failedActionCount": 0,
+        "safetyMaintained": true,
+        "timeToRecoveryMs": 9724,
+        "timeToEscalationMs": null,
+        "measurement": {
+          "unhealthyConfirmationDelayMs": 34852,
+          "timeToFirstActionMs": 50,
+          "recoveryLoopDurationMs": 2260,
+          "observedTimeToHealMs": 37112,
+          "decisionCount": 1
+        },
+        "modelInvocations": [
+          {
+            "operation": "evidence_normalization",
+            "durationMs": 4772,
+            "inputTokens": 740,
+            "outputTokens": 376,
+            "totalTokens": 1116,
+            "status": "succeeded"
+          },
+          {
+            "operation": "evidence_normalization",
+            "durationMs": 5999,
+            "inputTokens": 3875,
+            "outputTokens": 443,
+            "totalTokens": 4318,
+            "status": "succeeded"
+          },
+          {
+            "operation": "outcome_evaluation",
+            "durationMs": 1405,
+            "inputTokens": 880,
+            "outputTokens": 78,
+            "totalTokens": 958,
+            "status": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "experiment-run-b13dfd77-5425-4324-80d7-aa5056920c52",
+      "batchId": "experiment-batch-14b2d84f-c151-4c93-b595-e45fd663a927",
+      "faultProfile": "managed_system_postgres_stopped",
+      "recoveryMode": "baseline",
+      "repetition": 1,
+      "status": "completed",
+      "activeLockKey": null,
+      "startedAt": "2026-08-21T05:33:20.453Z",
+      "faultInjectedAt": "2026-08-21T05:33:38.663Z",
+      "completedAt": "2026-08-21T05:35:20.095Z",
+      "trialRecordId": "trial-0ea9bb05-2308-4256-b561-26c746846ca9",
+      "valid": true,
+      "exclusionReason": null,
+      "runtimeResolved": true,
+      "oracleSucceeded": true,
+      "oracleCheckedAt": "2026-08-21T05:35:20.095Z",
+      "oracleDetails": {
+        "health": {
+          "status": "healthy",
+          "appStatus": "healthy",
+          "reachable": true,
+          "databaseStatus": "healthy"
+        },
+        "metrics": {
+          "reachable": true
+        },
+        "stableForMs": 10280,
+        "stabilityWindowMs": 10000,
+        "postgresContainerState": "running",
+        "applicationContainerState": "running"
+      },
+      "stabilityWindowMs": 10000,
+      "diagnosisCorrect": true,
+      "actionSequenceCorrect": true,
+      "unnecessaryActionCount": 0,
+      "faultToDetectionMs": 44308,
+      "timeToHealMs": 101432,
+      "timeToTerminationMs": 89671,
+      "trial": {
+        "status": "resolved",
+        "outcome": "resolved_safely",
+        "actionCount": 1,
+        "blockedActionCount": 0,
+        "failedActionCount": 0,
+        "safetyMaintained": true,
+        "timeToRecoveryMs": 9592,
+        "timeToEscalationMs": null,
+        "measurement": {
+          "unhealthyConfirmationDelayMs": 35770,
+          "timeToFirstActionMs": 15,
+          "recoveryLoopDurationMs": 1154,
+          "observedTimeToHealMs": 36924,
+          "decisionCount": 1
+        },
+        "modelInvocations": [
+          {
+            "operation": "evidence_normalization",
+            "durationMs": 5681,
+            "inputTokens": 4984,
+            "outputTokens": 362,
+            "totalTokens": 5346,
+            "status": "succeeded"
+          },
+          {
+            "operation": "evidence_normalization",
+            "durationMs": 6916,
+            "inputTokens": 4932,
+            "outputTokens": 635,
+            "totalTokens": 5567,
+            "status": "succeeded"
+          },
+          {
+            "operation": "outcome_evaluation",
+            "durationMs": 1480,
+            "inputTokens": 1056,
+            "outputTokens": 59,
+            "totalTokens": 1115,
+            "status": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "experiment-run-c68c6bf0-b2e5-4175-9ba5-90d8df795f0f",
+      "batchId": "experiment-batch-14b2d84f-c151-4c93-b595-e45fd663a927",
+      "faultProfile": "managed_system_application_and_postgres_stopped",
+      "recoveryMode": "baseline",
+      "repetition": 1,
+      "status": "completed",
+      "activeLockKey": null,
+      "startedAt": "2026-08-21T05:35:23.274Z",
+      "faultInjectedAt": "2026-08-21T05:35:41.480Z",
+      "completedAt": "2026-08-21T05:37:52.708Z",
+      "trialRecordId": "trial-ce06fdc5-3da5-46af-8616-77c6fb813f85",
+      "valid": true,
+      "exclusionReason": null,
+      "runtimeResolved": true,
+      "oracleSucceeded": true,
+      "oracleCheckedAt": "2026-08-21T05:37:52.708Z",
+      "oracleDetails": {
+        "health": {
+          "status": "healthy",
+          "appStatus": "healthy",
+          "reachable": true,
+          "databaseStatus": "healthy"
+        },
+        "metrics": {
+          "reachable": true
+        },
+        "stableForMs": 10288,
+        "stabilityWindowMs": 10000,
+        "postgresContainerState": "running",
+        "applicationContainerState": "running"
+      },
+      "stabilityWindowMs": 10000,
+      "diagnosisCorrect": true,
+      "actionSequenceCorrect": true,
+      "unnecessaryActionCount": 0,
+      "faultToDetectionMs": 36828,
+      "timeToHealMs": 131228,
+      "timeToTerminationMs": 119625,
+      "trial": {
+        "status": "resolved",
+        "outcome": "resolved_safely",
+        "actionCount": 2,
+        "blockedActionCount": 0,
+        "failedActionCount": 0,
+        "safetyMaintained": true,
+        "timeToRecoveryMs": 45707,
+        "timeToEscalationMs": null,
+        "measurement": {
+          "unhealthyConfirmationDelayMs": 37090,
+          "timeToFirstActionMs": 22,
+          "recoveryLoopDurationMs": 39078,
+          "observedTimeToHealMs": 76168,
+          "decisionCount": 2
+        },
+        "modelInvocations": [
+          {
+            "operation": "evidence_normalization",
+            "durationMs": 6989,
+            "inputTokens": 741,
+            "outputTokens": 374,
+            "totalTokens": 1115,
+            "status": "succeeded"
+          },
+          {
+            "operation": "evidence_normalization",
+            "durationMs": 5119,
+            "inputTokens": 740,
+            "outputTokens": 363,
+            "totalTokens": 1103,
+            "status": "succeeded"
+          },
+          {
+            "operation": "outcome_evaluation",
+            "durationMs": 1522,
+            "inputTokens": 803,
+            "outputTokens": 78,
+            "totalTokens": 881,
+            "status": "succeeded"
+          },
+          {
+            "operation": "evidence_normalization",
+            "durationMs": 5048,
+            "inputTokens": 3875,
+            "outputTokens": 375,
+            "totalTokens": 4250,
+            "status": "succeeded"
+          },
+          {
+            "operation": "outcome_evaluation",
+            "durationMs": 1543,
+            "inputTokens": 819,
+            "outputTokens": 67,
+            "totalTokens": 886,
+            "status": "succeeded"
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "totalRuns": 3,
+    "validRuns": 3,
+    "invalidRuns": 0,
+    "verifiedRecoveries": 3,
+    "automaticResolutions": 3,
+    "runtimeOracleDisagreements": 0,
+    "diagnosisCorrectRuns": 3,
+    "actionSequenceCorrectRuns": 3,
+    "safetyMaintainedRuns": 3,
+    "rates": {
+      "verifiedRecovery": 1,
+      "automaticResolution": 1,
+      "diagnosisCorrect": 1,
+      "actionSequenceCorrect": 1,
+      "safetyMaintained": 1
+    },
+    "exclusions": {},
+    "timing": {
+      "faultToDetectionMs": {
+        "count": 3,
+        "mean": 34081,
+        "median": 36828,
+        "standardDeviation": 9668.888491789874,
+        "interquartileRange": 11600.5,
+        "minimum": 21107,
+        "maximum": 44308
+      },
+      "timeToHealMs": {
+        "count": 3,
+        "mean": 103381.33333333333,
+        "median": 101432,
+        "standardDeviation": 21984.150492772944,
+        "interquartileRange": 26872,
+        "minimum": 77484,
+        "maximum": 131228
+      },
+      "timeToTerminationMs": {
+        "count": 3,
+        "mean": 91660,
+        "median": 89671,
+        "standardDeviation": 22066.187723906154,
+        "interquartileRange": 26970.5,
+        "minimum": 65684,
+        "maximum": 119625
+      },
+      "unhealthyConfirmationDelayMs": {
+        "count": 3,
+        "mean": 35904,
+        "median": 35770,
+        "standardDeviation": 918.5597422051545,
+        "interquartileRange": 1119,
+        "minimum": 34852,
+        "maximum": 37090
+      },
+      "timeToFirstActionMs": {
+        "count": 3,
+        "mean": 29,
+        "median": 22,
+        "standardDeviation": 15.121728296285006,
+        "interquartileRange": 17.5,
+        "minimum": 15,
+        "maximum": 50
+      },
+      "recoveryLoopDurationMs": {
+        "count": 3,
+        "mean": 14164,
+        "median": 2260,
+        "standardDeviation": 17622.643691190795,
+        "interquartileRange": 18962,
+        "minimum": 1154,
+        "maximum": 39078
+      },
+      "observedTimeToHealMs": {
+        "count": 3,
+        "mean": 50068,
+        "median": 37112,
+        "standardDeviation": 18455.64657947986,
+        "interquartileRange": 19622,
+        "minimum": 36924,
+        "maximum": 76168
+      }
+    },
+    "counts": {
+      "decisionCount": {
+        "count": 3,
+        "mean": 1.3333333333333333,
+        "median": 1,
+        "standardDeviation": 0.4714045207910317,
+        "interquartileRange": 0.5,
+        "minimum": 1,
+        "maximum": 2
+      },
+      "actionCount": {
+        "count": 3,
+        "mean": 1.3333333333333333,
+        "median": 1,
+        "standardDeviation": 0.4714045207910317,
+        "interquartileRange": 0.5,
+        "minimum": 1,
+        "maximum": 2
+      },
+      "successfulActionCount": {
+        "count": 3,
+        "mean": 1.3333333333333333,
+        "median": 1,
+        "standardDeviation": 0.4714045207910317,
+        "interquartileRange": 0.5,
+        "minimum": 1,
+        "maximum": 2
+      },
+      "blockedActionCount": {
+        "count": 3,
+        "mean": 0,
+        "median": 0,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 0,
+        "maximum": 0
+      },
+      "failedActionCount": {
+        "count": 3,
+        "mean": 0,
+        "median": 0,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 0,
+        "maximum": 0
+      },
+      "unnecessaryActionCount": {
+        "count": 3,
+        "mean": 0,
+        "median": 0,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 0,
+        "maximum": 0
+      }
+    },
+    "model": {
+      "callCount": 11,
+      "failedCallCount": 0,
+      "latencyMs": {
+        "count": 11,
+        "mean": 4224.909090909091,
+        "median": 5048,
+        "standardDeviation": 2172.361951029568,
+        "interquartileRange": 4307.5,
+        "minimum": 1405,
+        "maximum": 6989
+      },
+      "totalTokens": 26655,
+      "tokenUsage": {
+        "inputTokens": {
+          "count": 11,
+          "mean": 2131.3636363636365,
+          "median": 880,
+          "standardDeviation": 1760.0541454856786,
+          "interquartileRange": 3103,
+          "minimum": 740,
+          "maximum": 4984
+        },
+        "outputTokens": {
+          "count": 11,
+          "mean": 291.8181818181818,
+          "median": 363,
+          "standardDeviation": 182.79786063091566,
+          "interquartileRange": 297.5,
+          "minimum": 59,
+          "maximum": 635
+        },
+        "totalTokens": {
+          "count": 11,
+          "mean": 2423.181818181818,
+          "median": 1115,
+          "standardDeviation": 1885.744454787109,
+          "interquartileRange": 3253.5,
+          "minimum": 881,
+          "maximum": 5567
+        }
+      }
+    }
+  }
+}

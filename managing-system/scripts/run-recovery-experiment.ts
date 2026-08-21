@@ -15,6 +15,17 @@ import {
 import { injectFaultProfile, restoreExperimentTargets } from "./experiment/fault-injector";
 import { RecoveryOracle } from "./experiment/recovery-oracle";
 
+type RunnerInput = {
+  name: string;
+  sourceRevision: string;
+  recoveryMode: "baseline" | "agent";
+  profiles: FaultProfileCode[];
+  repetitions: number;
+  runOrderSeed: string;
+  stabilityWindowMs: number;
+  outputDirectory: string;
+};
+
 const experimentDefaults = {
   seed: "milestone-7-pilot",
   stabilityWindowMs: 10_000,
@@ -47,7 +58,7 @@ async function main(): Promise<void> {
       consecutiveUnhealthyThreshold: config.monitoring.consecutiveUnhealthyThreshold,
       cooldownMs: config.monitoring.cooldownMs,
       faultProfiles: input.profiles,
-      stabilityWindowMs: experimentDefaults.stabilityWindowMs,
+      stabilityWindowMs: input.stabilityWindowMs,
       preFaultSettleMs: config.monitoring.cooldownMs,
     });
 
@@ -56,10 +67,10 @@ async function main(): Promise<void> {
       sourceRevision: input.sourceRevision,
       configuration,
       requestedRepetitions: input.repetitions,
-      runOrderSeed: experimentDefaults.seed,
+      runOrderSeed: input.runOrderSeed,
     });
 
-    const runOrder = shuffledRunOrder(input.profiles, input.repetitions, experimentDefaults.seed);
+    const runOrder = shuffledRunOrder(input.profiles, input.repetitions, input.runOrderSeed);
 
     for (const runInput of runOrder) {
       const run = await experimentService.prepareExperimentRun({
@@ -67,7 +78,7 @@ async function main(): Promise<void> {
         faultProfile: runInput.faultProfile,
         recoveryMode: input.recoveryMode,
         repetition: runInput.repetition,
-        stabilityWindowMs: experimentDefaults.stabilityWindowMs,
+        stabilityWindowMs: input.stabilityWindowMs,
       });
 
       console.log({
@@ -97,9 +108,7 @@ async function main(): Promise<void> {
           runId: run.id,
           trialRecordId: trial.id,
         });
-        const oracleResult = await oracle.verifyStableRecovery(
-          experimentDefaults.stabilityWindowMs,
-        );
+        const oracleResult = await oracle.verifyStableRecovery(input.stabilityWindowMs);
 
         const completedRun = await experimentService.completeExperimentRun({
           run: injectedRun,
@@ -138,7 +147,7 @@ async function main(): Promise<void> {
 
     const report = createExperimentReport(evidence.batch, evidence.runs);
 
-    const outputDirectory = resolve(experimentDefaults.outputDirectory, batch.id);
+    const outputDirectory = resolve(input.outputDirectory, batch.id);
 
     await writeExperimentReport({ report, outputDirectory });
     console.log({
@@ -159,14 +168,6 @@ async function restoreAndVerify(oracle: RecoveryOracle, timeoutMs: number): Prom
   }
 }
 
-type RunnerInput = {
-  name: string;
-  sourceRevision: string;
-  recoveryMode: "baseline" | "agent";
-  profiles: FaultProfileCode[];
-  repetitions: number;
-};
-
 function parseArguments(argumentsList: string[]): RunnerInput {
   const { values } = parseArgs({
     args: argumentsList,
@@ -178,6 +179,9 @@ function parseArguments(argumentsList: string[]): RunnerInput {
       mode: { type: "string" },
       profiles: { type: "string" },
       repetitions: { type: "string" },
+      "run-order-seed": { type: "string" },
+      "stability-window-ms": { type: "string" },
+      "output-directory": { type: "string" },
     },
   });
 
@@ -197,6 +201,12 @@ function parseArguments(argumentsList: string[]): RunnerInput {
     recoveryMode,
     profiles,
     repetitions: positiveInteger(values.repetitions ?? "2", "repetitions"),
+    runOrderSeed: values["run-order-seed"] ?? experimentDefaults.seed,
+    stabilityWindowMs: positiveInteger(
+      values["stability-window-ms"] ?? String(experimentDefaults.stabilityWindowMs),
+      "stability-window-ms",
+    ),
+    outputDirectory: values["output-directory"] ?? experimentDefaults.outputDirectory,
   };
 }
 

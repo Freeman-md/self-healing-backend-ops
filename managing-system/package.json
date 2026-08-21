@@ -25,12 +25,13 @@
     "prisma:studio": "prisma studio",
     "prisma:verify-seed": "tsx prisma/verify-seed.ts",
     "experiment:run": "tsx scripts/run-recovery-experiment.ts",
+    "experiment:suite": "tsx scripts/run-experiment-suite.ts",
     "experiment:export": "tsx scripts/export-recovery-experiment.ts"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "5.10.0",
+    "@types/node": "^24.13.3",
     "@types/pg": "^8.15.5",
-    "@types/node": "^24.13.2",
     "eslint": "9.39.5",
     "prettier": "3.9.6",
     "prisma": "^7.9.0",
@@ -42,9 +43,9 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
-    "pg": "^8.16.3",
     "dotenv": "^17.4.2",
     "openai": "^6.45.0",
+    "pg": "^8.16.3",
     "zod": "^4.4.3"
   }
 }

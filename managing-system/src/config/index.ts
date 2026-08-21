@@ -48,7 +48,7 @@ export const config: AppConfig = {
   },
   openai: {
     apiKey: readOptionalString(process.env.OPENAI_API_KEY),
-    model: readString(process.env.OPENAI_MODEL, "gpt-4.1-mini"),
+    model: readString(process.env.OPENAI_MODEL, "gpt-5.6-luna"),
   },
   database: {
     url: readPostgresDatabaseUrl(process.env.DATABASE_URL),
