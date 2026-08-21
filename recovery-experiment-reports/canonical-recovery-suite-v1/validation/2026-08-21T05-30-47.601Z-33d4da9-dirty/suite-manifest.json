@@ -1,0 +1,69 @@
+{
+  "suiteId": "canonical-recovery-suite-v1",
+  "suiteVersion": "1.0.0",
+  "phase": "validation",
+  "campaignId": "2026-08-21T05-30-47.601Z-33d4da9-dirty",
+  "sourceRevision": "33d4da9-dirty",
+  "createdAt": "2026-08-21T05:44:35.788Z",
+  "configuration": {
+    "id": "canonical-recovery-suite-v1",
+    "version": "1.0.0",
+    "recoveryModes": [
+      "baseline",
+      "agent"
+    ],
+    "faultProfiles": [
+      "managed_system_application_stopped",
+      "managed_system_postgres_stopped",
+      "managed_system_application_and_postgres_stopped"
+    ],
+    "stabilityWindowMs": 10000,
+    "monitorStartTimeoutMs": 120000,
+    "reportRoot": "recovery-experiment-reports",
+    "containerReportRoot": "/managing-system/experiment-output",
+    "phases": {
+      "validation": {
+        "repetitions": 1,
+        "runOrderSeed": "canonical-recovery-suite-v1-validation",
+        "permitsComparativeClaims": false
+      },
+      "benchmark": {
+        "repetitions": 5,
+        "runOrderSeed": "canonical-recovery-suite-v1-benchmark",
+        "permitsComparativeClaims": true
+      }
+    }
+  },
+  "batches": [
+    {
+      "mode": "baseline",
+      "batchId": "experiment-batch-14b2d84f-c151-4c93-b595-e45fd663a927",
+      "relativeDirectory": "baseline/experiment-batch-14b2d84f-c151-4c93-b595-e45fd663a927",
+      "totalRuns": 3,
+      "validRuns": 3,
+      "invalidRuns": 0,
+      "verifiedRecoveries": 3,
+      "automaticResolutions": 3,
+      "runtimeOracleDisagreements": 0,
+      "safetyMaintainedRuns": 3,
+      "medianTimeToHealMs": 101432,
+      "modelCallCount": 11,
+      "modelTotalTokens": 26655
+    },
+    {
+      "mode": "agent",
+      "batchId": "experiment-batch-99324a24-e0ea-4480-9381-871c42ac3e37",
+      "relativeDirectory": "agent/experiment-batch-99324a24-e0ea-4480-9381-871c42ac3e37",
+      "totalRuns": 3,
+      "validRuns": 3,
+      "invalidRuns": 0,
+      "verifiedRecoveries": 3,
+      "automaticResolutions": 3,
+      "runtimeOracleDisagreements": 0,
+      "safetyMaintainedRuns": 3,
+      "medianTimeToHealMs": 108280,
+      "modelCallCount": 17,
+      "modelTotalTokens": 34385
+    }
+  ]
+}
