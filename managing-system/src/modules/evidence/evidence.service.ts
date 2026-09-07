@@ -1,5 +1,5 @@
 import { config } from "@/config";
-import type { IContainerRuntime } from "@/infrastructure/container-runtime";
+import type { ContainerRuntimeTarget, IContainerRuntime } from "@/infrastructure/container-runtime";
 import { canUseOpenAI, OpenAIService, type OpenAITelemetryContext } from "@/infrastructure/openai";
 import {
   evidenceSnapshotSchema,
@@ -28,7 +28,7 @@ type EvidenceServiceOptions = {
   now?: () => number;
 };
 
-type ContainerStateReader = Pick<IContainerRuntime, "inspectTarget">;
+type ContainerRuntime = Pick<IContainerRuntime, "inspectTarget">;
 type Awaitable<T> = T | Promise<T>;
 type EvidencePersistence = {
   saveRawEvidence?(rawEvidence: RawEvidence): Awaitable<RawEvidence>;
@@ -58,7 +58,7 @@ export class EvidenceService {
     private readonly openaiService?: OpenAIService,
     private readonly evidenceFactory = new EvidenceFactory(),
     private readonly options: EvidenceServiceOptions = {},
-    private readonly containerStateReader?: ContainerStateReader,
+    private readonly containerRuntime?: ContainerRuntime,
   ) {}
 
   async collectRawEvidence(): Promise<RawEvidence[]> {
@@ -292,13 +292,13 @@ export class EvidenceService {
     }
   }
 
-  private async collectContainerState(target: "managed-system" | "postgres"): Promise<RawEvidence> {
+  private async collectContainerState(target: ContainerRuntimeTarget): Promise<RawEvidence> {
     const collectedAt = new Date().toISOString();
 
     const containerName =
       target === "managed-system" ? "managed-system-app" : "managed-system-postgres";
 
-    if (!this.containerStateReader) {
+    if (!this.containerRuntime) {
       return this.evidenceFactory.createFailedRawEvidence({
         source: "container",
         target: containerName,
@@ -309,7 +309,7 @@ export class EvidenceService {
     }
 
     try {
-      const result = await this.containerStateReader.inspectTarget(target);
+      const result = await this.containerRuntime.inspectTarget(target);
 
       return this.evidenceFactory.createCollectedRawEvidence({
         source: "container",
