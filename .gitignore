@@ -5,6 +5,6 @@ dist/
 .env.local
 notes.txt
 AGENTS.md
-.ai
+.agents/milestones/active.md
 /**/data
 /managing-system/src/generated/prisma/
