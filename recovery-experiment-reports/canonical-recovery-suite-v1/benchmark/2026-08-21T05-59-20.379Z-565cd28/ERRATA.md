@@ -4,4 +4,4 @@ The campaign remains valid evidence for recovery outcomes, action sequences, saf
 
 Consequently, the exported `timeToHealMs` values in this campaign include the stability window and must not be used for recovery-timing comparison. The raw fault, monitor, trial and oracle records remain unchanged. Milestone 7 now records `oracleFirstHealthyObservedAt` separately and calculates future `timeToHealMs` from fault injection to that observation while retaining `oracleCheckedAt` as the stability-completion boundary.
 
-This historical export has not been rewritten. A later benchmark must use a source revision containing the corrected measurement boundary before its `timeToHealMs` results are compared with this or another implementation.
+No historical run observation, outcome or timing value has been rewritten. The known runtime values `promptVersion: "1.0.0"` and `maxRecoverySteps: 3` were added retrospectively to both batch configurations to disclose provenance that the original exporter omitted. A later benchmark must use a source revision containing the corrected measurement boundary before its `timeToHealMs` results are compared with this or another implementation.
