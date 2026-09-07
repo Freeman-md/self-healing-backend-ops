@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createExperimentSummary, type ExperimentRunReportData } from "@/modules/experiment";
+import {
+  createExperimentMarkdown,
+  createExperimentSummary,
+  type ExperimentReport,
+  type ExperimentRunReportData,
+} from "@/modules/experiment";
 
 function run(overrides: Partial<ExperimentRunReportData> = {}): ExperimentRunReportData {
   return {
@@ -93,4 +98,30 @@ test("experiment summaries retain failed outcomes without fabricating healing ti
   assert.equal(summary.exclusions["Ambiguous monitor-trial correlation."], 1);
   assert.equal(summary.model.callCount, 2);
   assert.equal(summary.model.tokenUsage.totalTokens?.mean, 15);
+});
+
+test("batch reports do not mislabel descriptive results as pilot evidence", () => {
+  const runs = [run()];
+
+  const report = {
+    batch: {
+      id: "batch-1",
+      name: "canonical-recovery-suite-v1-benchmark-baseline",
+      status: "completed",
+      sourceRevision: "revision-1",
+      measurementVersion: "1.0.0",
+      configuration: {},
+      requestedRepetitions: 1,
+      runOrderSeed: "seed-1",
+      createdAt: new Date("2026-08-17T10:00:00.000Z"),
+      completedAt: new Date("2026-08-17T10:00:10.000Z"),
+    },
+    runs,
+    summary: createExperimentSummary(runs),
+  } satisfies ExperimentReport;
+
+  const markdown = createExperimentMarkdown(report);
+
+  assert.match(markdown, /Results are descriptive/);
+  assert.doesNotMatch(markdown, /Pilot results/);
 });

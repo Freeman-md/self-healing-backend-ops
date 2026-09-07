@@ -8,6 +8,7 @@ export {
   summarize,
   writeExperimentReport,
 } from "./experiment.report";
+export type { ExperimentReport } from "./experiment.report";
 export { faultProfiles, findFaultProfile, isFaultProfileCode } from "./experiment.profiles";
 export type {
   ExperimentBatch,

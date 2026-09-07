@@ -290,7 +290,7 @@ export function createExperimentMarkdown(evidence: ExperimentReport): string {
     `- Mean model latency: ${summary.model.latencyMs ? `${round(summary.model.latencyMs.mean)} ms` : "not available"}`,
     `- Mean tokens per recorded call: ${summary.model.tokenUsage.totalTokens ? round(summary.model.tokenUsage.totalTokens.mean) : "not available"}`,
     "",
-    "Pilot results validate instrumentation only and do not establish comparative superiority.",
+    "Results are descriptive and do not establish statistical superiority.",
   ];
 
   return lines.join("\n");
