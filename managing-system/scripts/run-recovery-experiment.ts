@@ -166,7 +166,7 @@ async function main(): Promise<void> {
     });
   } catch (error) {
     if (batchId) {
-      await experimentService.completeExperimentBatch(batchId, "failed").catch(() => undefined);
+      await experimentService.failExperimentBatch(batchId, error);
     }
 
     throw error;

@@ -100,3 +100,23 @@ test("time to heal ends at the first independently healthy observation", async (
 
   assert.equal(completedInput?.timeToHealMs, 7_000);
 });
+
+test("campaign failure marks its batch failed and preserves the original error", async () => {
+  let completion: { batchId: string; status: string } | undefined;
+
+  const campaignError = new Error("campaign failed");
+
+  const service = new ExperimentService({
+    async completeExperimentBatch(batchId: string, status: string) {
+      completion = { batchId, status };
+
+      return {};
+    },
+  } as never);
+
+  await assert.rejects(
+    () => service.failExperimentBatch("batch-1", campaignError),
+    (error: unknown) => error === campaignError,
+  );
+  assert.deepEqual(completion, { batchId: "batch-1", status: "failed" });
+});

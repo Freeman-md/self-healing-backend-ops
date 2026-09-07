@@ -175,6 +175,11 @@ export class ExperimentService {
     return this.repository.completeExperimentBatch(batchId, status, new Date(this.now()));
   }
 
+  async failExperimentBatch(batchId: string, error: unknown): Promise<never> {
+    await this.completeExperimentBatch(batchId, "failed").catch(() => undefined);
+    throw error;
+  }
+
   invalidateExperimentRun(runId: string, reason: string): Promise<ExperimentRun> {
     return this.repository.invalidateExperimentRun(runId, reason, new Date(this.now()));
   }
