@@ -2,6 +2,7 @@ import "dotenv/config";
 
 import {
   readBoolean,
+  readAgentStrategyVersion,
   readNumber,
   readOptionalEnum,
   readOptionalString,
@@ -31,6 +32,7 @@ export type AppConfig = {
   trial: {
     runMode: "controlled" | "monitor";
     recoveryMode?: "baseline" | "agent";
+    agentStrategyVersion: "v1" | "v2";
     scenarioId?: "S1" | "S2" | "S3";
   };
   monitoring: {
@@ -73,6 +75,10 @@ export const config: AppConfig = {
       process.env.RECOVERY_MODE,
       ["baseline", "agent"],
       "RECOVERY_MODE",
+    ),
+    agentStrategyVersion: readAgentStrategyVersion(
+      readOptionalEnum(process.env.RECOVERY_MODE, ["baseline", "agent"], "RECOVERY_MODE"),
+      process.env.AGENT_STRATEGY_VERSION,
     ),
     scenarioId: readOptionalEnum(process.env.SCENARIO_ID, ["S1", "S2", "S3"], "SCENARIO_ID"),
   },

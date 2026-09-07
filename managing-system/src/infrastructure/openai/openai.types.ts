@@ -23,3 +23,21 @@ export type OpenAIInvocationTelemetry = OpenAITelemetryContext & {
   status: "succeeded" | "failed";
   error: string | null;
 };
+
+export type FunctionTool = {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+};
+export type FunctionCall = { callId: string; name: string; arguments: string };
+export type ToolConversationResponse = { conversationId: string; calls: FunctionCall[] };
+export type ToolConversationRequest = {
+  systemPrompt: string;
+  tools: FunctionTool[];
+  telemetryContext: OpenAITelemetryContext;
+};
+export type ToolConversationContinuation = ToolConversationRequest & {
+  conversationId: string;
+  outputs: Array<{ callId: string; output: string }>;
+  correction?: string;
+};
