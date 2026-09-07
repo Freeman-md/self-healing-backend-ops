@@ -3,7 +3,6 @@ import { execFile, type ChildProcess } from "node:child_process";
 import { config } from "@/config";
 
 import type { IContainerRuntime } from "./container-runtime.interface";
-import type { IContainerStateReader } from "./container-state-reader.interface";
 import type {
   ContainerRestartResult,
   ContainerRuntimeTarget,
@@ -33,7 +32,7 @@ const containerNames: Record<ContainerRuntimeTarget, string> = {
 const executeWithExecFile: ExecFileImplementation = (file, args, callback) =>
   execFile(file, args, callback);
 
-export class DockerContainerRuntimeService implements IContainerRuntime, IContainerStateReader {
+export class DockerContainerRuntimeService implements IContainerRuntime {
   constructor(
     private readonly actionConfig: DockerActionConfig = config.actions,
     private readonly executeFile: ExecFileImplementation = executeWithExecFile,

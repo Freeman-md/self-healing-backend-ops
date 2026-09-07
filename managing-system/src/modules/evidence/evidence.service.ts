@@ -1,5 +1,5 @@
 import { config } from "@/config";
-import type { IContainerStateReader } from "@/infrastructure/container-runtime";
+import type { IContainerRuntime } from "@/infrastructure/container-runtime";
 import { canUseOpenAI, OpenAIService, type OpenAITelemetryContext } from "@/infrastructure/openai";
 import {
   evidenceSnapshotSchema,
@@ -28,7 +28,7 @@ type EvidenceServiceOptions = {
   now?: () => number;
 };
 
-type ContainerStateReader = Pick<IContainerStateReader, "inspectTarget">;
+type ContainerStateReader = Pick<IContainerRuntime, "inspectTarget">;
 type Awaitable<T> = T | Promise<T>;
 type EvidencePersistence = {
   saveRawEvidence?(rawEvidence: RawEvidence): Awaitable<RawEvidence>;

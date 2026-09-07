@@ -135,7 +135,7 @@ test("action handlers use only their allowlisted runtime targets", async () => {
         output: `restarted ${target}`,
       };
     },
-  } satisfies IContainerRuntime);
+  } satisfies Pick<IContainerRuntime, "restartTarget">);
 
   await registry.findActionHandler("restart_postgres_container")?.(actionHandlerInput);
   await registry.findActionHandler("restart_managed_system_service")?.(actionHandlerInput);
