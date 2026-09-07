@@ -5,6 +5,9 @@ export type { ExperimentBatch, ExperimentRun, FaultProfileCode } from "@/generat
 
 export type ExperimentConfiguration = {
   recoveryMode: RecoveryMode;
+  agentStrategyVersion?: "v1" | "v2";
+  agentImplementationVersion?: string;
+  agentPromptVersion?: string;
   model: string;
   promptVersion: string;
   maxRecoverySteps: number;

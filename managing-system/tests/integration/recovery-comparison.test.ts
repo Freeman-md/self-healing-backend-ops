@@ -22,6 +22,7 @@ function createHealthySnapshot(): EvidenceSnapshot {
 
 function createStrategy(mode: RecoveryMode): RecoveryStrategy {
   return {
+    orchestration: "external",
     mode,
     async decide(snapshot): Promise<RecoveryDecision> {
       const diagnosisResultId = `diagnosis-${mode}`;

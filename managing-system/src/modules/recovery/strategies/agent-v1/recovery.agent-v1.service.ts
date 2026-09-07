@@ -2,9 +2,13 @@ import { OpenAIService } from "@/infrastructure/openai";
 import type { OpenAITelemetryContext } from "@/infrastructure/openai";
 import type { EvidenceSnapshot } from "@/modules/evidence";
 
-import { diagnosisResultSchema, recoveryPlanSchema, type DiagnosisResult } from "./recovery.schema";
+import {
+  diagnosisResultSchema,
+  recoveryPlanSchema,
+  type DiagnosisResult,
+} from "../../recovery.schema";
 
-export class RecoveryAgentService {
+export class RecoveryAgentV1Service {
   constructor(private readonly openaiService = new OpenAIService()) {}
 
   async diagnose(

@@ -36,6 +36,28 @@ export class ActionService {
     return this.actionRepository.findActionById(actionId);
   }
 
+  async findActionAttemptLimit(action: Action): Promise<number> {
+    const rules = await Promise.all(
+      action.safetyRuleIds.map((ruleId) => this.actionRepository.findSafetyRuleById(ruleId)),
+    );
+
+    if (rules.some((rule) => rule === null)) {
+      throw new Error("Action safety policy is unavailable.");
+    }
+
+    const limits = rules
+      .filter((rule) => rule?.checkType === "max_attempts_not_exceeded")
+      .map((rule) => rule?.params.maxAttempts);
+
+    if (
+      limits.some((limit) => typeof limit !== "number" || !Number.isInteger(limit) || limit < 1)
+    ) {
+      throw new Error("Action attempt policy is invalid.");
+    }
+
+    return Math.min(...limits.filter((limit): limit is number => typeof limit === "number"));
+  }
+
   async saveActionExecutionResult(result: ActionExecutionResult): Promise<ActionExecutionResult> {
     return this.actionRepository.saveActionExecutionResult(result);
   }

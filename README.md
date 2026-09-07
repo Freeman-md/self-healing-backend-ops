@@ -40,3 +40,50 @@ Running it twice verifies idempotency.
 SQLite remains appropriate for the isolated dissertation prototype but provides
 limited concurrency and operational tooling. A PostgreSQL move is intentionally
 deferred and does not affect the managed system's existing PostgreSQL database.
+
+
+## Agent recovery strategies (Milestone 8)
+
+`RECOVERY_MODE=baseline|agent` is unchanged. In agent mode,
+`AGENT_STRATEGY_VERSION=v1|v2` selects V1 (implementation 1.0.0) or V2
+(implementation and agent prompt 2.0.0); omitted versions select V2. Baseline
+ignores this setting. Existing historical experiment records are not rewritten;
+exports label absent version metadata as not recorded. New batches freeze the
+agent strategy, implementation and prompt versions alongside the existing
+shared model prompt version.
+
+Baseline and V1 use the external recovery loop. V2 records its own semantic
+full diagnosis/plan/decision before choosing a registered action, observes fresh
+structured evidence, and chooses completion or escalation. Application code owns
+record identifiers and associations. Execution still passes through ActionService,
+SafetyService and the allowlisted handler registry. Three action invocations and
+eight model turns bound the loop; invalid calls consume turns. Completion requires
+deterministic healthy evidence. Provider failures finalize a failed trial without
+fabricating a model decision. Mandatory safety escalation stops immediately.
+
+Tool observations omit raw terminal output, free-form evidence text and string
+signal values. The complete persisted evidence remains available for audit;
+the agent receives a sanitized projection preserving deterministic statuses.
+After a blocked/failed action without post-action evidence, the controlled trial
+operation collects and persists a fresh snapshot and links it to the action result.
+
+### Manual Agent V2 smoke verification
+
+With the existing approved local runtime configuration supplied, use the repository
+Docker testbed from its root:
+
+```sh
+RECOVERY_MODE=agent AGENT_STRATEGY_VERSION=v2 docker compose up -d --build
+```
+
+Wait for a healthy managed system and confirm the managing-system startup event
+reports V2 and prompt 2.0.0. In this isolated testbed, stop the supported managed
+application target using `docker stop managed-system-app` to trigger the monitor.
+Check the persisted monitor trial: ordered diagnosis/plan/decision history,
+registered action results with safety checks and before/after evidence links,
+provider telemetry, and resolved or escalated termination within the limits.
+Resolved termination requires deterministic healthy final evidence. Record the
+trial ID, source revision, outcome and observed limits in the milestone Completion
+Record. This credential-dependent smoke is pending; mocked tests do not verify
+live OpenAI or Docker behaviour. The comparative benchmark and report draft remain
+outside this implementation milestone.

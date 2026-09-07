@@ -1,3 +1,4 @@
+import { z } from "zod/v4";
 import { spawn } from "node:child_process";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -15,6 +16,9 @@ import {
 
 type BatchSummary = {
   mode: RecoveryMode;
+  agentStrategyVersion: "v1" | "v2" | null;
+  agentImplementationVersion: string | null;
+  agentPromptVersion: string | null;
   batchId: string;
   relativeDirectory: string;
   totalRuns: number;
@@ -266,7 +270,7 @@ async function waitForMonitor(
   throw new Error(`Managing-system monitor did not start in ${recoveryMode} mode.`);
 }
 
-async function readBatchSummary(
+export async function readBatchSummary(
   modeDirectory: string,
   recoveryMode: RecoveryMode,
 ): Promise<BatchSummary> {
@@ -283,7 +287,7 @@ async function readBatchSummary(
   const batchDirectory = resolve(modeDirectory, batchDirectories[0].name);
 
   const report = JSON.parse(await readFile(resolve(batchDirectory, "experiment.json"), "utf8")) as {
-    batch: { id: string };
+    batch: { id: string; configuration?: unknown };
     summary: {
       totalRuns: number;
       validRuns: number;
@@ -297,7 +301,18 @@ async function readBatchSummary(
     };
   };
 
+  const versions = z
+    .object({
+      agentStrategyVersion: z.enum(["v1", "v2"]).nullable().optional(),
+      agentImplementationVersion: z.string().nullable().optional(),
+      agentPromptVersion: z.string().nullable().optional(),
+    })
+    .parse(report.batch.configuration ?? {});
+
   return {
+    agentStrategyVersion: versions.agentStrategyVersion ?? null,
+    agentImplementationVersion: versions.agentImplementationVersion ?? null,
+    agentPromptVersion: versions.agentPromptVersion ?? null,
     mode: recoveryMode,
     batchId: report.batch.id,
     relativeDirectory: `${recoveryMode}/${batchDirectories[0].name}`,
@@ -314,7 +329,7 @@ async function readBatchSummary(
   };
 }
 
-async function writeSuiteReport({
+export async function writeSuiteReport({
   phase,
   sourceRevision,
   campaignId,
@@ -359,6 +374,15 @@ async function writeSuiteReport({
     ...healthyControls.map(
       (control) =>
         `| ${control.recoveryMode} | ${control.durationMs} | ${control.healthStable} | ${control.monitorTrialCount} | ${control.actionExecutionCount} | ${control.passed} |`,
+    ),
+    "",
+    "## Agent Versions",
+    "",
+    "| Mode | Strategy | Implementation | Agent prompt |",
+    "|---|---|---|---|",
+    ...batches.map(
+      (batch) =>
+        `| ${batch.mode} | ${batch.agentStrategyVersion ?? "not recorded"} | ${batch.agentImplementationVersion ?? "not recorded"} | ${batch.agentPromptVersion ?? "not recorded"} |`,
     ),
     "",
     "## Fault-Injection Runs",
@@ -410,10 +434,12 @@ function sleep(milliseconds: number): Promise<void> {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds));
 }
 
-main().catch((error: unknown) => {
-  console.error({
-    event: "experiment_suite_failed",
-    error: error instanceof Error ? error.message : "unknown suite error",
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error: unknown) => {
+    console.error({
+      event: "experiment_suite_failed",
+      error: error instanceof Error ? error.message : "unknown suite error",
+    });
+    process.exitCode = 1;
   });
-  process.exitCode = 1;
-});
+}

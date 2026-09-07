@@ -8,8 +8,11 @@ import { EvaluationFactory, EvaluationRepository, EvaluationService } from "@/mo
 import { MonitoringService } from "@/modules/monitor";
 import { MeasurementRepository, MeasurementService } from "@/modules/measurement";
 import {
-  RecoveryAgentStrategy,
-  RecoveryAgentService,
+  RecoveryAgentV1Strategy,
+  RecoveryAgentV2Strategy,
+  AGENT_V2_VERSION,
+  AGENT_V2_PROMPT_VERSION,
+  RecoveryAgentV1Service,
   RecoveryBaselineStrategy,
   RecoveryRepository,
   RecoveryService,
@@ -23,6 +26,20 @@ async function main(): Promise<void> {
     environment: config.environment,
     managedSystemBaseUrl: config.managedSystem.baseUrl,
     runMode: config.trial.runMode,
+    agentStrategyVersion:
+      config.trial.recoveryMode === "agent" ? config.trial.agentStrategyVersion : undefined,
+    agentImplementationVersion:
+      config.trial.recoveryMode === "agent"
+        ? config.trial.agentStrategyVersion === "v2"
+          ? AGENT_V2_VERSION
+          : "1.0.0"
+        : undefined,
+    agentPromptVersion:
+      config.trial.recoveryMode === "agent"
+        ? config.trial.agentStrategyVersion === "v2"
+          ? AGENT_V2_PROMPT_VERSION
+          : "1.0.0"
+        : undefined,
   });
 
   const prismaService = new PrismaService();
@@ -68,7 +85,10 @@ async function main(): Promise<void> {
   const trialService = new TrialService(
     {
       baseline: new RecoveryBaselineStrategy(recoveryService),
-      agent: new RecoveryAgentStrategy(new RecoveryAgentService(openaiService), actionService),
+      agent:
+        config.trial.agentStrategyVersion === "v1"
+          ? new RecoveryAgentV1Strategy(new RecoveryAgentV1Service(openaiService), actionService)
+          : new RecoveryAgentV2Strategy(openaiService),
     },
     new TrialRepository(prismaService),
     actionService,

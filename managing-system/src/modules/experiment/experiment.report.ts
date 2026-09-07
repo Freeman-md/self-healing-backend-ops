@@ -240,11 +240,21 @@ export function createExperimentCsv(runs: ExperimentRunReportData[]): string {
 export function createExperimentMarkdown(evidence: ExperimentReport): string {
   const { batch, summary } = evidence;
 
+  const configuration = batch.configuration;
+
+  const versions =
+    typeof configuration === "object" && configuration !== null && !Array.isArray(configuration)
+      ? configuration
+      : {};
+
   const lines = [
     `# Experiment Batch ${batch.name}`,
     "",
     `- Batch ID: \`${batch.id}\``,
     `- Source revision: \`${batch.sourceRevision}\``,
+    `- Agent strategy version: ${versions.agentStrategyVersion ?? "not recorded (historical or baseline)"}`,
+    `- Agent implementation version: ${versions.agentImplementationVersion ?? "not recorded"}`,
+    `- Agent prompt version: ${versions.agentPromptVersion ?? "not recorded"}`,
     `- Measurement version: \`${batch.measurementVersion}\``,
     `- Total runs: ${summary.totalRuns}`,
     `- Valid runs: ${summary.validRuns}`,

@@ -85,3 +85,14 @@ export function readPostgresDatabaseUrl(value: string | undefined): string {
 
   return databaseUrl;
 }
+
+export function readAgentStrategyVersion(
+  recoveryMode: "baseline" | "agent" | undefined,
+  value: string | undefined,
+): "v1" | "v2" {
+  if (recoveryMode === "baseline") {
+    return "v2";
+  }
+
+  return readOptionalEnum(value, ["v1", "v2"], "AGENT_STRATEGY_VERSION") ?? "v2";
+}

@@ -239,6 +239,7 @@ test("trial runner requires fresh evidence and a re-decision before a subsequent
   const healthySnapshot = createSnapshot("snapshot-recovered", "healthy");
 
   const strategy: RecoveryStrategy = {
+    orchestration: "external",
     mode: "baseline",
     async decide(snapshot) {
       decisionSnapshotIds.push(snapshot.id);
@@ -340,6 +341,7 @@ test("trial runner persists each decision before actions and retains final compa
   const persistedDecisions: RecoveryDecision[] = [];
 
   const strategy: RecoveryStrategy = {
+    orchestration: "external",
     mode: "baseline",
     async decide(snapshot) {
       return createDecision({
@@ -416,6 +418,7 @@ test("trial runner prevents action execution when decision persistence fails", a
   const snapshot = createSnapshot("snapshot-persistence-failure", "unhealthy");
 
   const strategy: RecoveryStrategy = {
+    orchestration: "external",
     mode: "baseline",
     async decide() {
       return createDecision({ snapshot, actionIds: ["restart_postgres_container"] });
@@ -464,6 +467,7 @@ test("trial runner escalates when the action limit is reached", async () => {
   const nextSnapshot = createSnapshot("snapshot-still-unhealthy", "unhealthy");
 
   const strategy: RecoveryStrategy = {
+    orchestration: "external",
     mode: "baseline",
     async decide(snapshot) {
       return createDecision({
@@ -522,6 +526,7 @@ test("trial runner fails before execution for an unregistered action", async () 
   const initialSnapshot = createSnapshot("snapshot-unhealthy", "unhealthy");
 
   const strategy: RecoveryStrategy = {
+    orchestration: "external",
     mode: "baseline",
     async decide(snapshot) {
       return createDecision({
