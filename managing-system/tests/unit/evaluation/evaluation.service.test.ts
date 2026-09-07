@@ -10,10 +10,10 @@ const trialRecord = {
   scenarioId: "evaluation-test-scenario",
   recoveryMode: "baseline",
   startedAt: "2026-07-24T00:00:00.000Z",
-    evidenceSnapshotIds: [],
-    recoveryDecisionIds: [],
-    diagnosisResultIds: [],
-    recoveryPlanIds: [],
+  evidenceSnapshotIds: [],
+  recoveryDecisionIds: [],
+  diagnosisResultIds: [],
+  recoveryPlanIds: [],
   selectedActionIds: [],
   actionExecutionResultIds: [],
   executedActionResultIds: [],
@@ -36,18 +36,23 @@ test("EvaluationService delegates summary construction and persistence", async (
     lessons: [],
     recommendedChanges: [],
   } satisfies EvaluationSummary;
+
   let createdWith: unknown;
+
   let savedSummary: EvaluationSummary | undefined;
+
   const service = new EvaluationService(
     {
       createEvaluationSummary(record: TrialRecord, reason: string) {
         createdWith = { record, reason };
+
         return summary;
       },
     } as never,
     {
       saveEvaluationSummary(candidate: EvaluationSummary) {
         savedSummary = candidate;
+
         return candidate;
       },
     } as never,

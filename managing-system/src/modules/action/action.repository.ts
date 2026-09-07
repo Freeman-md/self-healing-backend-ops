@@ -1,8 +1,5 @@
 import { PrismaService } from "@/infrastructure/database";
-import {
-  persistedSafetyRuleSchema,
-  type SafetyRule,
-} from "@/modules/safety";
+import { persistedSafetyRuleSchema, type SafetyRule } from "@/modules/safety";
 
 import { persistedOutcomeCriterionSchema } from "./action.schema";
 import type { Action, ActionExecutionResult } from "./action.types";
@@ -94,9 +91,7 @@ export class ActionRepository {
     return row ? mapSafetyRule(row) : null;
   }
 
-  async saveActionExecutionResult(
-    result: ActionExecutionResult,
-  ): Promise<ActionExecutionResult> {
+  async saveActionExecutionResult(result: ActionExecutionResult): Promise<ActionExecutionResult> {
     await this.prisma.actionExecutionResult.upsert({
       where: { id: result.id },
       create: {

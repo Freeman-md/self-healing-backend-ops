@@ -1,6 +1,6 @@
 export { TrialFactory } from "./trial.factory";
 export { TrialRepository } from "./trial.repository";
-export { TrialService } from "./trial.service";
+export { DEFAULT_MAX_RECOVERY_STEPS, TrialService } from "./trial.service";
 export {
   getOrderedRecoveryActionIds,
   parseStoredTrialRecord,

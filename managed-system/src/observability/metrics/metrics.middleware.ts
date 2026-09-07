@@ -1,9 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 
-import {
-  httpRequestDurationSeconds,
-  httpRequestsTotal,
-} from "@/observability/metrics/metrics";
+import { httpRequestDurationSeconds, httpRequestsTotal } from "@/observability/metrics/metrics";
 
 function getRouteLabel(request: Request): string {
   const normalizeRouteLabel = (value: string): string => {
@@ -21,11 +18,7 @@ function getRouteLabel(request: Request): string {
   return normalizeRouteLabel(request.baseUrl || request.path);
 }
 
-export function metricsMiddleware(
-  request: Request,
-  response: Response,
-  next: NextFunction,
-) {
+export function metricsMiddleware(request: Request, response: Response, next: NextFunction) {
   const endTimer = httpRequestDurationSeconds.startTimer();
 
   response.on("finish", () => {

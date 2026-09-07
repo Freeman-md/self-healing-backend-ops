@@ -1,14 +1,11 @@
 import { PrismaClient, WorkOrder } from "@prisma/client";
 
-import type {
-  CreateWorkOrderInput,
-  UpdateWorkOrderInput,
-} from "./work-order.model";
+import type { CreateWorkOrderInput, UpdateWorkOrderInput } from "./work-order.model";
 
 import { IWorkOrderRepository } from "./work-order.repository.interface";
 
 export class WorkOrderRepository implements IWorkOrderRepository {
-  constructor(private readonly prisma: PrismaClient) { }
+  constructor(private readonly prisma: PrismaClient) {}
 
   create(data: CreateWorkOrderInput): Promise<WorkOrder> {
     return this.prisma.workOrder.create({
@@ -43,9 +40,9 @@ export class WorkOrderRepository implements IWorkOrderRepository {
         where: { id },
       });
 
-      return true
+      return true;
     } catch {
-      return false
+      return false;
     }
   }
 }

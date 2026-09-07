@@ -1,0 +1,25 @@
+{
+  "recoveryMode": "agent",
+  "startedAt": "2026-08-21T06:32:54.148Z",
+  "completedAt": "2026-08-21T06:33:25.143Z",
+  "durationMs": 30000,
+  "healthStable": true,
+  "monitorTrialCount": 0,
+  "actionExecutionCount": 0,
+  "passed": true,
+  "oracleDetails": {
+    "health": {
+      "reachable": true,
+      "status": "healthy",
+      "appStatus": "healthy",
+      "databaseStatus": "healthy"
+    },
+    "metrics": {
+      "reachable": true
+    },
+    "applicationContainerState": "running",
+    "postgresContainerState": "running",
+    "stabilityWindowMs": 30000,
+    "stableForMs": 30849
+  }
+}

@@ -8,6 +8,7 @@ export class TrialRepository {
 
   async saveTrialRecord(trialRecord: TrialRecord): Promise<TrialRecord> {
     const parsed = parseStoredTrialRecord(trialRecord);
+
     const evidenceHistory = createEvidenceHistory(parsed);
 
     await this.prisma.$transaction(async (transaction) => {
@@ -40,9 +41,7 @@ export class TrialRepository {
     return parsed;
   }
 
-  async findTrialRecordById(
-    trialRecordId: string,
-  ): Promise<TrialRecord | null> {
+  async findTrialRecordById(trialRecordId: string): Promise<TrialRecord | null> {
     const row = await this.prisma.trialRecord.findUnique({
       where: { id: trialRecordId },
       select: {
@@ -89,12 +88,12 @@ export class TrialRepository {
       return null;
     }
 
-    const initialEvidence = row.evidenceHistory.find(
-      (entry) => entry.role === "initial",
-    );
+    const initialEvidence = row.evidenceHistory.find((entry) => entry.role === "initial");
+
     const finalEvidence = [...row.evidenceHistory]
       .reverse()
       .find((entry) => entry.role === "final");
+
     const actionResults = row.actionExecutionResults;
 
     return parseStoredTrialRecord({
@@ -106,18 +105,10 @@ export class TrialRepository {
       completedAt: row.completedAt?.toISOString(),
       initialEvidenceSnapshotId: initialEvidence?.evidenceSnapshotId,
       finalEvidenceSnapshotId: finalEvidence?.evidenceSnapshotId,
-      evidenceSnapshotIds: unique(
-        row.evidenceHistory.map((entry) => entry.evidenceSnapshotId),
-      ),
-      recoveryDecisionIds: row.recoveryDecisions.map(
-        (decision) => decision.id,
-      ),
-      diagnosisResultIds: row.recoveryDecisions.map(
-        (decision) => decision.diagnosisResultId,
-      ),
-      recoveryPlanIds: row.recoveryDecisions.map(
-        (decision) => decision.recoveryPlanId,
-      ),
+      evidenceSnapshotIds: unique(row.evidenceHistory.map((entry) => entry.evidenceSnapshotId)),
+      recoveryDecisionIds: row.recoveryDecisions.map((decision) => decision.id),
+      diagnosisResultIds: row.recoveryDecisions.map((decision) => decision.diagnosisResultId),
+      recoveryPlanIds: row.recoveryDecisions.map((decision) => decision.recoveryPlanId),
       diagnosisResultId: row.recoveryDecisions.at(-1)?.diagnosisResultId,
       recoveryPlanId: row.recoveryDecisions.at(-1)?.recoveryPlanId,
       selectedActionIds: actionResults.map((result) => result.actionId),
@@ -153,9 +144,7 @@ function toTrialData(trialRecord: TrialRecord) {
     scenarioId: trialRecord.scenarioId,
     recoveryMode: trialRecord.recoveryMode,
     startedAt: new Date(trialRecord.startedAt),
-    completedAt: trialRecord.completedAt
-      ? new Date(trialRecord.completedAt)
-      : null,
+    completedAt: trialRecord.completedAt ? new Date(trialRecord.completedAt) : null,
     status: trialRecord.status,
     outcome: trialRecord.outcome,
     escalationReason: trialRecord.escalationReason ?? null,
@@ -168,18 +157,14 @@ function toTrialData(trialRecord: TrialRecord) {
   };
 }
 
-function createEvidenceHistory(
-  trialRecord: TrialRecord,
-): Array<{
+function createEvidenceHistory(trialRecord: TrialRecord): Array<{
   evidenceSnapshotId: string;
   role: "initial" | "intermediate" | "final";
 }> {
-  const initialId =
-    trialRecord.initialEvidenceSnapshotId ??
-    trialRecord.evidenceSnapshotIds.at(0);
-  const finalId =
-    trialRecord.finalEvidenceSnapshotId ??
-    trialRecord.evidenceSnapshotIds.at(-1);
+  const initialId = trialRecord.initialEvidenceSnapshotId ?? trialRecord.evidenceSnapshotIds.at(0);
+
+  const finalId = trialRecord.finalEvidenceSnapshotId ?? trialRecord.evidenceSnapshotIds.at(-1);
+
   const history: Array<{
     evidenceSnapshotId: string;
     role: "initial" | "intermediate" | "final";
@@ -190,10 +175,7 @@ function createEvidenceHistory(
   }
 
   for (const evidenceSnapshotId of trialRecord.evidenceSnapshotIds) {
-    if (
-      evidenceSnapshotId !== initialId &&
-      evidenceSnapshotId !== finalId
-    ) {
+    if (evidenceSnapshotId !== initialId && evidenceSnapshotId !== finalId) {
       history.push({ evidenceSnapshotId, role: "intermediate" });
     }
   }

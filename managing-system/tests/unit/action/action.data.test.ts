@@ -61,14 +61,15 @@ test("action repository resolves the seeded action and ordered safety catalogue"
 
   try {
     const repository = new ActionRepository(testDatabase.prisma);
+
     const actions = await repository.listActions();
+
     const safetyRules = await repository.listSafetyRules();
 
     assert.equal(actions.length, 2);
     assert.equal(safetyRules.length, 2);
     assert.equal(
-      (await repository.findActionById("restart_postgres_container"))
-        ?.handlerKey,
+      (await repository.findActionById("restart_postgres_container"))?.handlerKey,
       "restart_postgres_container",
     );
     assert.equal(
@@ -87,6 +88,7 @@ test("action repository resolves the seeded action and ordered safety catalogue"
 for (const parameterCase of outcomeCriterionParameterCases) {
   test(`action repository validates ${parameterCase.checkType} outcome parameters`, async () => {
     const testDatabase = await createPrismaTestDatabase({ seed: true });
+
     const repository = new ActionRepository(testDatabase.prisma);
 
     try {
@@ -98,9 +100,8 @@ for (const parameterCase of outcomeCriterionParameterCases) {
         },
       });
 
-      const action = await repository.findActionById(
-        "restart_postgres_container",
-      );
+      const action = await repository.findActionById("restart_postgres_container");
+
       assert.deepEqual(
         action?.expectedOutcome.successCriteria[0]?.params,
         parameterCase.validParameters,
@@ -123,29 +124,28 @@ for (const parameterCase of outcomeCriterionParameterCases) {
 
 test("action handlers use only their allowlisted runtime targets", async () => {
   const runtimeTargets: string[] = [];
+
   const registry = new ActionHandlerRegistry({
     async restartTarget(target) {
       runtimeTargets.push(target);
+
       return {
         target,
         containerName: target,
         output: `restarted ${target}`,
       };
     },
-  } satisfies IContainerRuntime);
+  } satisfies Pick<IContainerRuntime, "restartTarget">);
 
-  await registry
-    .findActionHandler("restart_postgres_container")
-    ?.(actionHandlerInput);
-  await registry
-    .findActionHandler("restart_managed_system_service")
-    ?.(actionHandlerInput);
+  await registry.findActionHandler("restart_postgres_container")?.(actionHandlerInput);
+  await registry.findActionHandler("restart_managed_system_service")?.(actionHandlerInput);
 
   assert.deepEqual(runtimeTargets, ["postgres", "managed-system"]);
 });
 
 test("unknown handler keys fail safely without execution", async () => {
   const repository = {} as ActionRepository;
+
   const safetyService = {
     evaluateActionSafety() {
       return {
@@ -154,6 +154,7 @@ test("unknown handler keys fail safely without execution", async () => {
       };
     },
   };
+
   const service = new ActionService(
     repository,
     safetyService as never,
@@ -162,6 +163,7 @@ test("unknown handler keys fail safely without execution", async () => {
     undefined,
     true,
   );
+
   const snapshot = {
     id: "snapshot-test",
     rawEvidenceIds: [],

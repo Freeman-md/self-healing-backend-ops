@@ -48,7 +48,7 @@ export const config: AppConfig = {
   },
   openai: {
     apiKey: readOptionalString(process.env.OPENAI_API_KEY),
-    model: readString(process.env.OPENAI_MODEL, "gpt-4.1-mini"),
+    model: readString(process.env.OPENAI_MODEL, "gpt-5.6-luna"),
   },
   database: {
     url: readPostgresDatabaseUrl(process.env.DATABASE_URL),
@@ -63,12 +63,17 @@ export const config: AppConfig = {
     ),
   },
   trial: {
-    runMode: readOptionalEnum(
-      process.env.MANAGING_SYSTEM_RUN_MODE,
-      ["controlled", "monitor"],
-      "MANAGING_SYSTEM_RUN_MODE",
-    ) ?? "controlled",
-    recoveryMode: readOptionalEnum(process.env.RECOVERY_MODE, ["baseline", "agent"], "RECOVERY_MODE"),
+    runMode:
+      readOptionalEnum(
+        process.env.MANAGING_SYSTEM_RUN_MODE,
+        ["controlled", "monitor"],
+        "MANAGING_SYSTEM_RUN_MODE",
+      ) ?? "controlled",
+    recoveryMode: readOptionalEnum(
+      process.env.RECOVERY_MODE,
+      ["baseline", "agent"],
+      "RECOVERY_MODE",
+    ),
     scenarioId: readOptionalEnum(process.env.SCENARIO_ID, ["S1", "S2", "S3"], "SCENARIO_ID"),
   },
   monitoring: {

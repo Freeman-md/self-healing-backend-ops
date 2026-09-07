@@ -10,7 +10,15 @@ export function parseStoredTrialRecord(value: unknown): TrialRecord {
   }
 
   const record = value as Partial<TrialRecord>;
-  if (!record.id || !record.recoveryMode || !record.startedAt || !record.status || !record.outcome || !record.metrics) {
+
+  if (
+    !record.id ||
+    !record.recoveryMode ||
+    !record.startedAt ||
+    !record.status ||
+    !record.outcome ||
+    !record.metrics
+  ) {
     throw new Error("Stored trial record is missing required fields.");
   }
 
@@ -51,9 +59,19 @@ export function recordRecoveryDecisionInTrialContext(
 }
 
 export function getOrderedRecoveryActionIds(decision: RecoveryDecision): string[] {
-  return [...new Set([...decision.recoveryPlan.proposedActionIds, ...decision.recoveryPlan.fallbackActionIds])];
+  return [
+    ...new Set([
+      ...decision.recoveryPlan.proposedActionIds,
+      ...decision.recoveryPlan.fallbackActionIds,
+    ]),
+  ];
 }
-export function recordActionResultInTrialContext(context: TrialContext, actionId: string, result: ActionExecutionResult): void {
+
+export function recordActionResultInTrialContext(
+  context: TrialContext,
+  actionId: string,
+  result: ActionExecutionResult,
+): void {
   context.selectedActionIds.push(actionId);
   context.actionAttemptCounts[actionId] = (context.actionAttemptCounts[actionId] ?? 0) + 1;
   context.actionExecutionResultIds.push(result.id);
@@ -66,6 +84,12 @@ export function recordActionResultInTrialContext(context: TrialContext, actionId
     context.failedActionIds.push(actionId);
   }
 }
-export function recordEvidenceSnapshotInTrialContext(context: TrialContext, snapshot: EvidenceSnapshot): void {
-  if (snapshot.id !== context.evidenceSnapshotIds.at(-1)) context.evidenceSnapshotIds.push(snapshot.id);
+
+export function recordEvidenceSnapshotInTrialContext(
+  context: TrialContext,
+  snapshot: EvidenceSnapshot,
+): void {
+  if (snapshot.id !== context.evidenceSnapshotIds.at(-1)) {
+    context.evidenceSnapshotIds.push(snapshot.id);
+  }
 }

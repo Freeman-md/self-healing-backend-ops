@@ -1,9 +1,6 @@
 import { PrismaService } from "@/infrastructure/database";
 
-import {
-  recoveryDecisionSchema,
-  type RecoveryDecision,
-} from "./recovery.schema";
+import { recoveryDecisionSchema, type RecoveryDecision } from "./recovery.schema";
 import type { BaselineRule } from "./recovery.baseline.rules";
 
 export class RecoveryRepository {
@@ -15,6 +12,7 @@ export class RecoveryRepository {
     recoveryDecision: RecoveryDecision;
   }): Promise<RecoveryDecision> {
     const { trialRecordId, sequenceNumber } = input;
+
     const recoveryDecision = recoveryDecisionSchema.parse(input.recoveryDecision);
 
     await this.prisma.$transaction(async (transaction) => {
@@ -23,37 +21,29 @@ export class RecoveryRepository {
         create: {
           id: recoveryDecision.diagnosisResult.id,
           trialRecordId,
-          evidenceSnapshotId:
-            recoveryDecision.diagnosisResult.evidenceSnapshotId,
+          evidenceSnapshotId: recoveryDecision.diagnosisResult.evidenceSnapshotId,
           createdAt: new Date(recoveryDecision.diagnosisResult.createdAt),
           method: recoveryDecision.diagnosisResult.method,
-          incidentCode:
-            recoveryDecision.diagnosisResult.suspectedIncidentType,
+          incidentCode: recoveryDecision.diagnosisResult.suspectedIncidentType,
           severity: recoveryDecision.diagnosisResult.severity,
           confidence: recoveryDecision.diagnosisResult.confidence,
-          reasoningSummary:
-            recoveryDecision.diagnosisResult.reasoningSummary,
+          reasoningSummary: recoveryDecision.diagnosisResult.reasoningSummary,
           sourceIds: recoveryDecision.diagnosisResult.sourceIds,
-          supportingSignals:
-            recoveryDecision.diagnosisResult.supportingSignals,
+          supportingSignals: recoveryDecision.diagnosisResult.supportingSignals,
           contradictions: recoveryDecision.diagnosisResult.contradictions,
           legacyPayload: null,
         },
         update: {
           trialRecordId,
-          evidenceSnapshotId:
-            recoveryDecision.diagnosisResult.evidenceSnapshotId,
+          evidenceSnapshotId: recoveryDecision.diagnosisResult.evidenceSnapshotId,
           createdAt: new Date(recoveryDecision.diagnosisResult.createdAt),
           method: recoveryDecision.diagnosisResult.method,
-          incidentCode:
-            recoveryDecision.diagnosisResult.suspectedIncidentType,
+          incidentCode: recoveryDecision.diagnosisResult.suspectedIncidentType,
           severity: recoveryDecision.diagnosisResult.severity,
           confidence: recoveryDecision.diagnosisResult.confidence,
-          reasoningSummary:
-            recoveryDecision.diagnosisResult.reasoningSummary,
+          reasoningSummary: recoveryDecision.diagnosisResult.reasoningSummary,
           sourceIds: recoveryDecision.diagnosisResult.sourceIds,
-          supportingSignals:
-            recoveryDecision.diagnosisResult.supportingSignals,
+          supportingSignals: recoveryDecision.diagnosisResult.supportingSignals,
           contradictions: recoveryDecision.diagnosisResult.contradictions,
         },
       });
@@ -85,22 +75,18 @@ export class RecoveryRepository {
       });
 
       const planActions = [
-        ...recoveryDecision.recoveryPlan.proposedActionIds.map(
-          (actionId, position) => ({
-            recoveryPlanId: recoveryDecision.recoveryPlan.id,
-            actionId,
-            phase: "proposed" as const,
-            position,
-          }),
-        ),
-        ...recoveryDecision.recoveryPlan.fallbackActionIds.map(
-          (actionId, position) => ({
-            recoveryPlanId: recoveryDecision.recoveryPlan.id,
-            actionId,
-            phase: "fallback" as const,
-            position,
-          }),
-        ),
+        ...recoveryDecision.recoveryPlan.proposedActionIds.map((actionId, position) => ({
+          recoveryPlanId: recoveryDecision.recoveryPlan.id,
+          actionId,
+          phase: "proposed" as const,
+          position,
+        })),
+        ...recoveryDecision.recoveryPlan.fallbackActionIds.map((actionId, position) => ({
+          recoveryPlanId: recoveryDecision.recoveryPlan.id,
+          actionId,
+          phase: "fallback" as const,
+          position,
+        })),
       ];
 
       if (planActions.length > 0) {
@@ -141,9 +127,7 @@ export class RecoveryRepository {
     return recoveryDecision;
   }
 
-  async findRecoveryDecisionsByTrialRecordId(
-    trialRecordId: string,
-  ): Promise<RecoveryDecision[]> {
+  async findRecoveryDecisionsByTrialRecordId(trialRecordId: string): Promise<RecoveryDecision[]> {
     const rows = await this.prisma.recoveryDecision.findMany({
       where: { trialRecordId },
       select: {

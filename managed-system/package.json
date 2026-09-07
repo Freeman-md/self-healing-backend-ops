@@ -6,6 +6,10 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json --resolve-full-paths --resolve-full-extension .js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write --ignore-unknown . && eslint . --fix",
+    "format:check": "prettier --check --ignore-unknown . && eslint .",
     "prisma:studio": "prisma studio",
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
@@ -13,11 +17,15 @@
     "start": "node dist/server.js"
   },
   "devDependencies": {
+    "@stylistic/eslint-plugin": "5.10.0",
     "@types/node": "^24.13.2",
+    "eslint": "9.39.5",
+    "prettier": "3.9.6",
     "prisma": "^7.8.0",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.20.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "8.65.0"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

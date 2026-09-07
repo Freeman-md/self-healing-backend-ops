@@ -1,3 +1,57 @@
+enum RawEvidenceSource {
+  health
+  metrics
+  logs
+  business_endpoint @map("business-endpoint")
+  container
+}
+
+enum CollectionStatus {
+  collected
+  failed
+}
+
+enum EvidenceState {
+  healthy
+  degraded
+  unhealthy
+  unknown
+}
+
+enum EvidenceSignalCode {
+  managed_system_reachability
+  managed_system_health
+  managed_system_container_state
+  database_connectivity
+  postgres_container_state
+  metrics_availability
+  configuration_validity
+  unknown
+}
+
+enum EvidenceSignalStatus {
+  normal
+  warning
+  critical
+  unknown
+}
+
+enum EvidenceDerivationMethod {
+  deterministic
+  llm
+}
+
+enum IncidentCode {
+  managed_system_unreachable
+  managed_system_service_down
+  database_connectivity_failure
+  postgres_unavailable
+  bad_runtime_configuration
+  unclassified
+  no_incident
+  unclassified_incident
+}
+
 model RawEvidence {
   id              String           @id
   source          RawEvidenceSource
@@ -29,6 +83,7 @@ model EvidenceSnapshot {
   recoveryDecisions     RecoveryDecision[]
   actionResultsBefore   ActionExecutionResult[] @relation("BeforeEvidence")
   actionResultsAfter    ActionExecutionResult[] @relation("AfterEvidence")
+  firstUnhealthyMeasurements RecoveryMeasurement[] @relation("FirstUnhealthyEvidence")
 
   @@index([createdAt])
   @@index([overallState])

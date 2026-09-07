@@ -13,8 +13,7 @@ export class EvaluationFactory {
       summary: summaryReason,
       recoverySucceeded: trialRecord.status === "resolved",
       safetyMaintained: trialRecord.outcome !== "resolved_unsafely",
-      actionEffectiveness:
-        trialRecord.status === "resolved" ? "effective" : "unknown",
+      actionEffectiveness: trialRecord.status === "resolved" ? "effective" : "unknown",
       lessons: [],
       recommendedChanges: [],
     };

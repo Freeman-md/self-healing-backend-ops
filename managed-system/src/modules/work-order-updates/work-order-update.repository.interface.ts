@@ -7,11 +7,10 @@ import type {
   UpdateWorkOrderUpdateInput,
 } from "./work-order-update.model";
 
-export interface IWorkOrderUpdateRepository
-  extends IRepository<
-    WorkOrderUpdate,
-    CreateWorkOrderUpdateInput,
-    UpdateWorkOrderUpdateInput
-  > {
+export interface IWorkOrderUpdateRepository extends IRepository<
+  WorkOrderUpdate,
+  CreateWorkOrderUpdateInput,
+  UpdateWorkOrderUpdateInput
+> {
   findByWorkOrderId(workOrderId: string): Promise<WorkOrderUpdate[]>;
 }

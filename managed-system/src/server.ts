@@ -8,8 +8,8 @@ const app = createApp();
 
 app.listen(config.server.port, () => {
   logger.info({
-    event: 'server_started',
+    event: "server_started",
     port: config.server.port,
-    environment: config.server.environment
-  })
+    environment: config.server.environment,
+  });
 });

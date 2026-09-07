@@ -1,16 +1,10 @@
-import {
-  EvidenceService,
-  type EvidenceSnapshot,
-} from "@/modules/evidence";
+import { EvidenceService, type EvidenceSnapshot } from "@/modules/evidence";
 import { config } from "@/config";
 import { OpenAIService } from "@/infrastructure/openai";
 import { evidenceSnapshotSchema } from "@/modules/evidence";
 import { actionOutcomeEvaluationSchema } from "./action.schema";
 import { SafetyService, type SafetyRule } from "@/modules/safety";
-import type {
-  Action,
-  ActionExecutionResult,
-} from "./action.types";
+import type { Action, ActionExecutionResult } from "./action.types";
 
 import { ActionRepository } from "./action.repository";
 import { ActionFactory } from "./action.factory";
@@ -42,9 +36,7 @@ export class ActionService {
     return this.actionRepository.findActionById(actionId);
   }
 
-  async saveActionExecutionResult(
-    result: ActionExecutionResult,
-  ): Promise<ActionExecutionResult> {
+  async saveActionExecutionResult(result: ActionExecutionResult): Promise<ActionExecutionResult> {
     return this.actionRepository.saveActionExecutionResult(result);
   }
 
@@ -54,14 +46,13 @@ export class ActionService {
     context: ActionExecutionContext,
   ): Promise<ActionExecutionResult> {
     const startedAt = new Date().toISOString();
+
     let safetyRules: SafetyRule[];
 
     try {
       safetyRules = (
         await Promise.all(
-          action.safetyRuleIds.map((ruleId) =>
-            this.actionRepository.findSafetyRuleById(ruleId),
-          ),
+          action.safetyRuleIds.map((ruleId) => this.actionRepository.findSafetyRuleById(ruleId)),
         )
       ).filter((rule) => rule !== null);
     } catch (error) {
@@ -79,16 +70,13 @@ export class ActionService {
         continuation: "escalated",
       });
     }
-    const safetyDecision = this.safetyService.evaluateActionSafety(
-      action,
-      safetyRules,
-      {
-        evidenceSnapshot: beforeEvidenceSnapshot,
-        actionAttemptCounts: context.actionAttemptCounts,
-        completedActionIds: context.completedActionIds,
-        manualApprovalGranted: context.manualApprovalGranted,
-      },
-    );
+
+    const safetyDecision = this.safetyService.evaluateActionSafety(action, safetyRules, {
+      evidenceSnapshot: beforeEvidenceSnapshot,
+      actionAttemptCounts: context.actionAttemptCounts,
+      completedActionIds: context.completedActionIds,
+      manualApprovalGranted: context.manualApprovalGranted,
+    });
 
     if (safetyDecision.status !== "allowed") {
       return this.actionFactory.createBlockedActionExecutionResult({
@@ -135,13 +123,18 @@ export class ActionService {
 
     try {
       const handlerResult = await handler({ action, trialRecordId: context.trialRecordId });
+
       await this.evidenceService.waitForManagedSystemHealth();
-      const freshEvidenceSnapshot = await this.evidenceService.collectAndNormalize();
-      const savedSnapshot =
-        await this.evidenceService.saveEvidenceSnapshot(freshEvidenceSnapshot);
+      const freshEvidenceSnapshot = await this.evidenceService.collectAndNormalize({
+        trialRecordId: context.trialRecordId,
+      });
+
+      const savedSnapshot = await this.evidenceService.saveEvidenceSnapshot(freshEvidenceSnapshot);
+
       const outcome = await this.evaluateActionOutcome({
         expectedOutcome: action.expectedOutcome,
         evidenceSnapshot: savedSnapshot,
+        trialRecordId: context.trialRecordId,
       });
 
       return this.actionFactory.createSuccessfulActionExecutionResult({
@@ -172,8 +165,13 @@ export class ActionService {
     }
   }
 
-  async evaluateActionOutcome(input: { expectedOutcome: Action["expectedOutcome"]; evidenceSnapshot: EvidenceSnapshot }) {
+  async evaluateActionOutcome(input: {
+    expectedOutcome: Action["expectedOutcome"];
+    evidenceSnapshot: EvidenceSnapshot;
+    trialRecordId?: string;
+  }) {
     const parsedSnapshot = evidenceSnapshotSchema.parse(input.evidenceSnapshot);
+
     const openaiService = this.openaiService ?? new OpenAIService();
 
     return openaiService.parseStructuredOutput({
@@ -190,6 +188,11 @@ export class ActionService {
         expectedOutcome: input.expectedOutcome,
         freshEvidenceSnapshot: parsedSnapshot,
       }),
+      telemetryContext: {
+        operation: "outcome_evaluation",
+        trialRecordId: input.trialRecordId,
+        evidenceSnapshotId: parsedSnapshot.id,
+      },
     });
   }
 }

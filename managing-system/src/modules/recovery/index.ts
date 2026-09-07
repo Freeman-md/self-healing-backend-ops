@@ -15,6 +15,7 @@ export type {
   RecoveryStrategyContext,
 } from "./recovery.types";
 export { RecoveryAgentStrategy } from "./recovery.agent.strategy";
+export { RecoveryAgentService } from "./recovery.agent.service";
 export { RecoveryBaselineStrategy } from "./recovery.baseline.strategy";
 export { RecoveryFactory } from "./recovery.factory";
 export { RecoveryRepository } from "./recovery.repository";

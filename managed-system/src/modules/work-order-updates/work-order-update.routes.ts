@@ -11,12 +11,10 @@ export const workOrderUpdateRoutes = Router({
 });
 
 const workOrderUpdateRepository = new WorkOrderUpdateRepository(prisma);
-const workOrderUpdateService = new WorkOrderUpdateService(
-  workOrderUpdateRepository,
-);
-const workOrderUpdateController = new WorkOrderUpdateController(
-  workOrderUpdateService,
-);
+
+const workOrderUpdateService = new WorkOrderUpdateService(workOrderUpdateRepository);
+
+const workOrderUpdateController = new WorkOrderUpdateController(workOrderUpdateService);
 
 workOrderUpdateRoutes.post("/", (request, response) =>
   workOrderUpdateController.createWorkOrderUpdate(request, response),

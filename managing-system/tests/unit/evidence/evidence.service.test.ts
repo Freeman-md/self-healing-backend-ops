@@ -6,10 +6,12 @@ import type { EvidenceSnapshot } from "@/modules/evidence";
 
 test("raw evidence collection runs without constructing an OpenAI client", async () => {
   const originalFetch = globalThis.fetch;
+
   const requestedTargets: string[] = [];
 
   globalThis.fetch = async (input) => {
     requestedTargets.push(String(input));
+
     return new Response("ok", { status: 200 });
   };
 
@@ -27,7 +29,10 @@ test("raw evidence collection runs without constructing an OpenAI client", async
       "http://localhost:3004/health",
       "http://localhost:3004/metrics",
     ]);
-    assert.deepEqual(evidence.map((item) => item.status), ["collected", "collected", "failed", "failed"]);
+    assert.deepEqual(
+      evidence.map((item) => item.status),
+      ["collected", "collected", "failed", "failed"],
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -35,6 +40,7 @@ test("raw evidence collection runs without constructing an OpenAI client", async
 
 test("EvidenceService persists and retrieves snapshots through its injected repository", async () => {
   const snapshots = new Map<string, EvidenceSnapshot>();
+
   const snapshot: EvidenceSnapshot = {
     id: "snapshot-persistence-test",
     rawEvidenceIds: [],
@@ -46,9 +52,11 @@ test("EvidenceService persists and retrieves snapshots through its injected repo
     suspectedIncidentTypes: [],
     contradictions: [],
   };
+
   const service = new EvidenceService({
     saveEvidenceSnapshot(savedSnapshot) {
       snapshots.set(savedSnapshot.id, savedSnapshot);
+
       return savedSnapshot;
     },
     findEvidenceSnapshotById(snapshotId) {
@@ -62,6 +70,7 @@ test("EvidenceService persists and retrieves snapshots through its injected repo
 
 test("health polling stops as soon as the managed system reports healthy", async () => {
   let fetchCount = 0;
+
   const service = new EvidenceService(
     { saveEvidenceSnapshot: (snapshot) => snapshot, findEvidenceSnapshotById: () => null },
     undefined,
@@ -71,12 +80,14 @@ test("health polling stops as soon as the managed system reports healthy", async
       healthPollIntervalMs: 10,
       fetchImplementation: async () => {
         fetchCount += 1;
+
         return new Response(JSON.stringify({ status: "healthy" }), { status: 200 });
       },
     },
   );
 
   const result = await service.waitForManagedSystemHealth();
+
   assert.equal(result.healthy, true);
   assert.equal(result.attempts, 1);
   assert.equal(fetchCount, 1);
@@ -84,7 +95,9 @@ test("health polling stops as soon as the managed system reports healthy", async
 
 test("health polling retries failures and returns the final observation at its deadline", async () => {
   let now = 0;
+
   let fetchCount = 0;
+
   const service = new EvidenceService(
     { saveEvidenceSnapshot: (snapshot) => snapshot, findEvidenceSnapshotById: () => null },
     undefined,
@@ -93,18 +106,22 @@ test("health polling retries failures and returns the final observation at its d
       healthTimeoutMs: 20,
       healthPollIntervalMs: 10,
       now: () => now,
-      sleep: async (milliseconds) => { now += milliseconds; },
+      sleep: async (milliseconds) => {
+        now += milliseconds;
+      },
       fetchImplementation: async () => {
         fetchCount += 1;
         if (fetchCount === 1) {
           throw new Error("connection refused");
         }
+
         return new Response(JSON.stringify({ status: "unhealthy" }), { status: 503 });
       },
     },
   );
 
   const result = await service.waitForManagedSystemHealth();
+
   assert.equal(result.healthy, false);
   assert.equal(result.attempts, 2);
   assert.equal(result.lastStatusCode, 503);
@@ -113,12 +130,16 @@ test("health polling retries failures and returns the final observation at its d
 
 test("health polling caps each request signal to the remaining total health budget", async () => {
   const originalAbortSignalTimeout = AbortSignal.timeout;
+
   const requestedTimeouts: number[] = [];
+
   let now = 0;
+
   let fetchCount = 0;
 
   AbortSignal.timeout = (milliseconds) => {
     requestedTimeouts.push(milliseconds);
+
     return new AbortController().signal;
   };
 
@@ -131,7 +152,9 @@ test("health polling caps each request signal to the remaining total health budg
         healthTimeoutMs: 20,
         healthPollIntervalMs: 10,
         now: () => now,
-        sleep: async (milliseconds) => { now += milliseconds; },
+        sleep: async (milliseconds) => {
+          now += milliseconds;
+        },
         fetchImplementation: async () => {
           fetchCount += 1;
           if (fetchCount === 1) {

@@ -29,6 +29,7 @@ const action: Action = {
 
 test("RecoveryAgentStrategy obtains and validates planned actions through ActionService", async () => {
   const requestedActionIds: string[] = [];
+
   const strategy = new RecoveryAgentStrategy(
     {
       async diagnoseEvidence() {
@@ -48,6 +49,7 @@ test("RecoveryAgentStrategy obtains and validates planned actions through Action
       },
       async createRecoveryPlan(input: { availableActions: Action[] }) {
         assert.deepEqual(input.availableActions, [action]);
+
         return {
           id: "recovery-plan-agent-test",
           diagnosisResultId: "diagnosis-agent-test",
@@ -66,6 +68,7 @@ test("RecoveryAgentStrategy obtains and validates planned actions through Action
       },
       findActionById(actionId: string) {
         requestedActionIds.push(actionId);
+
         return actionId === action.id ? action : null;
       },
     } as never,

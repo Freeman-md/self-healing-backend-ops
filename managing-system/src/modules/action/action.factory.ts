@@ -5,6 +5,7 @@ export class ActionFactory {
   createActionExecutionResult(input: Omit<ActionExecutionResult, "id">): ActionExecutionResult {
     return { ...input, id: `action-execution-${randomUUID()}` };
   }
+
   createBlockedActionExecutionResult(
     input: Omit<ActionExecutionResult, "id" | "status" | "continuation"> & {
       continuation: Extract<ActionExecutionContinuation, "blocked" | "escalated">;
@@ -12,10 +13,18 @@ export class ActionFactory {
   ): ActionExecutionResult {
     return this.createActionExecutionResult({ ...input, status: "blocked" });
   }
-  createFailedActionExecutionResult(input: Omit<ActionExecutionResult, "id" | "status" | "continuation">): ActionExecutionResult {
+
+  createFailedActionExecutionResult(
+    input: Omit<ActionExecutionResult, "id" | "status" | "continuation">,
+  ): ActionExecutionResult {
     return this.createActionExecutionResult({ ...input, status: "failed", continuation: "failed" });
   }
-  createSuccessfulActionExecutionResult(input: Omit<ActionExecutionResult, "id" | "status" | "continuation"> & { continuation: Extract<ActionExecutionContinuation, "resolved" | "continue"> }): ActionExecutionResult {
+
+  createSuccessfulActionExecutionResult(
+    input: Omit<ActionExecutionResult, "id" | "status" | "continuation"> & {
+      continuation: Extract<ActionExecutionContinuation, "resolved" | "continue">;
+    },
+  ): ActionExecutionResult {
     return this.createActionExecutionResult({ ...input, status: "executed" });
   }
 }

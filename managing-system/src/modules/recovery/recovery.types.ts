@@ -7,6 +7,7 @@ export type RecoveryMode = "baseline" | "agent";
 export type RecoveryDecisionStatus = RecoveryDecision["status"];
 
 export type RecoveryStrategyContext = {
+  trialRecordId?: string;
   actionAttemptCounts: Record<string, number>;
   completedActionIds: string[];
 };
@@ -14,10 +15,7 @@ export type RecoveryStrategyContext = {
 export interface RecoveryStrategy {
   readonly mode: RecoveryMode;
 
-  decide(
-    snapshot: EvidenceSnapshot,
-    context: RecoveryStrategyContext,
-  ): Promise<RecoveryDecision>;
+  decide(snapshot: EvidenceSnapshot, context: RecoveryStrategyContext): Promise<RecoveryDecision>;
 }
 
 export type { RecoveryDecision };

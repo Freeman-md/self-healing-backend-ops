@@ -1,8 +1,4 @@
-import type {
-  RecoveryMode,
-  RecoveryStrategy,
-  RecoveryStrategyContext,
-} from "@/modules/recovery";
+import type { RecoveryMode, RecoveryStrategy, RecoveryStrategyContext } from "@/modules/recovery";
 
 export type RecoveryStrategies = Record<RecoveryMode, RecoveryStrategy>;
 

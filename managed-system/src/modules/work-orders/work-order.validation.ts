@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 import { WorkOrderStatus } from "@prisma/client";
 
@@ -24,20 +23,11 @@ export const updateWorkOrderSchema = z
   .object({
     title: z.string().trim().min(1, "title cannot be empty").optional(),
 
-    description: z
-      .string()
-      .trim()
-      .min(1, "description cannot be empty")
-      .optional(),
+    description: z.string().trim().min(1, "description cannot be empty").optional(),
 
     status: z.nativeEnum(WorkOrderStatus).optional(),
 
-    assignee: z
-      .string()
-      .trim()
-      .min(1, "assignee cannot be empty")
-      .nullable()
-      .optional(),
+    assignee: z.string().trim().min(1, "assignee cannot be empty").nullable().optional(),
   })
   .strict()
   .refine((payload) => Object.keys(payload).length > 0, {

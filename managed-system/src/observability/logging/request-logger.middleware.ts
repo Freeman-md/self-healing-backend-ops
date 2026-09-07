@@ -7,6 +7,7 @@ import { requestContext } from "./request-context";
 
 export function requestLoggerMiddleware(req: Request, res: Response, next: NextFunction) {
   const requestId = req.header("x-request-id") ?? randomUUID();
+
   const startTime = process.hrtime.bigint();
 
   res.setHeader("x-request-id", requestId);
@@ -16,15 +17,14 @@ export function requestLoggerMiddleware(req: Request, res: Response, next: NextF
       event: "http_request_started",
       requestId,
       method: req.method,
-      path: req.originalUrl.split('?')[0],
+      path: req.originalUrl.split("?")[0],
       query: req.query,
       ip: req.ip,
       userAgent: req.get("user-agent"),
     });
 
     res.on("finish", () => {
-      const durationMs =
-        Number(process.hrtime.bigint() - startTime) / 1_000_000;
+      const durationMs = Number(process.hrtime.bigint() - startTime) / 1_000_000;
 
       const logLevel = res.statusCode >= 500 ? "error" : res.statusCode >= 400 ? "warn" : "info";
 
@@ -32,7 +32,7 @@ export function requestLoggerMiddleware(req: Request, res: Response, next: NextF
         event: "http_request_completed",
         requestId,
         method: req.method,
-        path: req.originalUrl.split('?')[0],
+        path: req.originalUrl.split("?")[0],
         statusCode: res.statusCode,
         durationMs: Number(durationMs.toFixed(2)),
       });

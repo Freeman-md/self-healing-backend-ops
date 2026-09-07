@@ -6,11 +6,7 @@ export type RiskLevel = "low" | "medium" | "high";
 export type ActionExecutionStatus = "skipped" | "blocked" | "executed" | "failed";
 
 export type ActionExecutionContinuation =
-  | "resolved"
-  | "continue"
-  | "blocked"
-  | "escalated"
-  | "failed";
+  "resolved" | "continue" | "blocked" | "escalated" | "failed";
 
 export type ExpectedOutcome = {
   description: string;

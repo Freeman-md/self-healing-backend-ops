@@ -1,0 +1,55 @@
+enum ModelInvocationOperation {
+  evidence_normalization
+  diagnosis
+  recovery_planning
+  outcome_evaluation
+}
+
+enum ModelInvocationStatus {
+  succeeded
+  failed
+}
+
+model RecoveryMeasurement {
+  trialRecordId                    String            @id @map("trial_record_id")
+  measurementVersion              String            @map("measurement_version")
+  firstUnhealthyObservedAt         DateTime?         @map("first_unhealthy_observed_at")
+  firstUnhealthyEvidenceSnapshotId String?           @map("first_unhealthy_evidence_snapshot_id")
+  recoveryTriggeredAt              DateTime          @map("recovery_triggered_at")
+  firstActionStartedAt             DateTime?         @map("first_action_started_at")
+  recoveryVerifiedAt               DateTime?         @map("recovery_verified_at")
+  completedAt                      DateTime?         @map("completed_at")
+  unhealthyConfirmationDelayMs     Int?              @map("unhealthy_confirmation_delay_ms")
+  timeToFirstActionMs              Int?              @map("time_to_first_action_ms")
+  recoveryLoopDurationMs           Int?              @map("recovery_loop_duration_ms")
+  observedTimeToHealMs             Int?              @map("observed_time_to_heal_ms")
+  decisionCount                    Int               @default(0) @map("decision_count")
+  trial                            TrialRecord       @relation(fields: [trialRecordId], references: [id], onDelete: Cascade)
+  firstUnhealthyEvidenceSnapshot   EvidenceSnapshot? @relation("FirstUnhealthyEvidence", fields: [firstUnhealthyEvidenceSnapshotId], references: [id])
+
+  @@index([recoveryTriggeredAt])
+  @@map("recovery_measurements")
+}
+
+model ModelInvocation {
+  id                      String                   @id
+  operation               ModelInvocationOperation
+  model                   String
+  startedAt               DateTime                 @map("started_at")
+  completedAt             DateTime                 @map("completed_at")
+  durationMs              Int                      @map("duration_ms")
+  inputTokens             Int?                     @map("input_tokens")
+  outputTokens            Int?                     @map("output_tokens")
+  totalTokens             Int?                     @map("total_tokens")
+  status                  ModelInvocationStatus
+  error                   String?
+  trialRecordId           String?                  @map("trial_record_id")
+  evidenceSnapshotId      String?                  @map("evidence_snapshot_id")
+  recoveryDecisionId      String?                  @map("recovery_decision_id")
+  actionExecutionResultId String?                  @map("action_execution_result_id")
+  trial                   TrialRecord?             @relation(fields: [trialRecordId], references: [id], onDelete: SetNull)
+
+  @@index([trialRecordId])
+  @@index([operation])
+  @@map("model_invocations")
+}

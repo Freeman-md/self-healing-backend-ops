@@ -65,6 +65,7 @@ services:
       MONITOR_RECOVERY_COOLDOWN_MS: ${MONITOR_RECOVERY_COOLDOWN_MS:-60000}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - managing_system_experiment_data:/managing-system/experiment-output
 
   managing-system-postgres:
     image: postgres:16-alpine
@@ -87,3 +88,4 @@ services:
 volumes:
   managed_system_postgres_data:
   managing_system_postgres_data:
+  managing_system_experiment_data:

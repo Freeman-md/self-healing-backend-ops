@@ -35,10 +35,15 @@ test("trial accounting preserves result status semantics", () => {
 
   for (const status of ["executed", "blocked", "failed"] as const) {
     const result = createResult(status);
+
     recordActionResultInTrialContext(context, result.actionId, result);
   }
 
-  assert.deepEqual(context.actionExecutionResultIds, ["result-executed", "result-blocked", "result-failed"]);
+  assert.deepEqual(context.actionExecutionResultIds, [
+    "result-executed",
+    "result-blocked",
+    "result-failed",
+  ]);
   assert.deepEqual(context.executedActionResultIds, ["result-executed"]);
   assert.deepEqual(context.blockedActionIds, ["action-blocked"]);
   assert.deepEqual(context.failedActionIds, ["action-failed"]);
@@ -59,6 +64,7 @@ test("stored historical trial records receive additive defaults", () => {
     outcome: "resolved_safely",
     metrics: { actionCount: 0, blockedActionCount: 0 },
   });
+
   assert.deepEqual(record.actionExecutionResultIds, []);
   assert.deepEqual(record.failedActionIds, []);
   assert.deepEqual(record.recoveryDecisionIds, []);

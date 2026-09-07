@@ -7,12 +7,7 @@ export const evaluationSummarySchema = z.object({
   summary: z.string(),
   recoverySucceeded: z.boolean(),
   safetyMaintained: z.boolean(),
-  actionEffectiveness: z.enum([
-    "effective",
-    "partially_effective",
-    "ineffective",
-    "unknown",
-  ]),
+  actionEffectiveness: z.enum(["effective", "partially_effective", "ineffective", "unknown"]),
   lessons: z.array(z.string()),
   recommendedChanges: z.array(z.string()),
 });

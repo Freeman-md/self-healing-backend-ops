@@ -22,7 +22,7 @@ export class WorkOrderUpdateService {
         workOrderId: update.workOrderId,
       });
 
-      return update
+      return update;
     } catch (error) {
       if (error instanceof Error && error.message === "work order not found") {
         throw new HttpError(404, "work order not found");
@@ -46,10 +46,7 @@ export class WorkOrderUpdateService {
     return this.repository.findByWorkOrderId(workOrderId);
   };
 
-  updateWorkOrderUpdate = async (
-    updateId: string,
-    input: UpdateWorkOrderUpdateInput,
-  ) => {
+  updateWorkOrderUpdate = async (updateId: string, input: UpdateWorkOrderUpdateInput) => {
     const update = await this.repository.update(updateId, input);
 
     if (!update) {
@@ -71,10 +68,9 @@ export class WorkOrderUpdateService {
       throw new HttpError(404, "work order update not found");
     }
 
-     appLogger.info("work_order_update_deleted", {
+    appLogger.info("work_order_update_deleted", {
       updateId,
     });
-
 
     return deleted;
   };

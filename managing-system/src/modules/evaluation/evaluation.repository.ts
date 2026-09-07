@@ -1,17 +1,13 @@
 import { PrismaService } from "@/infrastructure/database";
 
-import {
-  evaluationSummarySchema,
-  type EvaluationSummary,
-} from "./evaluation.schema";
+import { evaluationSummarySchema, type EvaluationSummary } from "./evaluation.schema";
 
 export class EvaluationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async saveEvaluationSummary(
-    summary: EvaluationSummary,
-  ): Promise<EvaluationSummary> {
+  async saveEvaluationSummary(summary: EvaluationSummary): Promise<EvaluationSummary> {
     const parsed = evaluationSummarySchema.parse(summary);
+
     const data = {
       trialRecordId: parsed.trialRecordId,
       createdAt: new Date(parsed.createdAt),

@@ -55,16 +55,14 @@ function matchBaselineRule(
   for (const group of rule.conditionGroups) {
     const conditionResults = group.conditions.map((condition) => {
       if (condition.operator !== "EQUALS") {
-        throw new Error(
-          `Unsupported baseline operator ${String(condition.operator)}.`,
-        );
+        throw new Error(`Unsupported baseline operator ${String(condition.operator)}.`);
       }
 
       const signal = snapshot.signals.find(
         (candidate) =>
-          candidate.method === "deterministic" &&
-          candidate.code === condition.signalCode,
+          candidate.method === "deterministic" && candidate.code === condition.signalCode,
       );
+
       const matched = signal?.status === condition.expectedStatus;
 
       if (matched && signal) {
@@ -73,10 +71,9 @@ function matchBaselineRule(
 
       return matched;
     });
+
     const groupMatched =
-      group.matchMode === "ALL"
-        ? conditionResults.every(Boolean)
-        : conditionResults.some(Boolean);
+      group.matchMode === "ALL" ? conditionResults.every(Boolean) : conditionResults.some(Boolean);
 
     if (!groupMatched) {
       return null;

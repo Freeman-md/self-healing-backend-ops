@@ -1,13 +1,12 @@
 import { PrismaService } from "@/infrastructure/database";
 import { seedCatalogue } from "../../prisma/catalogue";
 
-export async function createPrismaTestDatabase(options?: {
-  seed?: boolean;
-}): Promise<{
+export async function createPrismaTestDatabase(options?: { seed?: boolean }): Promise<{
   prisma: PrismaService;
   close(): Promise<void>;
 }> {
   const prisma = new PrismaService();
+
   await prisma.open();
   await clearDatabase(prisma);
 
@@ -30,6 +29,10 @@ export async function createPrismaTestDatabase(options?: {
 async function clearDatabase(prisma: PrismaService): Promise<void> {
   await prisma.$executeRawUnsafe(`
     TRUNCATE TABLE
+      "experiment_runs",
+      "experiment_batches",
+      "model_invocations",
+      "recovery_measurements",
       "action_execution_results",
       "evaluation_summaries",
       "recovery_decisions",

@@ -1,3 +1,40 @@
+enum DiagnosisMethod {
+  deterministic
+  llm
+}
+
+enum IncidentSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum RecoveryMode {
+  baseline
+  agent
+}
+
+enum RecoveryDecisionStatus {
+  no_action
+  action_selected
+  escalate
+}
+
+enum ActionPhase {
+  proposed
+  fallback
+}
+
+enum BaselineGroupMatchMode {
+  ALL
+  ANY
+}
+
+enum BaselineOperator {
+  EQUALS
+}
+
 model DiagnosisResult {
   id                 String            @id
   trialRecordId      String            @map("trial_record_id")

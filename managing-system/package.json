@@ -7,10 +7,14 @@
   "scripts": {
     "build": "npm run prisma:generate && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json --resolve-full-paths --resolve-full-extension .js",
     "dev": "tsx watch src/index.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write --ignore-unknown . && eslint . --fix",
+    "format:check": "prettier --check --ignore-unknown . && eslint .",
     "test": "npm run prisma:generate && npm run test:unit && npm run test:integration",
     "test:unit": "tsx --tsconfig tsconfig.test.json --test-concurrency=1 --test tests/unit/**/*.test.ts",
     "test:integration": "tsx --tsconfig tsconfig.test.json --test-concurrency=1 --test tests/integration/**/*.test.ts",
-    "test:types": "npm run prisma:generate && tsc -p tsconfig.test.json",
+    "test:types": "npm run prisma:generate && tsc -p tsconfig.test.json && tsc -p tsconfig.scripts.json",
     "start": "node dist/index.js",
     "start:container": "npm run prisma:migrate:deploy && npm run prisma:seed && npm run start",
     "prisma:generate": "prisma generate",
@@ -19,22 +23,30 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
-    "prisma:verify-seed": "tsx prisma/verify-seed.ts"
+    "prisma:verify-seed": "tsx prisma/verify-seed.ts",
+    "experiment:healthy-control": "tsx scripts/experiment/run-healthy-control.ts",
+    "experiment:run": "tsx scripts/run-recovery-experiment.ts",
+    "experiment:suite": "tsx scripts/run-experiment-suite.ts",
+    "experiment:export": "tsx scripts/export-recovery-experiment.ts"
   },
   "devDependencies": {
+    "@stylistic/eslint-plugin": "5.10.0",
+    "@types/node": "^24.13.3",
     "@types/pg": "^8.15.5",
-    "@types/node": "^24.13.2",
+    "eslint": "9.39.5",
+    "prettier": "3.9.6",
     "prisma": "^7.9.0",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.20.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "8.65.0"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
-    "pg": "^8.16.3",
     "dotenv": "^17.4.2",
     "openai": "^6.45.0",
+    "pg": "^8.16.3",
     "zod": "^4.4.3"
   }
 }

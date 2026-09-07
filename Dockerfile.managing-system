@@ -6,10 +6,11 @@ COPY package*.json ./
 RUN apk add --no-cache docker-cli python3 make g++ \
   && npm ci
 
-COPY tsconfig.json tsconfig.build.json ./
+COPY tsconfig.json tsconfig.build.json tsconfig.scripts.json ./
 COPY prisma.config.ts ./
 COPY prisma ./prisma
 COPY src ./src
+COPY scripts ./scripts
 
 RUN npm run build
 

@@ -1,3 +1,10 @@
+enum ActionEffectiveness {
+  effective
+  partially_effective
+  ineffective
+  unknown
+}
+
 model EvaluationSummary {
   id                 String              @id
   trialRecordId      String              @unique @map("trial_record_id")
