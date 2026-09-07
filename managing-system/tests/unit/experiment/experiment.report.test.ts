@@ -24,6 +24,7 @@ function run(overrides: Partial<ExperimentRunReportData> = {}): ExperimentRunRep
     exclusionReason: null,
     runtimeResolved: true,
     oracleSucceeded: true,
+    oracleFirstHealthyObservedAt: new Date("2026-08-17T10:00:08.000Z"),
     oracleCheckedAt: new Date("2026-08-17T10:00:09.000Z"),
     oracleDetails: {},
     stabilityWindowMs: 1_000,

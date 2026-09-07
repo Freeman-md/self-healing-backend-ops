@@ -41,6 +41,8 @@ type TrialMeasurementService = Pick<
   "startRecoveryMeasurement" | "recordFirstActionStarted" | "completeRecoveryMeasurement"
 >;
 
+export const DEFAULT_MAX_RECOVERY_STEPS = 3;
+
 export class TrialService {
   constructor(
     private readonly strategies: RecoveryStrategies,
@@ -49,7 +51,7 @@ export class TrialService {
     private readonly evidenceService: TrialEvidenceService,
     private readonly evaluationService: TrialEvaluationService,
     private readonly recoveryService: TrialRecoveryService,
-    private readonly maxRecoverySteps = 3,
+    private readonly maxRecoverySteps = DEFAULT_MAX_RECOVERY_STEPS,
     private readonly trialFactory = new TrialFactory(),
     private readonly measurementService?: TrialMeasurementService,
   ) {}

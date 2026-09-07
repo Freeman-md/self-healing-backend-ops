@@ -19,6 +19,7 @@ function experimentRun(): ExperimentRun {
     exclusionReason: null,
     runtimeResolved: null,
     oracleSucceeded: null,
+    oracleFirstHealthyObservedAt: null,
     oracleCheckedAt: null,
     oracleDetails: null,
     stabilityWindowMs: 1_000,
@@ -62,4 +63,40 @@ test("post-run correlation rejects multiple monitor trials instead of guessing",
     /Expected one monitor-triggered trial but found 2/,
   );
   assert.match(invalidReason, /found 2/);
+});
+
+test("time to heal ends at the first independently healthy observation", async () => {
+  let completedInput: { timeToHealMs: number | null } | undefined;
+
+  const run = experimentRun();
+
+  const service = new ExperimentService({
+    completeExperimentRun(input: { timeToHealMs: number | null }) {
+      completedInput = input;
+
+      return run;
+    },
+  } as never);
+
+  await service.completeExperimentRun({
+    run,
+    trial: {
+      id: "trial-1",
+      startedAt: "2026-08-17T10:00:02.000Z",
+      completedAt: "2026-08-17T10:00:10.000Z",
+      status: "resolved",
+      recoveryMode: "baseline",
+      measurement: null,
+      diagnosisIncidentCodes: ["managed_system_unreachable"],
+      actionIds: ["restart_managed_system_service"],
+    },
+    oracle: {
+      succeeded: true,
+      firstHealthyObservedAt: "2026-08-17T10:00:08.000Z",
+      checkedAt: "2026-08-17T10:00:18.000Z",
+      details: {},
+    },
+  });
+
+  assert.equal(completedInput?.timeToHealMs, 7_000);
 });

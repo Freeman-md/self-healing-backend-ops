@@ -144,7 +144,9 @@ export class ExperimentService {
       ? new Date(input.trial.measurement.firstUnhealthyObservedAt).getTime()
       : null;
 
-    const oracleCheckedMs = new Date(input.oracle.checkedAt).getTime();
+    const firstOracleHealthyMs = input.oracle.firstHealthyObservedAt
+      ? new Date(input.oracle.firstHealthyObservedAt).getTime()
+      : null;
 
     const completedMs = new Date(input.trial.completedAt).getTime();
 
@@ -158,9 +160,10 @@ export class ExperimentService {
       unnecessaryActionCount,
       faultToDetectionMs:
         firstUnhealthyMs === null ? null : nonNegativeDifference(firstUnhealthyMs, faultInjectedMs),
-      timeToHealMs: input.oracle.succeeded
-        ? nonNegativeDifference(oracleCheckedMs, faultInjectedMs)
-        : null,
+      timeToHealMs:
+        input.oracle.succeeded && firstOracleHealthyMs !== null
+          ? nonNegativeDifference(firstOracleHealthyMs, faultInjectedMs)
+          : null,
       timeToTerminationMs: nonNegativeDifference(completedMs, faultInjectedMs),
     });
   }

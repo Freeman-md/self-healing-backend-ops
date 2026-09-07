@@ -1,10 +1,10 @@
-import type { IContainerStateReader } from "../../src/infrastructure/container-runtime/container-state-reader.interface";
+import { IContainerRuntime } from "./../../src/infrastructure/container-runtime/container-runtime.interface";
 import type { RecoveryOracleResult } from "../../src/modules/experiment/experiment.types";
 
 export class RecoveryOracle {
   constructor(
     private readonly baseUrl: string,
-    private readonly containerStateReader: IContainerStateReader,
+    private readonly containerRuntime: IContainerRuntime,
     private readonly requestTimeoutMs = 5_000,
     private readonly pollIntervalMs = 1_000,
   ) {}
@@ -14,6 +14,8 @@ export class RecoveryOracle {
 
     let lastDetails: Record<string, unknown> = {};
 
+    let firstHealthyObservedAt: string | null = null;
+
     while (Date.now() - startedAt <= stabilityWindowMs) {
       const observation = await this.observe();
 
@@ -21,6 +23,7 @@ export class RecoveryOracle {
       if (!observation.healthy) {
         return {
           succeeded: false,
+          firstHealthyObservedAt,
           checkedAt: new Date().toISOString(),
           details: {
             ...lastDetails,
@@ -30,11 +33,14 @@ export class RecoveryOracle {
         };
       }
 
+      firstHealthyObservedAt ??= new Date().toISOString();
+
       await sleep(this.pollIntervalMs);
     }
 
     return {
       succeeded: true,
+      firstHealthyObservedAt,
       checkedAt: new Date().toISOString(),
       details: {
         ...lastDetails,
@@ -65,8 +71,8 @@ export class RecoveryOracle {
     const [health, metrics, applicationContainer, postgresContainer] = await Promise.all([
       this.fetchHealth(),
       this.fetchMetrics(),
-      this.containerStateReader.inspectTarget("managed-system"),
-      this.containerStateReader.inspectTarget("postgres"),
+      this.containerRuntime.inspectTarget("managed-system"),
+      this.containerRuntime.inspectTarget("postgres"),
     ]);
 
     const healthy =

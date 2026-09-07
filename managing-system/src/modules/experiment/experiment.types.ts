@@ -6,6 +6,8 @@ export type { ExperimentBatch, ExperimentRun, FaultProfileCode } from "@/generat
 export type ExperimentConfiguration = {
   recoveryMode: RecoveryMode;
   model: string;
+  promptVersion: string;
+  maxRecoverySteps: number;
   baselineRuleVersions: Record<string, number>;
   actionCatalogueFingerprint: string;
   monitorIntervalMs: number;
@@ -33,6 +35,7 @@ export type ExperimentTrialCandidate = {
 
 export type RecoveryOracleResult = {
   succeeded: boolean;
+  firstHealthyObservedAt: string | null;
   checkedAt: string;
   details: Record<string, unknown>;
 };

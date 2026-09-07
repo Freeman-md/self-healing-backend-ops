@@ -52,6 +52,7 @@ model ExperimentRun {
   exclusionReason          String?              @map("exclusion_reason")
   runtimeResolved          Boolean?             @map("runtime_resolved")
   oracleSucceeded          Boolean?             @map("oracle_succeeded")
+  oracleFirstHealthyObservedAt DateTime?         @map("oracle_first_healthy_observed_at")
   oracleCheckedAt          DateTime?            @map("oracle_checked_at")
   oracleDetails            Json?                @map("oracle_details")
   stabilityWindowMs        Int                  @map("stability_window_ms")

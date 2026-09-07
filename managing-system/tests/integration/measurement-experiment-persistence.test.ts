@@ -130,6 +130,8 @@ test("measurement and experiment evidence persist as one queryable recovery reco
     > = {
       recoveryMode: "baseline",
       model: "test-model",
+      promptVersion: "test-prompts-1",
+      maxRecoverySteps: 3,
       monitorIntervalMs: 5_000,
       consecutiveUnhealthyThreshold: 2,
       cooldownMs: 15_000,
@@ -188,6 +190,7 @@ test("measurement and experiment evidence persist as one queryable recovery reco
       },
       oracle: {
         succeeded: true,
+        firstHealthyObservedAt: "2026-08-17T10:00:07.000Z",
         checkedAt: "2026-08-17T10:00:08.000Z",
         details: { stable: true },
       },
@@ -196,10 +199,15 @@ test("measurement and experiment evidence persist as one queryable recovery reco
 
     const evidence = await experimentService.getExperimentEvidence(batch.id);
 
+    assert.deepEqual(evidence.batch.configuration, configuration);
     assert.equal(evidence.runs.length, 1);
     assert.equal(evidence.runs[0]?.trialRecordId, trial.id);
     assert.equal(evidence.runs[0]?.faultToDetectionMs, 1_000);
-    assert.equal(evidence.runs[0]?.timeToHealMs, 8_000);
+    assert.equal(evidence.runs[0]?.timeToHealMs, 7_000);
+    assert.equal(
+      evidence.runs[0]?.oracleFirstHealthyObservedAt?.toISOString(),
+      "2026-08-17T10:00:07.000Z",
+    );
     assert.equal(evidence.runs[0]?.diagnosisCorrect, true);
     assert.equal(evidence.runs[0]?.actionSequenceCorrect, true);
     assert.equal(evidence.runs[0]?.trial?.safetyMaintained, true);

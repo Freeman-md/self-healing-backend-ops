@@ -263,6 +263,9 @@ export class ExperimentRepository {
         valid: true,
         runtimeResolved: input.runtimeResolved,
         oracleSucceeded: input.oracle.succeeded,
+        oracleFirstHealthyObservedAt: input.oracle.firstHealthyObservedAt
+          ? new Date(input.oracle.firstHealthyObservedAt)
+          : null,
         oracleCheckedAt: new Date(input.oracle.checkedAt),
         oracleDetails: input.oracle.details as Prisma.InputJsonValue,
         diagnosisCorrect: input.diagnosisCorrect,

@@ -3,6 +3,7 @@ import { parseArgs } from "node:util";
 import { config } from "../src/config/index";
 import { DockerContainerRuntimeService } from "../src/infrastructure/container-runtime/docker-container-runtime.service";
 import { PrismaService } from "../src/infrastructure/database/prisma.service";
+import { OPENAI_PROMPT_VERSION } from "../src/infrastructure/openai/index";
 import {
   ExperimentRepository,
   ExperimentService,
@@ -12,6 +13,7 @@ import {
   type FaultProfileCode,
   writeExperimentReport,
 } from "../src/modules/experiment/index";
+import { DEFAULT_MAX_RECOVERY_STEPS } from "../src/modules/trial/index";
 import { injectFaultProfile, restoreExperimentTargets } from "./experiment/fault-injector";
 import { RecoveryOracle } from "./experiment/recovery-oracle";
 
@@ -50,10 +52,14 @@ async function main(): Promise<void> {
     new DockerContainerRuntimeService(),
   );
 
+  let batchId: string | undefined;
+
   try {
     const configuration = await experimentService.createFrozenConfiguration({
       recoveryMode: input.recoveryMode,
       model: config.openai.model,
+      promptVersion: OPENAI_PROMPT_VERSION,
+      maxRecoverySteps: DEFAULT_MAX_RECOVERY_STEPS,
       monitorIntervalMs: config.monitoring.intervalMs,
       consecutiveUnhealthyThreshold: config.monitoring.consecutiveUnhealthyThreshold,
       cooldownMs: config.monitoring.cooldownMs,
@@ -69,6 +75,8 @@ async function main(): Promise<void> {
       requestedRepetitions: input.repetitions,
       runOrderSeed: input.runOrderSeed,
     });
+
+    batchId = batch.id;
 
     const runOrder = shuffledRunOrder(input.profiles, input.repetitions, input.runOrderSeed);
 
@@ -156,6 +164,12 @@ async function main(): Promise<void> {
       outputDirectory,
       summary: report.summary,
     });
+  } catch (error) {
+    if (batchId) {
+      await experimentService.completeExperimentBatch(batchId, "failed").catch(() => undefined);
+    }
+
+    throw error;
   } finally {
     await prisma.close();
   }

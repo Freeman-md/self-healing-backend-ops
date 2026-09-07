@@ -21,3 +21,5 @@
 | agent | `experiment-batch-cee7c975-85a9-4da6-8891-aa6823bcb01f` | 15 | 15 | 0 | 15 | 15 | 0 | 15 | 109908 | 85 | 169698 |
 
 This campaign is the initial descriptive benchmark defined by canonical-recovery-suite-v1.
+
+See `ERRATA.md` before interpreting `timeToHealMs`; the retained values include the oracle stability window.
