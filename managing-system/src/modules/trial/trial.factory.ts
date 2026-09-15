@@ -92,7 +92,7 @@ export class TrialFactory {
     initialSnapshot: EvidenceSnapshot;
     finalSnapshot: EvidenceSnapshot;
     context: TrialContext;
-    recoveryDecision: RecoveryDecision;
+    recoveryDecision: RecoveryDecision | undefined;
     trialState: TrialState;
   }): TrialRecord {
     return {
@@ -108,8 +108,8 @@ export class TrialFactory {
       recoveryDecisionIds: input.context.recoveryDecisionIds,
       diagnosisResultIds: input.context.diagnosisResultIds,
       recoveryPlanIds: input.context.recoveryPlanIds,
-      diagnosisResultId: input.recoveryDecision.diagnosisResult.id,
-      recoveryPlanId: input.recoveryDecision.recoveryPlan.id,
+      diagnosisResultId: input.recoveryDecision?.diagnosisResult.id,
+      recoveryPlanId: input.recoveryDecision?.recoveryPlan.id,
       selectedActionIds: input.context.selectedActionIds,
       actionExecutionResultIds: input.context.actionExecutionResultIds,
       executedActionResultIds: input.context.executedActionResultIds,

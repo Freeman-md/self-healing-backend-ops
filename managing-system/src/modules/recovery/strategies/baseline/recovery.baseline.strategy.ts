@@ -1,7 +1,11 @@
 import { getDeterministicEvidenceState, type EvidenceSnapshot } from "@/modules/evidence";
-import type { RecoveryDecision, RecoveryStrategy, RecoveryStrategyContext } from "./recovery.types";
-import type { DiagnosisResult, RecoveryPlan } from "./recovery.schema";
-import { RecoveryFactory } from "./recovery.factory";
+import type {
+  RecoveryDecision,
+  DecisionRecoveryStrategy,
+  RecoveryStrategyContext,
+} from "../../recovery.types";
+import type { DiagnosisResult, RecoveryPlan } from "../../recovery.schema";
+import { RecoveryFactory } from "../../recovery.factory";
 
 import type { BaselineRule, BaselineRuleMatch } from "./recovery.baseline.rules";
 
@@ -11,7 +15,9 @@ type BaselineRuleSource = {
   ): Promise<{ rule: BaselineRule; match: BaselineRuleMatch } | null>;
 };
 
-export class RecoveryBaselineStrategy implements RecoveryStrategy {
+export class RecoveryBaselineStrategy implements DecisionRecoveryStrategy {
+  readonly orchestration = "external" as const;
+
   readonly mode = "baseline" as const;
 
   constructor(

@@ -1,7 +1,7 @@
 import { PrismaService } from "@/infrastructure/database";
 
 import { recoveryDecisionSchema, type RecoveryDecision } from "./recovery.schema";
-import type { BaselineRule } from "./recovery.baseline.rules";
+import type { BaselineRule } from "./strategies/baseline/recovery.baseline.rules";
 
 export class RecoveryRepository {
   constructor(private readonly prisma: PrismaService) {}

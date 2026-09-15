@@ -6,3 +6,10 @@ export type {
   OpenAIInvocationTelemetry,
   OpenAITelemetryContext,
 } from "./openai.types";
+export type {
+  FunctionTool,
+  FunctionCall,
+  ToolConversationResponse,
+  ToolConversationRequest,
+  ToolConversationContinuation,
+} from "./openai.types";

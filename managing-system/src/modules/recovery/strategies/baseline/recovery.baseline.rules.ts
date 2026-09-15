@@ -4,7 +4,7 @@ import type {
   EvidenceSnapshot,
 } from "@/modules/evidence";
 
-import type { IncidentSeverity } from "./recovery.schema";
+import type { IncidentSeverity } from "../../recovery.schema";
 
 export type BaselineRuleMatch = {
   matchedSignalNames: string[];

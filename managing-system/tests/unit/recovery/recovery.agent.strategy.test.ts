@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import type { Action } from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
-import { RecoveryAgentStrategy } from "@/modules/recovery";
+import { RecoveryAgentV1Strategy } from "@/modules/recovery";
 
 const snapshot: EvidenceSnapshot = {
   id: "snapshot-agent-strategy-test",
@@ -27,10 +27,10 @@ const action: Action = {
   expectedOutcome: { description: "Database restored.", successCriteria: [] },
 };
 
-test("RecoveryAgentStrategy obtains and validates planned actions through ActionService", async () => {
+test("RecoveryAgentV1Strategy obtains and validates planned actions through ActionService", async () => {
   const requestedActionIds: string[] = [];
 
-  const strategy = new RecoveryAgentStrategy(
+  const strategy = new RecoveryAgentV1Strategy(
     {
       async diagnoseEvidence() {
         return {
@@ -85,7 +85,7 @@ test("RecoveryAgentStrategy obtains and validates planned actions through Action
 
 test("constructing the unused agent strategy does not require OpenAI configuration", () => {
   assert.doesNotThrow(() => {
-    new RecoveryAgentStrategy(undefined, {
+    new RecoveryAgentV1Strategy(undefined, {
       listActions: () => [],
       findActionById: () => null,
     } as never);

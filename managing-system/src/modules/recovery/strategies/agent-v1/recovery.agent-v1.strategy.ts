@@ -1,15 +1,21 @@
 import { ActionService } from "@/modules/action";
 import type { EvidenceSnapshot } from "@/modules/evidence";
-import type { RecoveryDecision, RecoveryStrategy, RecoveryStrategyContext } from "./recovery.types";
+import type {
+  RecoveryDecision,
+  DecisionRecoveryStrategy,
+  RecoveryStrategyContext,
+} from "../../recovery.types";
 
-import { RecoveryAgentService } from "./recovery.agent.service";
-import { RecoveryFactory } from "./recovery.factory";
+import { RecoveryAgentV1Service } from "./recovery.agent-v1.service";
+import { RecoveryFactory } from "../../recovery.factory";
 
-export class RecoveryAgentStrategy implements RecoveryStrategy {
+export class RecoveryAgentV1Strategy implements DecisionRecoveryStrategy {
+  readonly orchestration = "external" as const;
+
   readonly mode = "agent" as const;
 
   constructor(
-    private readonly recoveryAgentService: RecoveryAgentService | undefined,
+    private readonly recoveryAgentService: RecoveryAgentV1Service | undefined,
     private readonly actionService: Pick<ActionService, "listActions" | "findActionById">,
     private readonly recoveryFactory = new RecoveryFactory(),
   ) {}
@@ -18,7 +24,7 @@ export class RecoveryAgentStrategy implements RecoveryStrategy {
     evidenceSnapshot: EvidenceSnapshot,
     context: RecoveryStrategyContext,
   ): Promise<RecoveryDecision> {
-    const recoveryAgentService = this.recoveryAgentService ?? new RecoveryAgentService();
+    const recoveryAgentService = this.recoveryAgentService ?? new RecoveryAgentV1Service();
 
     const diagnosisResult = await recoveryAgentService.diagnoseEvidence(evidenceSnapshot, {
       trialRecordId: context.trialRecordId,

@@ -4,7 +4,7 @@ import {
   findMatchingBaselineRule,
   type BaselineRuleMatch,
   type BaselineRule,
-} from "./recovery.baseline.rules";
+} from "./strategies/baseline/recovery.baseline.rules";
 import { RecoveryRepository } from "./recovery.repository";
 import type { RecoveryDecision } from "./recovery.types";
 

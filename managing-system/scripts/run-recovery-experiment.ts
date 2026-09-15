@@ -57,6 +57,20 @@ async function main(): Promise<void> {
   try {
     const configuration = await experimentService.createFrozenConfiguration({
       recoveryMode: input.recoveryMode,
+      agentStrategyVersion:
+        input.recoveryMode === "agent" ? config.trial.agentStrategyVersion : undefined,
+      agentImplementationVersion:
+        input.recoveryMode === "agent"
+          ? config.trial.agentStrategyVersion === "v2"
+            ? "2.0.0"
+            : "1.0.0"
+          : undefined,
+      agentPromptVersion:
+        input.recoveryMode === "agent"
+          ? config.trial.agentStrategyVersion === "v2"
+            ? "2.0.0"
+            : "1.0.0"
+          : undefined,
       model: config.openai.model,
       promptVersion: OPENAI_PROMPT_VERSION,
       maxRecoverySteps: DEFAULT_MAX_RECOVERY_STEPS,

@@ -126,3 +126,40 @@ test("batch reports do not mislabel descriptive results as pilot evidence", () =
   assert.match(markdown, /Results are descriptive/);
   assert.doesNotMatch(markdown, /Pilot results/);
 });
+
+for (const version of ["v1", "v2"] as const) {
+  test(`frozen ${version} metadata is exported without changing historical reports`, () => {
+    const configuration = {
+      agentStrategyVersion: version,
+      agentImplementationVersion: version === "v2" ? "2.0.0" : "1.0.0",
+      agentPromptVersion: version === "v2" ? "2.0.0" : "1.0.0",
+    };
+
+    const report = {
+      batch: {
+        id: "batch",
+        name: "version test",
+        sourceRevision: "head",
+        measurementVersion: "1.0.0",
+        configuration,
+      },
+      runs: [],
+      summary: createExperimentSummary([]),
+    } as unknown as ExperimentReport;
+
+    const markdown = createExperimentMarkdown(report);
+
+    assert.match(markdown, new RegExp(`Agent strategy version: ${version}`));
+    assert.ok(
+      markdown.includes(
+        `Agent implementation version: ${configuration.agentImplementationVersion}`,
+      ),
+    );
+    const historical = { ...report, batch: { ...report.batch, configuration: {} } };
+
+    assert.ok(
+      createExperimentMarkdown(historical).includes("not recorded (historical or baseline)"),
+    );
+    assert.deepEqual(historical.batch.configuration, {});
+  });
+}
