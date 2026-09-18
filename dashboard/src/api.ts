@@ -241,17 +241,29 @@ async function request<T>(
   init: RequestInit = {},
   signal?: AbortSignal,
 ): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    signal,
-    headers: {
-      Accept: "application/json",
-      ...(init.method && init.method !== "GET"
-        ? { "X-Operator-Request": "1" }
-        : {}),
-      ...init.headers,
-    },
-  });
+  const mutation = Boolean(init.method && init.method !== "GET");
+  const timeout = AbortSignal.timeout(mutation ? 15_000 : 5_000);
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...init,
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+      headers: {
+        Accept: "application/json",
+        ...(mutation ? { "X-Operator-Request": "1" } : {}),
+        ...init.headers,
+      },
+    });
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    throw new ApiError(
+      mutation
+        ? "Request acceptance could not be confirmed. Refresh current state before retrying. Your draft is preserved."
+        : "The local control plane could not be reached. Check that it is running, then retry the read.",
+      0,
+      null,
+    );
+  }
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
@@ -272,7 +284,17 @@ async function request<T>(
     );
   }
 
-  return schema.parse(body);
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    throw new ApiError(
+      mutation
+        ? "Request acceptance could not be confirmed. Refresh current state before retrying. Your draft is preserved."
+        : "The control plane returned unusable information. Refresh the read; do not rely on the previous observation.",
+      response.status,
+      null,
+    );
+  }
+  return parsed.data;
 }
 
 export const api = {

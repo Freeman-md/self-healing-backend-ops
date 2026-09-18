@@ -628,11 +628,14 @@ function AttentionRow({ attention }: { attention: Attention }) {
 export function AttentionPage() {
   const query = useMemo(pageQuery, []);
   const selectedId = query.get("attention");
-  const list = useResource((signal) => api.listAttention(signal), []);
+  const list = useResource((signal) => api.listAttention(signal), [], {
+    pollMs: 10_000,
+  });
   const detail = useResource(
     (signal) =>
       selectedId ? api.getAttention(selectedId, signal) : Promise.resolve(null),
     [selectedId],
+    { pollMs: 10_000 },
   );
   if (list.loading && !list.data)
     return <LoadingPanel label="Reading durable attention records…" />;
@@ -816,6 +819,7 @@ function AttentionDetailPage({
           onChange={(event) => setNotes(event.target.value)}
           maxLength={4000}
           disabled={!canReview || pending !== null}
+          aria-invalid={error === "Review notes are required."}
           aria-describedby="review-notes-help review-notes-error"
         />
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">

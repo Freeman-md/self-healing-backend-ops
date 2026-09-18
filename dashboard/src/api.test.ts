@@ -1,8 +1,37 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { operatorStateSchema, trialDetailSchema } from "./api";
+import { api, ApiError, operatorStateSchema, trialDetailSchema } from "./api";
 
 describe("operator API contracts", () => {
+  it("bounds reads below the polling interval and sanitizes network and schema failures", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValue(new Error("internal transport detail"));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      await expect(api.getState()).rejects.toThrow(
+        "local control plane could not be reached",
+      );
+      expect(timeout).toHaveBeenCalledWith(5_000);
+      await expect(api.reviewAttention("attention", "draft")).rejects.toThrow(
+        "acceptance could not be confirmed",
+      );
+      expect(timeout).toHaveBeenCalledWith(15_000);
+      fetchMock.mockResolvedValue(
+        new Response(JSON.stringify({ internal: "provider detail" }), {
+          status: 200,
+        }),
+      );
+      await expect(api.reviewAttention("attention", "draft")).rejects.toThrow(
+        ApiError,
+      );
+      await expect(api.getState()).rejects.toThrow("unusable information");
+    } finally {
+      timeout.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
   it("accepts unknown current health when persisted evidence is stale or unavailable", () => {
     const result = operatorStateSchema.safeParse({
       serverTime: "2026-09-18T10:00:00.000Z",
