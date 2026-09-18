@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - managed_system_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -33,7 +33,7 @@ services:
       METRICS_ENABLED: "true"
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/managed_system
     ports:
-      - "3004:3000"
+      - "127.0.0.1:3004:3000"
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 5s
@@ -86,7 +86,7 @@ services:
       POSTGRES_USER: ${MANAGING_SYSTEM_POSTGRES_USER:?Set MANAGING_SYSTEM_POSTGRES_USER}
       POSTGRES_PASSWORD: ${MANAGING_SYSTEM_POSTGRES_PASSWORD:?Set MANAGING_SYSTEM_POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - managing_system_postgres_data:/var/lib/postgresql/data
     healthcheck:

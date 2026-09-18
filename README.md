@@ -95,7 +95,7 @@ The built dashboard is served by `managing-system` at
 only reaches a bounded same-origin API; it cannot access Docker, Prisma, the
 database or provider credentials directly.
 
-From the repository root, after supplying the existing non-secret testbed
+From the repository root, after supplying the existing private testbed
 configuration, build and start the local testbed in operator mode:
 
 ```sh
@@ -113,7 +113,8 @@ The final experimental panels are documented in
 `recovery-experiment-reports/m9-panels-v1/README.md`. Keep acceptance smoke outputs
 separate from final campaign outputs and preserve the earlier canonical evidence.
 
-The Compose publication is loopback-only. The container listens on `0.0.0.0`
+All published Compose ports, including both databases and the managed application,
+are loopback-only. The operator container listens on `0.0.0.0`
 only so Docker can publish it to the host's `127.0.0.1`; direct local starts
 default to `127.0.0.1`. The dashboard remains visible with current health marked
 unknown when the managing system target or its persisted control plane is

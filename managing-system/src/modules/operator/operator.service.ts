@@ -382,12 +382,12 @@ function deterministicState(
 ): "healthy" | "degraded" | "unhealthy" | "unknown" {
   const deterministic = signals.filter((signal) => signal.method === "deterministic");
 
-  if (deterministic.length === 0 || deterministic.some((signal) => signal.status === "unknown")) {
-    return "unknown";
-  }
-
   if (deterministic.some((signal) => signal.status === "critical")) {
     return "unhealthy";
+  }
+
+  if (deterministic.length === 0 || deterministic.some((signal) => signal.status === "unknown")) {
+    return "unknown";
   }
 
   if (deterministic.some((signal) => signal.status === "warning")) {

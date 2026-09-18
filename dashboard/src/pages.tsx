@@ -465,9 +465,9 @@ function TrialInvestigation({ trial }: { trial: TrialDetail }) {
           Back to trials
         </a>
       </div>
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(22rem,27.5rem)_minmax(0,1fr)]">
+      <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(22rem,27.5rem)_minmax(0,1fr)]">
         <ol
-          className="divide-y divide-border"
+          className="min-w-0 divide-y divide-border"
           role="list"
           aria-label="Recorded recovery trail"
         >
@@ -482,7 +482,7 @@ function TrialInvestigation({ trial }: { trial: TrialDetail }) {
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-canvas font-mono text-sm/5 text-muted tabular-nums">
                   {index + 1}
                 </span>
-                <span className="min-w-0 flex-1">
+                <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                   <span className="text-base/6 font-medium text-ink">
                     {entry.label}
                   </span>
