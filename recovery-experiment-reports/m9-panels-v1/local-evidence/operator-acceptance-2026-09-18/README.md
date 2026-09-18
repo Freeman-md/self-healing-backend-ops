@@ -32,6 +32,8 @@ Two procedural false starts produced no accepted observation: calibration was at
 - Real Chromium checks exercised launch/reconciliation, attention validation and interrupted submission, stale/failed reads, native mobile menu Escape/focus restoration and detail navigation. Five overview pages and four detail views were checked at 1440, 1280 and 390 pixels; final production detail checks reported no horizontal overflow or uncaught page errors. Screenshots are supporting interface evidence, not outcome measurements.
 - `ui-audit.json` records the scoped UI audit, applied findings and deferred checks. Its UI readiness verdict does not certify backend security or public deployment.
 
+Final clean-image smoke: `3bf42833094cdbc481a3f3e780466d5ebea5ba5f`. The recorded build identity matched that clean checkout; all exposed Compose ports were loopback-only, current evidence was healthy and no controlled run was active. `system-desktop.png` (1440px) and `warm-trial-mobile.png` (390px) were captured from that production image, not fabricated design mockups. Later evidence-only commits do not change its executable code; the final merged revision must still be rebuilt and recorded before campaigns.
+
 ## Limitations and cleanup
 
 One cold/warm pair, one unsupported observation and one workload observation cannot establish superiority, statistical significance or production capacity. Full prospective campaigns remain outstanding. Safari, human screen-reader testing, formal axe-core testing and measured cumulative layout shift were not completed.
