@@ -87,3 +87,24 @@ trial ID, source revision, outcome and observed limits in the milestone Completi
 Record. This credential-dependent smoke is pending; mocked tests do not verify
 live OpenAI or Docker behaviour. The comparative benchmark and report draft remain
 outside this implementation milestone.
+
+## Local operator dashboard
+
+The built dashboard is served by `managing-system` at
+`http://127.0.0.1:4300` when `MANAGING_SYSTEM_RUN_MODE=operator`. The browser
+only reaches a bounded same-origin API; it cannot access Docker, Prisma, the
+database or provider credentials directly.
+
+From the repository root, after supplying the existing non-secret testbed
+configuration, build and start the local testbed in operator mode:
+
+```sh
+MANAGING_SYSTEM_RUN_MODE=operator docker compose up -d --build
+```
+
+The Compose publication is loopback-only. The container listens on `0.0.0.0`
+only so Docker can publish it to the host's `127.0.0.1`; direct local starts
+default to `127.0.0.1`. The dashboard remains visible with current health marked
+unknown when the managing system target or its persisted control plane is
+unavailable. Do not launch a controlled test until the System page reports a
+fresh deterministic healthy observation and launch readiness.

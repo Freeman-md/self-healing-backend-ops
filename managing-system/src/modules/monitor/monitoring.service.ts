@@ -21,6 +21,12 @@ type MonitoringServiceOptions = {
   log?: (entry: Record<string, unknown>) => void;
 };
 
+export type MonitoringStatus = {
+  state: "observing" | "recovering" | "cooldown" | "held" | "stopped";
+  heartbeatAt: string | null;
+  recoveryInProgress: boolean;
+};
+
 export class MonitoringService {
   private stopRequested = false;
 
@@ -37,6 +43,8 @@ export class MonitoringService {
   private pendingWait?: () => void;
 
   private pendingTimer?: ReturnType<typeof setTimeout>;
+
+  private heartbeatAt: string | null = null;
 
   constructor(
     private readonly evidenceService: MonitoringEvidenceService,
@@ -71,11 +79,27 @@ export class MonitoringService {
     this.pendingWait?.();
   }
 
+  getMonitoringStatus(): MonitoringStatus {
+    return {
+      state: this.stopRequested
+        ? "stopped"
+        : this.recoveryInProgress
+          ? "recovering"
+          : this.now() < this.cooldownUntilMs
+            ? "cooldown"
+            : "observing",
+      heartbeatAt: this.heartbeatAt,
+      recoveryInProgress: this.recoveryInProgress,
+    };
+  }
+
   private async executeCollectionCycle(): Promise<void> {
     try {
       const snapshot = await this.evidenceService.collectAndNormalize();
 
       const savedSnapshot = await this.evidenceService.saveEvidenceSnapshot(snapshot);
+
+      this.heartbeatAt = new Date(this.now()).toISOString();
 
       this.log({
         event: "monitor_snapshot_observed",
