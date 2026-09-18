@@ -1,10 +1,41 @@
 import { PrismaService } from "@/infrastructure/database";
 
-import { recoveryDecisionSchema, type RecoveryDecision } from "./recovery.schema";
+import {
+  recoveryDecisionSchema,
+  diagnosisResultSchema,
+  type DiagnosisResult,
+  type RecoveryDecision,
+} from "./recovery.schema";
 import type { BaselineRule } from "./strategies/baseline/recovery.baseline.rules";
 
 export class RecoveryRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async saveStandaloneDiagnosis(
+    trialRecordId: string,
+    input: DiagnosisResult,
+  ): Promise<DiagnosisResult> {
+    const diagnosis = diagnosisResultSchema.parse(input);
+
+    await this.prisma.diagnosisResult.create({
+      data: {
+        id: diagnosis.id,
+        trialRecordId,
+        evidenceSnapshotId: diagnosis.evidenceSnapshotId,
+        createdAt: new Date(diagnosis.createdAt),
+        method: diagnosis.method,
+        incidentCode: diagnosis.suspectedIncidentType,
+        severity: diagnosis.severity,
+        confidence: diagnosis.confidence,
+        reasoningSummary: diagnosis.reasoningSummary,
+        sourceIds: diagnosis.sourceIds,
+        supportingSignals: diagnosis.supportingSignals,
+        contradictions: diagnosis.contradictions,
+      },
+    });
+
+    return diagnosis;
+  }
 
   async saveRecoveryDecisionHistory(input: {
     trialRecordId: string;

@@ -45,6 +45,7 @@ export type RecoveryActionObservation = Pick<
 };
 
 export interface ControlledRecoveryEnvironment {
+  readonly history?: import("./recovery.history.service").HistoricalRecoveryOperations;
   readonly trialRecordId: string;
   readonly maxRecoverySteps: number;
   readonly actions: readonly RecoveryActionCatalogueEntry[];

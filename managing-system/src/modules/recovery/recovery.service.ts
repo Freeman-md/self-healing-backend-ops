@@ -6,10 +6,18 @@ import {
   type BaselineRule,
 } from "./strategies/baseline/recovery.baseline.rules";
 import { RecoveryRepository } from "./recovery.repository";
+import type { DiagnosisResult } from "./recovery.schema";
 import type { RecoveryDecision } from "./recovery.types";
 
 export class RecoveryService {
   constructor(private readonly recoveryRepository: RecoveryRepository) {}
+
+  async recordStandaloneDiagnosis(
+    trialRecordId: string,
+    diagnosis: DiagnosisResult,
+  ): Promise<DiagnosisResult> {
+    return this.recoveryRepository.saveStandaloneDiagnosis(trialRecordId, diagnosis);
+  }
 
   async recordRecoveryDecision(input: {
     trialRecordId: string;

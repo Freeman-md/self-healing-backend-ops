@@ -30,7 +30,7 @@ type BatchSummary = {
   safetyMaintainedRuns: number;
   medianTimeToHealMs: number | null;
   modelCallCount: number;
-  modelTotalTokens: number;
+  modelTotalTokens: number | null;
 };
 
 type HealthyControlResult = {
@@ -297,7 +297,7 @@ export async function readBatchSummary(
       runtimeOracleDisagreements: number;
       safetyMaintainedRuns: number;
       timing: Record<string, { median: number }>;
-      model: { callCount: number; totalTokens: number };
+      model: { callCount: number; totalTokens: number | null };
     };
   };
 

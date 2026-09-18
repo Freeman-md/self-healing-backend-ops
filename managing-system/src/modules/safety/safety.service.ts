@@ -18,6 +18,26 @@ export class SafetyService {
   ): SafetyDecision {
     const evaluations: SafetyRuleEvaluation[] = [];
 
+    const deterministic = context.evidenceSnapshot.signals.filter(
+      (signal) => signal.method === "deterministic",
+    );
+
+    const state = (code: string) => deterministic.find((signal) => signal.code === code)?.value;
+
+    if (
+      state("managed_system_reachability") === false &&
+      state("managed_system_container_state") === "running" &&
+      state("postgres_container_state") === "running"
+    ) {
+      evaluations.push({
+        ruleId: "unsupported_running_unreachable",
+        status: "failed",
+        onFail: "escalate",
+        reason:
+          "Both containers run but the application is unreachable; registered restart effects are not applicable.",
+      });
+    }
+
     for (const ruleId of action.safetyRuleIds) {
       const rule = safetyRules.find((candidate) => candidate.id === ruleId);
 

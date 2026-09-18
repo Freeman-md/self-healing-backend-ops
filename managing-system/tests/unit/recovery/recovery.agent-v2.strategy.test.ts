@@ -310,3 +310,32 @@ test("global action limit prevents a fourth invocation", async () => {
   assert.equal(h.executions.length, 3);
   assert.equal(h.requests.length, 8);
 });
+
+test("retrieval-enabled V2 uses twelve bounded turns and removes the direct planning tool", async () => {
+  const h = harness(Array.from({ length: 15 }, () => call("unknown")));
+
+  Object.assign(h.environment, {
+    history: {
+      invalidate() {},
+      async diagnoseAndLookup() {
+        return { accepted: false };
+      },
+      async generatePlan() {
+        return { accepted: false };
+      },
+      async adoptPlan() {
+        return { accepted: false };
+      },
+    },
+  });
+  assert.equal((await h.run()).status, "escalated");
+  assert.equal(h.requests.length, 12);
+  assert.equal(h.executions.length, 0);
+  assert.ok(h.requests[0].tools.some((tool) => tool.name === "diagnose_and_lookup"));
+  assert.ok(!h.requests[0].tools.some((tool) => tool.name === "record_recovery_decision"));
+  const original = harness(Array.from({ length: 15 }, () => call("unknown")));
+
+  await original.run();
+  assert.equal(original.requests.length, 8);
+  assert.notEqual(original.requests[0].systemPrompt, h.requests[0].systemPrompt);
+});

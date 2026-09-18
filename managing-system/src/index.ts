@@ -1,3 +1,12 @@
+import { AttentionRepository, AttentionService } from "@/modules/attention";
+import { ExperimentRepository } from "@/modules/experiment";
+import {
+  RecoveryHistoryRepository,
+  RecoveryHistoryService,
+  fingerprintRecoveryConfiguration,
+  RECOVERY_POLICY_VERSION,
+  RETRIEVAL_PROTOCOL_VERSION,
+} from "@/modules/recovery";
 import { config } from "@/config";
 import { DockerContainerRuntimeService } from "@/infrastructure/container-runtime";
 import { PrismaService } from "@/infrastructure/database";
@@ -23,6 +32,10 @@ import { TrialFactory, TrialRepository, TrialService } from "@/modules/trial";
 async function main(): Promise<void> {
   console.log({
     event: "managing_system_started",
+    historicalRetrievalEnabled: config.trial.historicalRetrievalEnabled,
+    retrievalProtocol: RETRIEVAL_PROTOCOL_VERSION,
+    sourceTrialIds: config.trial.sourceTrialIds,
+    recoveryPolicyVersion: RECOVERY_POLICY_VERSION,
     environment: config.environment,
     managedSystemBaseUrl: config.managedSystem.baseUrl,
     runMode: config.trial.runMode,
@@ -31,13 +44,17 @@ async function main(): Promise<void> {
     agentImplementationVersion:
       config.trial.recoveryMode === "agent"
         ? config.trial.agentStrategyVersion === "v2"
-          ? AGENT_V2_VERSION
+          ? config.trial.historicalRetrievalEnabled
+            ? "2.1.0"
+            : AGENT_V2_VERSION
           : "1.0.0"
         : undefined,
     agentPromptVersion:
       config.trial.recoveryMode === "agent"
         ? config.trial.agentStrategyVersion === "v2"
-          ? AGENT_V2_PROMPT_VERSION
+          ? config.trial.historicalRetrievalEnabled
+            ? "2.1.0"
+            : AGENT_V2_PROMPT_VERSION
           : "1.0.0"
         : undefined,
   });
@@ -82,6 +99,34 @@ async function main(): Promise<void> {
     new ActionHandlerRegistry(containerRuntime),
   );
 
+  const attentionService = new AttentionService(new AttentionRepository(prismaService));
+
+  const experimentRepository = new ExperimentRepository(prismaService);
+
+  const historyService = new RecoveryHistoryService(
+    new RecoveryHistoryRepository(prismaService, recoveryService, evidenceService),
+    recoveryService,
+    undefined,
+    {
+      enabled:
+        config.trial.historicalRetrievalEnabled && config.trial.agentStrategyVersion === "v2",
+      sourceIds: config.trial.sourceTrialIds,
+      recoveryMode: config.trial.recoveryMode,
+      agentStrategyVersion: config.trial.agentStrategyVersion,
+      fingerprint: async () =>
+        fingerprintRecoveryConfiguration({
+          target: {
+            identity: config.trial.targetConfigurationIdentity,
+            origin: new URL(config.managedSystem.baseUrl).origin,
+            requestTimeoutMs: config.managedSystem.requestTimeoutMs,
+            actions: config.actions,
+          },
+          policy: RECOVERY_POLICY_VERSION,
+          catalogue: await experimentRepository.getActiveExperimentConfigurationInputs(),
+        }),
+    },
+  );
+
   const trialService = new TrialService(
     {
       baseline: new RecoveryBaselineStrategy(recoveryService),
@@ -98,6 +143,8 @@ async function main(): Promise<void> {
     3,
     new TrialFactory(),
     measurementService,
+    historyService,
+    attentionService,
   );
 
   try {
@@ -114,6 +161,7 @@ async function main(): Promise<void> {
       trialService,
       recoveryMode,
       config.monitoring,
+      attentionService,
     );
 
     const stopMonitoring = (): void => monitoringService.stopMonitoring();
