@@ -270,6 +270,7 @@ export function TrialsPage() {
     (signal) =>
       selectedId ? api.getTrial(selectedId, signal) : Promise.resolve(null),
     [selectedId],
+    { pollMs: 10_000 },
   );
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -279,9 +280,9 @@ export function TrialsPage() {
     updated.delete("trial");
     window.location.assign(pagePath("/trials", updated));
   };
-  if (list.loading && !list.data)
+  if (!selectedId && list.loading && !list.data)
     return <LoadingPanel label="Reading recorded trial history…" />;
-  if (list.error && !list.data)
+  if (!selectedId && list.error && !list.data)
     return (
       <ReadFailure
         message={list.error.message}
@@ -293,7 +294,7 @@ export function TrialsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Trials"
+        title={selectedId ? "Trial investigation" : "Trials"}
         description="Recorded recovery attempts. Historical outcome, current health and human review remain separate facts."
         actions={
           <a
@@ -347,68 +348,72 @@ export function TrialsPage() {
           onRetry={list.refresh}
         />
       ) : null}
-      <section className="panel p-5 sm:p-6">
-        <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submit}>
-          <div className="min-w-0 flex-1">
-            <label
-              className="text-sm/5 font-medium text-muted"
-              htmlFor="trial-search"
+      {!selectedId ? (
+        <section className="panel p-5 sm:p-6">
+          <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submit}>
+            <div className="min-w-0 flex-1">
+              <label
+                className="text-sm/5 font-medium text-muted"
+                htmlFor="trial-search"
+              >
+                Search trial or run
+              </label>
+              <input
+                className="control mt-1 w-full px-3 text-base/6 sm:text-sm/5"
+                id="trial-search"
+                name="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Trial ID, run ID or scenario…"
+                autoComplete="off"
+              />
+            </div>
+            <button
+              className="secondary-action self-end px-3 text-sm/5"
+              type="submit"
             >
-              Search trial or run
-            </label>
-            <input
-              className="control mt-1 w-full px-3 text-base/6 sm:text-sm/5"
-              id="trial-search"
-              name="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Trial ID, run ID or scenario…"
-              autoComplete="off"
-            />
-          </div>
-          <button
-            className="secondary-action self-end px-3 text-sm/5"
-            type="submit"
-          >
-            Apply filters
-          </button>
-        </form>
-        {records.length > 0 ? (
-          <div className="mt-5">
-            <TrialRows records={records} />
-          </div>
-        ) : (
-          <div className="mt-5 border-t border-border pt-5">
-            <h2 className="text-base/6 font-semibold">
-              {search ? "No trials match these filters" : "No trials recorded"}
-            </h2>
-            <p className="mt-2 text-base/6 text-muted">
-              {search
-                ? "Existing trials remain unchanged. Clear the search to see all recorded evidence."
-                : "A controlled local test creates inspectable trial evidence."}
-            </p>
-            {search ? (
-              <a
-                className="secondary-action mt-4 inline-flex items-center px-3 text-sm/5 no-underline"
-                href="/trials"
-              >
-                Clear filters
-              </a>
-            ) : (
-              <a
-                className="secondary-action mt-4 inline-flex items-center px-3 text-sm/5 no-underline"
-                href="/controlled-test"
-              >
-                Configure a controlled test
-              </a>
-            )}
-          </div>
-        )}
-      </section>
+              Apply filters
+            </button>
+          </form>
+          {records.length > 0 ? (
+            <div className="mt-5">
+              <TrialRows records={records} />
+            </div>
+          ) : (
+            <div className="mt-5 border-t border-border pt-5">
+              <h2 className="text-base/6 font-semibold">
+                {search
+                  ? "No trials match these filters"
+                  : "No trials recorded"}
+              </h2>
+              <p className="mt-2 text-base/6 text-muted">
+                {search
+                  ? "Existing trials remain unchanged. Clear the search to see all recorded evidence."
+                  : "A controlled local test creates inspectable trial evidence."}
+              </p>
+              {search ? (
+                <a
+                  className="secondary-action mt-4 inline-flex items-center px-3 text-sm/5 no-underline"
+                  href="/trials"
+                >
+                  Clear filters
+                </a>
+              ) : (
+                <a
+                  className="secondary-action mt-4 inline-flex items-center px-3 text-sm/5 no-underline"
+                  href="/controlled-test"
+                >
+                  Configure a controlled test
+                </a>
+              )}
+            </div>
+          )}
+        </section>
+      ) : null}
       {selectedId && detail.data ? (
         <TrialInvestigation trial={detail.data} />
       ) : null}
-      {list.data?.nextCursor ? (
+      {!selectedId && list.data?.nextCursor ? (
         <a
           className="secondary-action inline-flex min-h-11 items-center self-start px-3 text-sm/5 no-underline"
           href={pagePath(
@@ -637,9 +642,9 @@ export function AttentionPage() {
     [selectedId],
     { pollMs: 10_000 },
   );
-  if (list.loading && !list.data)
+  if (!selectedId && list.loading && !list.data)
     return <LoadingPanel label="Reading durable attention records…" />;
-  if (list.error && !list.data)
+  if (!selectedId && list.error && !list.data)
     return (
       <ReadFailure
         message={list.error.message}
@@ -650,8 +655,18 @@ export function AttentionPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Attention"
+        title={selectedId ? "Attention review" : "Attention"}
         description="Historical escalations requiring human review. Reviewing a record never resumes recovery or releases an operational hold."
+        actions={
+          selectedId ? (
+            <a
+              className="secondary-action inline-flex items-center px-3 text-sm/5 no-underline"
+              href="/attention"
+            >
+              Back to attention
+            </a>
+          ) : undefined
+        }
       />
       {list.error ? (
         <ReadFailure
@@ -660,23 +675,27 @@ export function AttentionPage() {
           onRetry={list.refresh}
         />
       ) : null}
-      <section className="panel p-5 sm:p-6">
-        {list.data?.length ? (
-          <ul role="list">
-            {list.data.map((attention) => (
-              <AttentionRow key={attention.id} attention={attention} />
-            ))}
-          </ul>
-        ) : (
-          <>
-            <h2 className="text-base/6 font-semibold">No attention records</h2>
-            <p className="mt-2 text-base/6 text-muted">
-              A durable record appears only when a recovery run escalates for
-              human review.
-            </p>
-          </>
-        )}
-      </section>
+      {!selectedId ? (
+        <section className="panel p-5 sm:p-6">
+          {list.data?.length ? (
+            <ul role="list">
+              {list.data.map((attention) => (
+                <AttentionRow key={attention.id} attention={attention} />
+              ))}
+            </ul>
+          ) : (
+            <>
+              <h2 className="text-base/6 font-semibold">
+                No attention records
+              </h2>
+              <p className="mt-2 text-base/6 text-muted">
+                A durable record appears only when a recovery run escalates for
+                human review.
+              </p>
+            </>
+          )}
+        </section>
+      ) : null}
       {selectedId && detail.data ? (
         <AttentionDetailPage detail={detail.data} refresh={detail.refresh} />
       ) : null}
@@ -753,9 +772,11 @@ function AttentionDetailPage({
             Historical escalation
           </h2>
         </div>
-        <StatusBadge tone={statusTone(detail.state)}>
-          {readableStatus(detail.state)}
-        </StatusBadge>
+        <div role="status" aria-live="polite">
+          <StatusBadge tone={statusTone(detail.state)}>
+            {readableStatus(detail.state)}
+          </StatusBadge>
+        </div>
       </div>
       <p className="mt-5 max-w-[80ch] break-words text-base/6 text-ink">
         {detail.reason}
@@ -826,7 +847,9 @@ function AttentionDetailPage({
           <p className="text-sm/5 text-muted" id="review-notes-help">
             {canReview
               ? "Record a bounded human review. It does not heal, approve, resume or release a hold."
-              : "Acknowledge this escalation before recording review notes."}
+              : detail.state === "reviewed"
+                ? "This review is complete. Review does not change the historical trial outcome or release an operational hold."
+                : "Acknowledge this escalation before recording review notes."}
           </p>
           <span className="font-mono text-sm/5 text-muted tabular-nums">
             {notes.length}/4000
@@ -895,11 +918,11 @@ export function ExperimentsPage() {
         : Promise.resolve(null),
     [selectedId],
   );
-  if (list.loading && !list.data)
+  if (!selectedId && list.loading && !list.data)
     return (
       <LoadingPanel label="Reading persisted experiments and archived campaigns…" />
     );
-  if (list.error && !list.data)
+  if (!selectedId && list.error && !list.data)
     return (
       <ReadFailure
         message={list.error.message}
@@ -910,8 +933,8 @@ export function ExperimentsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Experiments"
-        description="Persisted batches, frozen configuration and validated archived evidence. Prepared panels remain not run until evidence exists."
+        title={selectedId ? "Experiment evidence" : "Experiments"}
+        description="Persisted batches and frozen configuration. Prepared panels remain not run until evidence exists. Archived files remain in the repository evidence folders."
       />
       {list.error ? (
         <ReadFailure
@@ -920,21 +943,23 @@ export function ExperimentsPage() {
           onRetry={list.refresh}
         />
       ) : null}
-      <section className="panel p-5 sm:p-6">
-        {list.data?.length ? (
-          <ExperimentRows experiments={list.data} />
-        ) : (
-          <>
-            <h2 className="text-base/6 font-semibold">
-              No persisted experiment batches
-            </h2>
-            <p className="mt-2 text-base/6 text-muted">
-              Prepared protocols can be inspected separately. No result is
-              implied until a batch has recorded evidence.
-            </p>
-          </>
-        )}
-      </section>
+      {!selectedId ? (
+        <section className="panel p-5 sm:p-6">
+          {list.data?.length ? (
+            <ExperimentRows experiments={list.data} />
+          ) : (
+            <>
+              <h2 className="text-base/6 font-semibold">
+                No persisted experiment batches
+              </h2>
+              <p className="mt-2 text-base/6 text-muted">
+                Prepared protocols can be inspected separately. No result is
+                implied until a batch has recorded evidence.
+              </p>
+            </>
+          )}
+        </section>
+      ) : null}
       {selectedId && detail.data ? (
         <ExperimentDetailPage detail={detail.data} />
       ) : null}
@@ -973,8 +998,8 @@ function ExperimentDetailPage({
           Back to experiments
         </a>
       </div>
-      <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
-        <div>
+      <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="min-w-0">
           <h3 className="text-base/6 font-semibold">Constituent runs</h3>
           {detail.runs.length ? (
             <ul className="mt-3 divide-y divide-border" role="list">
@@ -983,7 +1008,7 @@ function ExperimentDetailPage({
                   key={run.id}
                   className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-mono text-sm/5 text-ink" translate="no">
                       {run.id}
                     </p>
@@ -1041,9 +1066,9 @@ export function RecoveryCasesPage() {
         : Promise.resolve(null),
     [selectedPlanId],
   );
-  if (list.loading && !list.data)
+  if (!selectedPlanId && list.loading && !list.data)
     return <LoadingPanel label="Reading eligible recovery source plans…" />;
-  if (list.error && !list.data)
+  if (!selectedPlanId && list.error && !list.data)
     return (
       <ReadFailure
         message={list.error.message}
@@ -1054,7 +1079,7 @@ export function RecoveryCasesPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Recovery cases"
+        title={selectedPlanId ? "Recovery case provenance" : "Recovery cases"}
         description="Read-only verified source plans. Historical lookup and adoption stay deterministic, bounded and independent of browser edits."
       />
       {list.error ? (
@@ -1064,25 +1089,27 @@ export function RecoveryCasesPage() {
           onRetry={list.refresh}
         />
       ) : null}
-      <section className="panel p-5 sm:p-6">
-        {list.data?.length ? (
-          <ul role="list">
-            {list.data.map((entry) => (
-              <RecoveryCaseRow key={entry.sourcePlanId} entry={entry} />
-            ))}
-          </ul>
-        ) : (
-          <>
-            <h2 className="text-base/6 font-semibold">
-              No eligible recovery cases
-            </h2>
-            <p className="mt-2 text-base/6 text-muted">
-              A source plan is published only after existing eligibility and
-              verification checks succeed.
-            </p>
-          </>
-        )}
-      </section>
+      {!selectedPlanId ? (
+        <section className="panel p-5 sm:p-6">
+          {list.data?.length ? (
+            <ul role="list">
+              {list.data.map((entry) => (
+                <RecoveryCaseRow key={entry.sourcePlanId} entry={entry} />
+              ))}
+            </ul>
+          ) : (
+            <>
+              <h2 className="text-base/6 font-semibold">
+                No eligible recovery cases
+              </h2>
+              <p className="mt-2 text-base/6 text-muted">
+                A source plan is published only after existing eligibility and
+                verification checks succeed.
+              </p>
+            </>
+          )}
+        </section>
+      ) : null}
       {selectedPlanId && detail.data ? (
         <RecoveryCaseDetail entry={detail.data} />
       ) : null}
