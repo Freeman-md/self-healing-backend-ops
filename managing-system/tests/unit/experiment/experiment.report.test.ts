@@ -163,3 +163,45 @@ for (const version of ["v1", "v2"] as const) {
     assert.deepEqual(historical.batch.configuration, {});
   });
 }
+
+test("M9 nested versions and verified escalation outcomes appear in Markdown", () => {
+  const runs = [
+    run({ faultProfile: "managed_system_application_network_isolated", runtimeResolved: false }),
+    run({
+      faultProfile: "managed_system_application_network_isolated",
+      runtimeResolved: false,
+      oracleSucceeded: false,
+    }),
+    run({ faultProfile: "managed_system_application_network_isolated", valid: false }),
+    run(),
+  ];
+
+  const report = {
+    batch: {
+      id: "m9",
+      name: "unsupported",
+      sourceRevision: "head",
+      measurementVersion: "2.0.0",
+      configuration: {
+        configuration: {
+          agentStrategyVersion: "v2",
+          agentImplementationVersion: "2.1.0",
+          agentPromptVersion: "2.1.0",
+        },
+      },
+    },
+    runs,
+    summary: createExperimentSummary(runs),
+  } as unknown as ExperimentReport;
+
+  const markdown = createExperimentMarkdown(report);
+
+  assert.match(markdown, /Agent strategy version: v2/);
+  assert.match(markdown, /Agent implementation version: 2\.1\.0/);
+  assert.match(markdown, /Agent prompt version: 2\.1\.0/);
+  assert.match(markdown, /Verified escalations: 1/);
+  assert.match(markdown, /Verified escalation rate: 50/);
+  assert.equal(report.summary.rates.verifiedRecovery, 1);
+  assert.equal(report.summary.rates.verifiedEscalation, 0.5);
+  assert.equal(createExperimentSummary([run()]).rates.verifiedEscalation, null);
+});

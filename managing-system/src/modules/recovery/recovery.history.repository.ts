@@ -123,36 +123,46 @@ export class RecoveryHistoryRepository {
       return null;
     }
 
-    const candidates = await this.prisma.recoveryCase.findMany({
-      where: {
-        sourceTrialId: { in: input.sourceIds.filter((id) => id !== input.currentTrialId) },
-        step: {
-          signature: input.signature,
-          episode: { compatibilityFingerprint: input.fingerprint },
+    let cursor: string | undefined;
+
+    // Keep each query bounded while skipping cases invalidated after publication.
+    while (true) {
+      const candidates = await this.prisma.recoveryCase.findMany({
+        where: {
+          sourceTrialId: { in: input.sourceIds.filter((id) => id !== input.currentTrialId) },
+          step: {
+            signature: input.signature,
+            episode: { compatibilityFingerprint: input.fingerprint },
+          },
         },
-      },
-      orderBy: [{ publishedAt: "desc" }, { sourcePlanId: "asc" }],
-      take: 1,
-    });
+        orderBy: [{ publishedAt: "desc" }, { sourcePlanId: "asc" }],
+        take: 25,
+        ...(cursor ? { cursor: { sourcePlanId: cursor }, skip: 1 } : {}),
+      });
 
-    for (const candidate of candidates) {
-      const decision = await this.validateEligiblePlan(
-        candidate.sourceTrialId,
-        candidate.sourcePlanId,
-        input.signature,
-        input.fingerprint,
-      );
+      for (const candidate of candidates) {
+        const decision = await this.validateEligiblePlan(
+          candidate.sourceTrialId,
+          candidate.sourcePlanId,
+          input.signature,
+          input.fingerprint,
+        );
 
-      if (decision) {
-        return {
-          sourceTrialId: candidate.sourceTrialId,
-          sourcePlanId: candidate.sourcePlanId,
-          decision,
-        };
+        if (decision) {
+          return {
+            sourceTrialId: candidate.sourceTrialId,
+            sourcePlanId: candidate.sourcePlanId,
+            decision,
+          };
+        }
       }
-    }
 
-    return null;
+      if (candidates.length < 25) {
+        return null;
+      }
+
+      cursor = candidates[candidates.length - 1]!.sourcePlanId;
+    }
   }
 
   async validateEligiblePlan(

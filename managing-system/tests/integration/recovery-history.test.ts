@@ -261,6 +261,43 @@ test("diagnosis-first cold/warm reuse requires exact verified history and preser
       null,
     );
     await repository.recordExecution(generated.decision, executionId);
+    const staleIds = Array.from({ length: 26 }, (_, index) => `stale-${index}`);
+
+    for (const staleId of staleIds) {
+      const stale = await makeTrial(staleId, []);
+
+      await stale.diagnoseAndLookup(diagnosis);
+      const stalePlan = await stale.generatePlan(plan);
+
+      assert.ok(stalePlan.decision);
+      await db.prisma.recoveryCase.create({
+        data: {
+          sourceTrialId: staleId,
+          sourcePlanId: stalePlan.decision.recoveryPlan.id,
+          diagnosisResultId: stalePlan.decision.diagnosisResult.id,
+          publishedAt: new Date(Date.now() + 1000),
+        },
+      });
+    }
+
+    // Search beyond one page of stale cases without leaking an unallowlisted valid source.
+    const eligible = await repository.findCandidate({
+      currentTrialId: "warm",
+      sourceIds: ["cold", ...staleIds],
+      signature,
+      fingerprint: "compatible",
+    });
+
+    assert.equal(eligible?.sourceTrialId, "cold");
+    assert.equal(
+      await repository.findCandidate({
+        currentTrialId: "warm",
+        sourceIds: staleIds,
+        signature,
+        fingerprint: "compatible",
+      }),
+      null,
+    );
     const warm = await makeTrial("warm", ["cold"]);
 
     const warmLookup = await warm.diagnoseAndLookup(diagnosis);

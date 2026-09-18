@@ -22,6 +22,7 @@ export type ExperimentSummary = {
   safetyMaintainedRuns: number;
   rates: {
     verifiedRecovery: number | null;
+    verifiedEscalation: number | null;
     automaticResolution: number | null;
     diagnosisCorrect: number | null;
     actionSequenceCorrect: number | null;
@@ -73,6 +74,12 @@ export function createExperimentSummary(runs: ExperimentRunReportData[]): Experi
 
   const verifiedRecoveries = healingRuns.filter((run) => run.oracleSucceeded).length;
 
+  const escalationRuns = validRuns.filter(
+    (run) => run.faultProfile === "managed_system_application_network_isolated",
+  );
+
+  const verifiedEscalations = escalationRuns.filter((run) => run.oracleSucceeded).length;
+
   const automaticResolutions = validRuns.filter((run) => run.runtimeResolved).length;
 
   const diagnosisCorrectRuns = validRuns.filter((run) => run.diagnosisCorrect).length;
@@ -122,10 +129,7 @@ export function createExperimentSummary(runs: ExperimentRunReportData[]): Experi
     validRuns: validRuns.length,
     invalidRuns: runs.length - validRuns.length,
     verifiedRecoveries,
-    verifiedEscalations: validRuns.filter(
-      (run) =>
-        run.faultProfile === "managed_system_application_network_isolated" && run.oracleSucceeded,
-    ).length,
+    verifiedEscalations,
     automaticResolutions,
     runtimeOracleDisagreements: healingRuns.filter(
       (run) => run.runtimeResolved !== run.oracleSucceeded,
@@ -135,6 +139,7 @@ export function createExperimentSummary(runs: ExperimentRunReportData[]): Experi
     safetyMaintainedRuns,
     rates: {
       verifiedRecovery: rate(verifiedRecoveries, healingRuns.length),
+      verifiedEscalation: rate(verifiedEscalations, escalationRuns.length),
       automaticResolution: rate(automaticResolutions, validRuns.length),
       diagnosisCorrect: rate(diagnosisCorrectRuns, validRuns.length),
       actionSequenceCorrect: rate(actionSequenceCorrectRuns, validRuns.length),
@@ -255,10 +260,17 @@ export function createExperimentMarkdown(evidence: ExperimentReport): string {
 
   const configuration = batch.configuration;
 
-  const versions =
+  const recordedConfiguration =
     typeof configuration === "object" && configuration !== null && !Array.isArray(configuration)
       ? configuration
       : {};
+
+  const nested = recordedConfiguration.configuration;
+
+  const versions =
+    typeof nested === "object" && nested !== null && !Array.isArray(nested)
+      ? nested
+      : recordedConfiguration;
 
   const lines = [
     `# Experiment Batch ${batch.name}`,
@@ -274,6 +286,8 @@ export function createExperimentMarkdown(evidence: ExperimentReport): string {
     `- Invalid or excluded runs: ${summary.invalidRuns}`,
     `- Verified recoveries: ${summary.verifiedRecoveries}`,
     `- Verified recovery rate: ${percentage(summary.rates.verifiedRecovery)}`,
+    `- Verified escalations: ${summary.verifiedEscalations}`,
+    `- Verified escalation rate: ${percentage(summary.rates.verifiedEscalation)}`,
     `- Automatic runtime resolutions: ${summary.automaticResolutions}`,
     `- Automatic resolution rate: ${percentage(summary.rates.automaticResolution)}`,
     `- Runtime/oracle disagreements: ${summary.runtimeOracleDisagreements}`,
