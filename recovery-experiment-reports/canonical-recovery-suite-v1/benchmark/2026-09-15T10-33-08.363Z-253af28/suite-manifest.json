@@ -1,0 +1,128 @@
+{
+  "suiteId": "canonical-recovery-suite-v1",
+  "suiteVersion": "1.0.0",
+  "phase": "benchmark",
+  "campaignId": "2026-09-15T10-33-08.363Z-253af28",
+  "sourceRevision": "253af28",
+  "createdAt": "2026-09-15T11:40:42.437Z",
+  "configuration": {
+    "id": "canonical-recovery-suite-v1",
+    "version": "1.0.0",
+    "recoveryModes": [
+      "baseline",
+      "agent"
+    ],
+    "faultProfiles": [
+      "managed_system_application_stopped",
+      "managed_system_postgres_stopped",
+      "managed_system_application_and_postgres_stopped"
+    ],
+    "healthyControlDurationMs": 30000,
+    "stabilityWindowMs": 10000,
+    "monitorStartTimeoutMs": 120000,
+    "reportRoot": "recovery-experiment-reports",
+    "containerReportRoot": "/managing-system/experiment-output",
+    "phases": {
+      "validation": {
+        "repetitions": 1,
+        "runOrderSeed": "canonical-recovery-suite-v1-validation",
+        "permitsComparativeClaims": false
+      },
+      "benchmark": {
+        "repetitions": 5,
+        "runOrderSeed": "canonical-recovery-suite-v1-benchmark",
+        "permitsComparativeClaims": true
+      }
+    }
+  },
+  "healthyControls": [
+    {
+      "recoveryMode": "baseline",
+      "startedAt": "2026-09-15T10:33:16.963Z",
+      "completedAt": "2026-09-15T10:33:48.148Z",
+      "durationMs": 30000,
+      "healthStable": true,
+      "monitorTrialCount": 0,
+      "actionExecutionCount": 0,
+      "passed": true,
+      "oracleDetails": {
+        "health": {
+          "reachable": true,
+          "status": "healthy",
+          "appStatus": "healthy",
+          "databaseStatus": "healthy"
+        },
+        "metrics": {
+          "reachable": true
+        },
+        "applicationContainerState": "running",
+        "postgresContainerState": "running",
+        "stabilityWindowMs": 30000,
+        "stableForMs": 31028
+      }
+    },
+    {
+      "recoveryMode": "agent",
+      "startedAt": "2026-09-15T11:06:00.123Z",
+      "completedAt": "2026-09-15T11:06:31.176Z",
+      "durationMs": 30000,
+      "healthStable": true,
+      "monitorTrialCount": 0,
+      "actionExecutionCount": 0,
+      "passed": true,
+      "oracleDetails": {
+        "health": {
+          "reachable": true,
+          "status": "healthy",
+          "appStatus": "healthy",
+          "databaseStatus": "healthy"
+        },
+        "metrics": {
+          "reachable": true
+        },
+        "applicationContainerState": "running",
+        "postgresContainerState": "running",
+        "stabilityWindowMs": 30000,
+        "stableForMs": 30901
+      }
+    }
+  ],
+  "batches": [
+    {
+      "agentStrategyVersion": null,
+      "agentImplementationVersion": null,
+      "agentPromptVersion": null,
+      "mode": "baseline",
+      "batchId": "experiment-batch-233ccb34-e36b-4f07-9a52-b3a373c1a429",
+      "relativeDirectory": "baseline/experiment-batch-233ccb34-e36b-4f07-9a52-b3a373c1a429",
+      "totalRuns": 15,
+      "validRuns": 15,
+      "invalidRuns": 0,
+      "verifiedRecoveries": 15,
+      "automaticResolutions": 15,
+      "runtimeOracleDisagreements": 0,
+      "safetyMaintainedRuns": 15,
+      "medianTimeToHealMs": 85604,
+      "modelCallCount": 55,
+      "modelTotalTokens": 130788
+    },
+    {
+      "agentStrategyVersion": "v1",
+      "agentImplementationVersion": "1.0.0",
+      "agentPromptVersion": "1.0.0",
+      "mode": "agent",
+      "batchId": "experiment-batch-70c377ea-1a29-4356-8d9f-124238e6e749",
+      "relativeDirectory": "agent/experiment-batch-70c377ea-1a29-4356-8d9f-124238e6e749",
+      "totalRuns": 15,
+      "validRuns": 15,
+      "invalidRuns": 0,
+      "verifiedRecoveries": 15,
+      "automaticResolutions": 15,
+      "runtimeOracleDisagreements": 0,
+      "safetyMaintainedRuns": 15,
+      "medianTimeToHealMs": 92111,
+      "modelCallCount": 85,
+      "modelTotalTokens": 170692
+    }
+  ]
+}
