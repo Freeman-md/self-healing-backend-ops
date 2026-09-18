@@ -210,7 +210,9 @@ export class OperatorService {
     // Reconcile an accepted launch even while its shared lock or unhealthy evidence blocks new work.
     const accepted = await this.repository.findAcceptedOperatorRequest(input);
 
-    if (accepted) {return accepted;}
+    if (accepted) {
+      return accepted;
+    }
 
     const state = await this.readState();
 

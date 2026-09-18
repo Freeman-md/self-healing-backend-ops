@@ -1,10 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { get } from "node:http";
+import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { OperatorHttpServer, type OperatorService } from "@/modules/operator";
 
 test("HTTP boundary rejects foreign callers and malformed launches before dispatch; static directories cannot crash it", async () => {
   let launches = 0;
+
+  const dashboardDirectory = await mkdtemp(join(tmpdir(), "shbo-http-review-"));
+
+  await mkdir(join(dashboardDirectory, "assets"));
+  await writeFile(
+    join(dashboardDirectory, "index.html"),
+    "<!doctype html><title>Test dashboard</title>",
+  );
 
   const server = new OperatorHttpServer(
     {
@@ -14,7 +25,7 @@ test("HTTP boundary rejects foreign callers and malformed launches before dispat
         return { accepted: true };
       },
     } as unknown as OperatorService,
-    { host: "127.0.0.1", port: 55040 },
+    { host: "127.0.0.1", port: 55040, dashboardDirectory },
   );
 
   await server.start();
@@ -66,5 +77,6 @@ test("HTTP boundary rejects foreign callers and malformed launches before dispat
     assert.equal(launches, 1);
   } finally {
     await server.close();
+    await rm(dashboardDirectory, { recursive: true });
   }
 });

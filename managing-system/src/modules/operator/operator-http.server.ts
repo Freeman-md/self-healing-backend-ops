@@ -38,7 +38,11 @@ export class OperatorHttpServer {
 
   constructor(
     private readonly service: OperatorService,
-    private readonly options: { host: "127.0.0.1" | "0.0.0.0"; port: number },
+    private readonly options: {
+      host: "127.0.0.1" | "0.0.0.0";
+      port: number;
+      dashboardDirectory?: string;
+    },
   ) {}
 
   async start(): Promise<void> {
@@ -236,17 +240,16 @@ export class OperatorHttpServer {
     requestedPath: string,
     headOnly: boolean,
   ): Promise<void> {
+    const root = this.options.dashboardDirectory ?? dashboardDirectory;
+
     const normalized = requestedPath === "/" ? "index.html" : requestedPath.replace(/^\/+/, "");
 
-    const candidate = resolve(dashboardDirectory, normalized);
+    const candidate = resolve(root, normalized);
 
-    const insideDashboard =
-      candidate === dashboardDirectory || candidate.startsWith(`${dashboardDirectory}/`);
+    const insideDashboard = candidate === root || candidate.startsWith(`${root}/`);
 
     const file =
-      insideDashboard && (await fileExists(candidate))
-        ? candidate
-        : resolve(dashboardDirectory, "index.html");
+      insideDashboard && (await fileExists(candidate)) ? candidate : resolve(root, "index.html");
 
     if (!(await fileExists(file))) {
       throw new OperatorUnavailableError(

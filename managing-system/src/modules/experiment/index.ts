@@ -10,7 +10,12 @@ export {
 } from "./experiment.report";
 export type { ExperimentReport } from "./experiment.report";
 export { faultProfiles, findFaultProfile, isFaultProfileCode } from "./experiment.profiles";
-export { ApplicationNetworkIsolation, assertUnreachable, injectFaultProfile, restoreExperimentTargets } from "./controlled-test.runtime";
+export {
+  ApplicationNetworkIsolation,
+  assertUnreachable,
+  injectFaultProfile,
+  restoreExperimentTargets,
+} from "./controlled-test.runtime";
 export type { NetworkAttachment } from "./controlled-test.runtime";
 export { RecoveryOracle } from "./recovery-oracle";
 export type {

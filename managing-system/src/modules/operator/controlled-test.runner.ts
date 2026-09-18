@@ -47,7 +47,9 @@ export class LocalControlledTestRunner implements ControlledTestRunner {
   async launch(input: ControlledTestRequest) {
     const accepted = await this.repository.findAcceptedOperatorRequest(input);
 
-    if (accepted) {return accepted;}
+    if (accepted) {
+      return accepted;
+    }
 
     await this.options.ensureReady();
     const binding = strategyBinding(input.strategy);
@@ -66,7 +68,9 @@ export class LocalControlledTestRunner implements ControlledTestRunner {
     if (!prepared.created) {
       const reconciled = await this.repository.findAcceptedOperatorRequest(input);
 
-      if (!reconciled) {throw new Error("The accepted controlled test could not be reconciled.");}
+      if (!reconciled) {
+        throw new Error("The accepted controlled test could not be reconciled.");
+      }
 
       return reconciled;
     }

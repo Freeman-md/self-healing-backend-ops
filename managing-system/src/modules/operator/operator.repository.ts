@@ -643,19 +643,25 @@ export class OperatorRepository {
 }
 
 function strategyLabel(mode: string, configuration: unknown): string {
-  if (mode === "baseline") {return "Baseline";}
+  if (mode === "baseline") {
+    return "Baseline";
+  }
 
-  if (!configuration || typeof configuration !== "object" || Array.isArray(configuration))
-    {return "Agent (version not recorded)";}
+  if (!configuration || typeof configuration !== "object" || Array.isArray(configuration)) {
+    return "Agent (version not recorded)";
+  }
 
   const metadata = configuration as Record<string, unknown>;
 
   const version = metadata.expectedAgentStrategyVersion ?? metadata.agentStrategyVersion;
 
-  if (version === "v1") {return "Agent V1";}
+  if (version === "v1") {
+    return "Agent V1";
+  }
 
-  if (version === "v2")
-    {return `Agent V2${metadata.retrievalEnabled === true ? " (reuse enabled)" : ""}`;}
+  if (version === "v2") {
+    return `Agent V2${metadata.retrievalEnabled === true ? " (reuse enabled)" : ""}`;
+  }
 
   return "Agent (version not recorded)";
 }
