@@ -122,6 +122,7 @@ export const trialDetailSchema = z.object({
         beforeEvidenceId: z.string().nullable(),
         afterEvidenceId: z.string().nullable(),
         failedSafetyRuleIds: z.array(z.string()),
+        planOrigin: z.enum(["generated", "retrieved"]).nullable().default(null),
         sourcePlanId: z.string().nullable(),
         sourceTrialId: z.string().nullable(),
       }),

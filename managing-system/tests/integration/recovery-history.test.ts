@@ -10,6 +10,7 @@ import {
   recoveryEvidenceSignature,
 } from "@/modules/recovery";
 import { AttentionRepository, AttentionService } from "@/modules/attention";
+import { OperatorRepository } from "@/modules/operator";
 import { createPrismaTestDatabase } from "../helpers/prisma-test-database";
 
 function snapshot(id: string, healthy = false): EvidenceSnapshot {
@@ -337,6 +338,26 @@ test("diagnosis-first cold/warm reuse requires exact verified history and preser
 
     assert.equal(persisted.sourcePlanId, generated.decision.recoveryPlan.id);
     assert.equal(persisted.planOrigin, "retrieved");
+    const operator = new OperatorRepository(db.prisma);
+
+    const warmDetail = await operator.findTrialDetail("warm");
+
+    for (const entry of warmDetail!.trail.filter(
+      (entry) => entry.kind === "plan" || entry.kind === "decision",
+    )) {
+      assert.equal(entry.detail.planOrigin, "retrieved");
+      assert.equal(entry.detail.sourceTrialId, "cold");
+      assert.equal(entry.detail.sourcePlanId, generated.decision.recoveryPlan.id);
+      assert.notEqual(entry.detail.sourcePlanId, adopted.decision.recoveryPlan.id);
+    }
+
+    const coldDetail = await operator.findTrialDetail("cold");
+
+    const coldPlan = coldDetail!.trail.find((entry) => entry.kind === "plan")!;
+
+    assert.equal(coldPlan.detail.planOrigin, "generated");
+    assert.equal(coldPlan.detail.sourceTrialId, null);
+    assert.equal(coldPlan.detail.sourcePlanId, null);
     assert.ok(
       persisted.diagnosisReadyAt <= persisted.lookupStartedAt! &&
         persisted.lookupCompletedAt! <= persisted.planReadyAt!,

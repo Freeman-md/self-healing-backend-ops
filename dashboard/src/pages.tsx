@@ -543,13 +543,15 @@ function TrialInvestigation({ trial }: { trial: TrialDetail }) {
               </div>
               <div>
                 <dt className="text-sm/5 font-medium text-muted">
-                  Historical provenance
+                  Plan provenance
                 </dt>
                 <dd
                   className="mt-1 break-words font-mono text-sm/5 text-ink"
                   translate="no"
                 >
-                  {selected.detail.sourceTrialId ?? "No source trial"}{" "}
+                  {selected.detail.planOrigin ?? "Origin not recorded"} ·{" "}
+                  {selected.detail.sourceTrialId ??
+                    "No historical source trial"}{" "}
                   {selected.detail.sourcePlanId
                     ? `→ ${selected.detail.sourcePlanId}`
                     : ""}

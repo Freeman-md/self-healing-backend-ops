@@ -179,12 +179,29 @@ export class OperatorRepository {
           select: { id: true, createdAt: true, summary: true, safetyMaintained: true },
         },
         recoveryMeasurement: { select: { observedTimeToHealMs: true } },
+        historyEpisode: {
+          select: {
+            steps: {
+              select: { planId: true, planOrigin: true, sourcePlanId: true, sourceTrialId: true },
+            },
+          },
+        },
       },
     });
 
     if (!row) {
       return null;
     }
+
+    const planProvenance = (planId: string) => {
+      const step = row.historyEpisode?.steps.find((entry) => entry.planId === planId);
+
+      return {
+        planOrigin: step?.planOrigin ?? null,
+        sourcePlanId: step?.sourcePlanId ?? null,
+        sourceTrialId: step?.sourceTrialId ?? null,
+      };
+    };
 
     const trail = [
       ...row.evidenceHistory.map((link) => ({
@@ -212,7 +229,11 @@ export class OperatorRepository {
         summary: readable(plan.rationale),
         occurredAt: plan.createdAt.toISOString(),
         status: plan.escalationReason ? "escalated" : "recorded",
-        detail: { ...emptyDetail(), reason: readable(plan.expectedOutcome) },
+        detail: {
+          ...emptyDetail(),
+          ...planProvenance(plan.id),
+          reason: readable(plan.expectedOutcome),
+        },
       })),
       ...row.recoveryDecisions.map((decision) => ({
         id: decision.id,
@@ -223,8 +244,8 @@ export class OperatorRepository {
         status: decision.status,
         detail: {
           ...emptyDetail(),
-          reason: decision.escalationReason ? readable(decision.escalationReason) : null,
-          sourcePlanId: decision.recoveryPlanId,
+          ...planProvenance(decision.recoveryPlanId),
+          reason: readable(decision.escalationReason ?? decision.reason),
         },
       })),
       ...row.actionExecutionResults.flatMap((action) => [
@@ -672,6 +693,7 @@ function emptyDetail() {
     beforeEvidenceId: null,
     afterEvidenceId: null,
     failedSafetyRuleIds: [],
+    planOrigin: null,
     sourcePlanId: null,
     sourceTrialId: null,
   };
