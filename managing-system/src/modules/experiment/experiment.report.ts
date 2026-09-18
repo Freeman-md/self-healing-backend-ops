@@ -14,6 +14,7 @@ export type ExperimentSummary = {
   validRuns: number;
   invalidRuns: number;
   verifiedRecoveries: number;
+  verifiedEscalations: number;
   automaticResolutions: number;
   runtimeOracleDisagreements: number;
   diagnosisCorrectRuns: number;
@@ -21,6 +22,7 @@ export type ExperimentSummary = {
   safetyMaintainedRuns: number;
   rates: {
     verifiedRecovery: number | null;
+    verifiedEscalation: number | null;
     automaticResolution: number | null;
     diagnosisCorrect: number | null;
     actionSequenceCorrect: number | null;
@@ -33,7 +35,9 @@ export type ExperimentSummary = {
     callCount: number;
     failedCallCount: number;
     latencyMs: StatisticalSummary | null;
-    totalTokens: number;
+    totalTokens: number | null;
+    planningCallCount: number;
+    planningTokens: number | null;
     tokenUsage: {
       inputTokens: StatisticalSummary | null;
       outputTokens: StatisticalSummary | null;
@@ -64,7 +68,17 @@ export function createExperimentSummary(runs: ExperimentRunReportData[]): Experi
 
   const invocations = validRuns.flatMap((run) => run.trial?.modelInvocations ?? []);
 
-  const verifiedRecoveries = validRuns.filter((run) => run.oracleSucceeded).length;
+  const healingRuns = validRuns.filter(
+    (run) => run.faultProfile !== "managed_system_application_network_isolated",
+  );
+
+  const verifiedRecoveries = healingRuns.filter((run) => run.oracleSucceeded).length;
+
+  const escalationRuns = validRuns.filter(
+    (run) => run.faultProfile === "managed_system_application_network_isolated",
+  );
+
+  const verifiedEscalations = escalationRuns.filter((run) => run.oracleSucceeded).length;
 
   const automaticResolutions = validRuns.filter((run) => run.runtimeResolved).length;
 
@@ -75,6 +89,8 @@ export function createExperimentSummary(runs: ExperimentRunReportData[]): Experi
   const safetyMaintainedRuns = validRuns.filter((run) => run.trial?.safetyMaintained).length;
 
   const timingValues: Record<string, number[]> = {
+    timeToDiagnosisReadyMs: values(validRuns, (run) => run.trial?.history?.timeToDiagnosisReadyMs),
+    timeToPlanReadyMs: values(validRuns, (run) => run.trial?.history?.timeToPlanReadyMs),
     faultToDetectionMs: values(validRuns, (run) => run.faultToDetectionMs),
     timeToHealMs: values(validRuns, (run) => run.timeToHealMs),
     timeToTerminationMs: values(validRuns, (run) => run.timeToTerminationMs),
@@ -113,15 +129,17 @@ export function createExperimentSummary(runs: ExperimentRunReportData[]): Experi
     validRuns: validRuns.length,
     invalidRuns: runs.length - validRuns.length,
     verifiedRecoveries,
+    verifiedEscalations,
     automaticResolutions,
-    runtimeOracleDisagreements: validRuns.filter(
+    runtimeOracleDisagreements: healingRuns.filter(
       (run) => run.runtimeResolved !== run.oracleSucceeded,
     ).length,
     diagnosisCorrectRuns,
     actionSequenceCorrectRuns,
     safetyMaintainedRuns,
     rates: {
-      verifiedRecovery: rate(verifiedRecoveries, validRuns.length),
+      verifiedRecovery: rate(verifiedRecoveries, healingRuns.length),
+      verifiedEscalation: rate(verifiedEscalations, escalationRuns.length),
       automaticResolution: rate(automaticResolutions, validRuns.length),
       diagnosisCorrect: rate(diagnosisCorrectRuns, validRuns.length),
       actionSequenceCorrect: rate(actionSequenceCorrectRuns, validRuns.length),
@@ -150,9 +168,12 @@ export function createExperimentSummary(runs: ExperimentRunReportData[]): Experi
       callCount: invocations.length,
       failedCallCount: invocations.filter((invocation) => invocation.status === "failed").length,
       latencyMs: summarize(invocations.map((invocation) => invocation.durationMs)),
-      totalTokens: invocations.reduce(
-        (total, invocation) => total + (invocation.totalTokens ?? 0),
-        0,
+      totalTokens: sumKnownTokens(invocations),
+      planningCallCount: invocations.filter(
+        (invocation) => invocation.operation === "recovery_planning",
+      ).length,
+      planningTokens: sumKnownTokens(
+        invocations.filter((invocation) => invocation.operation === "recovery_planning"),
       ),
       tokenUsage: {
         inputTokens: summarize(present(invocations.map((invocation) => invocation.inputTokens))),
@@ -227,10 +248,7 @@ export function createExperimentCsv(runs: ExperimentRunReportData[]): string {
       : null,
     run.trial?.safetyMaintained,
     run.trial?.modelInvocations.length ?? 0,
-    run.trial?.modelInvocations.reduce(
-      (total, invocation) => total + (invocation.totalTokens ?? 0),
-      0,
-    ) ?? 0,
+    run.trial ? sumKnownTokens(run.trial.modelInvocations) : null,
     run.exclusionReason,
   ]);
 
@@ -242,10 +260,17 @@ export function createExperimentMarkdown(evidence: ExperimentReport): string {
 
   const configuration = batch.configuration;
 
-  const versions =
+  const recordedConfiguration =
     typeof configuration === "object" && configuration !== null && !Array.isArray(configuration)
       ? configuration
       : {};
+
+  const nested = recordedConfiguration.configuration;
+
+  const versions =
+    typeof nested === "object" && nested !== null && !Array.isArray(nested)
+      ? nested
+      : recordedConfiguration;
 
   const lines = [
     `# Experiment Batch ${batch.name}`,
@@ -261,6 +286,8 @@ export function createExperimentMarkdown(evidence: ExperimentReport): string {
     `- Invalid or excluded runs: ${summary.invalidRuns}`,
     `- Verified recoveries: ${summary.verifiedRecoveries}`,
     `- Verified recovery rate: ${percentage(summary.rates.verifiedRecovery)}`,
+    `- Verified escalations: ${summary.verifiedEscalations}`,
+    `- Verified escalation rate: ${percentage(summary.rates.verifiedEscalation)}`,
     `- Automatic runtime resolutions: ${summary.automaticResolutions}`,
     `- Automatic resolution rate: ${percentage(summary.rates.automaticResolution)}`,
     `- Runtime/oracle disagreements: ${summary.runtimeOracleDisagreements}`,
@@ -394,4 +421,10 @@ function round(value: number): string {
 
 function percentage(value: number | null): string {
   return value === null ? "not available" : `${round(value * 100)}%`;
+}
+
+export function sumKnownTokens(invocations: Array<{ totalTokens: number | null }>): number | null {
+  return invocations.some((invocation) => invocation.totalTokens === null)
+    ? null
+    : invocations.reduce((total, invocation) => total + invocation.totalTokens!, 0);
 }

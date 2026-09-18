@@ -51,6 +51,7 @@ model DiagnosisResult {
   legacyPayload      String?           @map("diagnosis_result_json")
   trial              TrialRecord       @relation(fields: [trialRecordId], references: [id])
   evidenceSnapshot   EvidenceSnapshot  @relation(fields: [evidenceSnapshotId], references: [id])
+  historyStep        RecoveryStep?
   recoveryPlan       RecoveryPlan?
   recoveryDecision   RecoveryDecision?
 

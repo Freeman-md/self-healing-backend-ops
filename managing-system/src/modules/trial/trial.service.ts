@@ -1,3 +1,5 @@
+import type { AttentionService } from "@/modules/attention";
+import { recoveryEvidenceSignature, type RecoveryHistoryService } from "@/modules/recovery";
 import { ActionService, type Action, type ActionExecutionResult } from "@/modules/action";
 import { EvaluationService, type EvaluationSummary } from "@/modules/evaluation";
 import { EvidenceService, type EvidenceSnapshot } from "@/modules/evidence";
@@ -51,6 +53,16 @@ type TrialMeasurementService = Pick<
   "startRecoveryMeasurement" | "recordFirstActionStarted" | "completeRecoveryMeasurement"
 >;
 
+type TrialHistoryService = Pick<
+  RecoveryHistoryService,
+  "beginTrial" | "createControlledOperations"
+> & {
+  repository: Pick<
+    RecoveryHistoryService["repository"],
+    "recordPlan" | "recordExecution" | "publishEligibleTrial"
+  >;
+};
+
 export const DEFAULT_MAX_RECOVERY_STEPS = 3;
 
 export class TrialService {
@@ -64,6 +76,8 @@ export class TrialService {
     private readonly maxRecoverySteps = DEFAULT_MAX_RECOVERY_STEPS,
     private readonly trialFactory = new TrialFactory(),
     private readonly measurementService?: TrialMeasurementService,
+    private readonly historyService?: TrialHistoryService,
+    private readonly attentionService?: Pick<AttentionService, "recordEscalation">,
   ) {}
 
   async saveTrialRecord(trialRecord: TrialRecord): Promise<TrialRecord> {
@@ -120,9 +134,32 @@ export class TrialService {
       firstUnhealthyEvidenceSnapshotId: input.firstUnhealthyEvidenceSnapshotId,
       recoveryTriggeredAt: input.recoveryTriggeredAt ?? startedAt,
     });
-    const { currentSnapshot, recoveryDecision, trialState } =
-      strategy.orchestration === "agent"
-        ? await this.runAgentRecovery(strategy, context, input.snapshot)
+    let history: Awaited<ReturnType<RecoveryHistoryService["beginTrial"]>> | undefined;
+
+    let initializationFailed = false;
+
+    try {
+      history = await this.historyService?.beginTrial(
+        context.trialRecordId,
+        input.triggerSource ?? "controlled",
+      );
+    } catch {
+      initializationFailed = true;
+    }
+
+    const { currentSnapshot, recoveryDecision, trialState } = initializationFailed
+      ? {
+          currentSnapshot: input.snapshot,
+          recoveryDecision: undefined,
+          trialState: {
+            status: "failed",
+            outcome: "failed",
+            reason:
+              "Recovery history initialization failed; no recovery strategy or action was invoked.",
+          } satisfies TrialState,
+        }
+      : strategy.orchestration === "agent"
+        ? await this.runAgentRecovery(strategy, context, input.snapshot, history)
         : await this.runExternalRecovery(strategy, context, input.snapshot);
 
     const completedAt = new Date().toISOString();
@@ -146,6 +183,16 @@ export class TrialService {
     );
 
     await this.saveTrialRecord(trialRecord);
+    if (trialState.status === "escalated") {
+      await this.attentionService?.recordEscalation({
+        trialRecordId: context.trialRecordId,
+        initialSnapshot: input.snapshot,
+        latestSnapshot: currentSnapshot,
+        decision: recoveryDecision,
+        reason: trialState.reason,
+      });
+    }
+
     await this.evaluationService.saveEvaluationSummary(evaluationSummary);
     await this.measurementService?.completeRecoveryMeasurement({
       trialRecordId: context.trialRecordId,
@@ -156,6 +203,10 @@ export class TrialService {
           : undefined,
       decisionCount: context.recoveryDecisionIds.length,
     });
+    if (!initializationFailed) {
+      await this.historyService?.repository.publishEligibleTrial(context.trialRecordId);
+    }
+
     const recoveryDecisions = await this.recoveryService.findRecoveryDecisionHistory(
       context.trialRecordId,
     );
@@ -229,6 +280,7 @@ export class TrialService {
         );
         recordActionResultInTrialContext(context, action.id, result);
         await this.actionService.saveActionExecutionResult(result);
+        await this.historyService?.repository.recordExecution(recoveryDecision, result.id);
         currentSnapshot = await this.findAfterSnapshot(result, currentSnapshot);
         recordEvidenceSnapshotInTrialContext(context, currentSnapshot);
         trialState = this.trialFactory.createTrialStateFromActionResult(result);
@@ -275,6 +327,7 @@ export class TrialService {
     strategy: AgentOrchestratedRecoveryStrategy,
     context: TrialContext,
     initialSnapshot: EvidenceSnapshot,
+    history?: { enabled: boolean; sourceIds: string[]; fingerprint: string },
   ): Promise<{
     currentSnapshot: EvidenceSnapshot;
     recoveryDecision: RecoveryDecision | undefined;
@@ -349,6 +402,8 @@ export class TrialService {
             throw new Error("Controlled action execution rejected.");
           }
 
+          const actionDecision = acceptedDecision;
+
           acceptedDecision = undefined;
           invocations += 1;
           phase = "registered action execution";
@@ -360,6 +415,7 @@ export class TrialService {
 
           recordActionResultInTrialContext(context, actionId, result);
           await this.actionService.saveActionExecutionResult(result);
+          await this.historyService?.repository.recordExecution(actionDecision, result.id);
           await this.measurementService?.recordFirstActionStarted(
             context.trialRecordId,
             result.startedAt,
@@ -401,6 +457,17 @@ export class TrialService {
           };
         },
       };
+
+      if (history?.enabled && this.historyService) {
+        Object.assign(environment, {
+          history: this.historyService.createControlledOperations({
+            environment,
+            currentSnapshot: () => currentSnapshot,
+            fingerprint: history.fingerprint,
+            sourceIds: history.sourceIds,
+          }),
+        });
+      }
 
       phase = "agent conversation";
       const outcome = await strategy.recover(sanitizeAgentEvidence(initialSnapshot), environment);
@@ -463,6 +530,27 @@ export class TrialService {
       sequenceNumber: context.recoveryDecisionIds.length + 1,
       recoveryDecision,
     });
+    const persistedAt = new Date();
+
+    if (this.historyService) {
+      const snapshot = await this.evidenceService.findEvidenceSnapshotById(
+        recoveryDecision.snapshotId,
+      );
+
+      await this.historyService.repository.recordPlan(
+        context.trialRecordId,
+        recoveryDecision,
+        snapshot
+          ? recoveryEvidenceSignature(
+              snapshot,
+              recoveryDecision.diagnosisResult.suspectedIncidentType,
+            )
+          : null,
+        undefined,
+        persistedAt,
+      );
+    }
+
     recordRecoveryDecisionInTrialContext(context, recoveryDecision);
   }
 }

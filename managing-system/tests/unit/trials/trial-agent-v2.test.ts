@@ -13,6 +13,7 @@ function setup(
     providerFailure?: boolean;
     blocked?: boolean;
     persistenceFailure?: boolean;
+    initializationFailure?: boolean;
   } = {},
 ) {
   const initial: EvidenceSnapshot = {
@@ -67,6 +68,10 @@ function setup(
   let refreshes = 0;
 
   let measurementCompleted = false;
+
+  let measurementCompletions = 0;
+
+  let evaluationCompletions = 0;
 
   const evidence = {
     async waitForManagedSystemHealth() {},
@@ -206,6 +211,8 @@ function setup(
     {
       createEvaluationSummary: new EvaluationFactory().createEvaluationSummary,
       async saveEvaluationSummary(value) {
+        evaluationCompletions += 1;
+
         return value;
       },
     },
@@ -234,10 +241,32 @@ function setup(
       },
       async completeRecoveryMeasurement() {
         measurementCompleted = true;
+        measurementCompletions += 1;
 
         return {} as never;
       },
     },
+    options.initializationFailure
+      ? {
+          async beginTrial() {
+            throw new Error("frozen runtime identity mismatch");
+          },
+          createControlledOperations() {
+            throw new Error("must not start conversation");
+          },
+          repository: {
+            async recordPlan() {
+              throw new Error("must not record plan");
+            },
+            async recordExecution() {
+              throw new Error("must not execute");
+            },
+            async publishEligibleTrial() {
+              throw new Error("must not publish");
+            },
+          },
+        }
+      : undefined,
   );
 
   return {
@@ -246,7 +275,13 @@ function setup(
     results,
     requests,
     run: () => runner.runRecoveryTrial({ mode: "agent", snapshot: initial }),
-    state: () => ({ handlerCalls, refreshes, measurementCompleted }),
+    state: () => ({
+      handlerCalls,
+      refreshes,
+      measurementCompleted,
+      measurementCompletions,
+      evaluationCompletions,
+    }),
   };
 }
 
@@ -296,3 +331,20 @@ for (const options of [{ providerFailure: true }, { persistenceFailure: true }])
     assert.equal(h.trials.length, 2);
   });
 }
+
+test("history initialization failure finalizes once without invoking strategy or actions", async () => {
+  const h = setup({ initializationFailure: true });
+
+  const outcome = await h.run();
+
+  assert.equal(outcome.trialRecord.status, "failed");
+  assert.equal(h.trials.length, 2);
+  assert.equal(h.trials[0].status, "started");
+  assert.equal(h.trials[1].status, "failed");
+  assert.equal(h.records.length, 0);
+  assert.equal(h.requests.length, 0);
+  assert.equal(h.results.length, 0);
+  assert.equal(h.state().handlerCalls, 0);
+  assert.equal(h.state().measurementCompletions, 1);
+  assert.equal(h.state().evaluationCompletions, 1);
+});

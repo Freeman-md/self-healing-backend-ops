@@ -1,4 +1,5 @@
 import { getDeterministicEvidenceState, type EvidenceSnapshot } from "@/modules/evidence";
+import type { AttentionService } from "@/modules/attention";
 import type { RecoveryMode } from "@/modules/recovery";
 import type { TrialService } from "@/modules/trial";
 
@@ -42,6 +43,7 @@ export class MonitoringService {
     private readonly trialService: MonitoringTrialService,
     private readonly recoveryMode: RecoveryMode,
     private readonly options: MonitoringServiceOptions,
+    private readonly attentionService?: Pick<AttentionService, "observeEvidence">,
   ) {}
 
   async startMonitoring(): Promise<void> {
@@ -91,6 +93,19 @@ export class MonitoringService {
   }
 
   private async considerRecovery(snapshot: EvidenceSnapshot): Promise<void> {
+    if (await this.attentionService?.observeEvidence(snapshot)) {
+      this.consecutiveUnhealthyCount = 0;
+      this.firstUnhealthyObservedAt = undefined;
+      this.firstUnhealthyEvidenceSnapshotId = undefined;
+      this.log({
+        event: "monitor_recovery_suppressed",
+        reason: "durable_attention_hold",
+        snapshotId: snapshot.id,
+      });
+
+      return;
+    }
+
     if (getDeterministicEvidenceState(snapshot) !== "unhealthy") {
       this.consecutiveUnhealthyCount = 0;
       this.firstUnhealthyObservedAt = undefined;

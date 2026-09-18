@@ -49,6 +49,8 @@ model TrialRecord {
   actionExecutionResults ActionExecutionResult[]
   evaluationSummary     EvaluationSummary?
   recoveryMeasurement  RecoveryMeasurement?
+  historyEpisode        RecoveryEpisode?
+  attention             RecoveryAttention?
   experimentRun         ExperimentRun?
   modelInvocations      ModelInvocation[]
 

@@ -36,3 +36,13 @@ export {
   AGENT_V2_VERSION,
   AGENT_V2_PROMPT_VERSION,
 } from "./strategies/agent-v2/recovery.agent-v2.strategy";
+
+export { RecoveryHistoryService, sourceTrialIdsSchema } from "./recovery.history.service";
+export { RecoveryHistoryRepository } from "./recovery.history.repository";
+export {
+  recoveryEvidenceSignature,
+  fingerprintRecoveryConfiguration,
+  RETRIEVAL_PROTOCOL_VERSION,
+  RECOVERY_POLICY_VERSION,
+  MEASUREMENT_DEFINITION_VERSION,
+} from "./recovery.history.helpers";

@@ -258,7 +258,7 @@ export class ExperimentRepository {
       where: { id: input.runId },
       data: {
         status: "completed",
-        activeLockKey: null,
+        activeLockKey: await this.retainM9RunLock(input.runId),
         completedAt: input.completedAt,
         valid: true,
         runtimeResolved: input.runtimeResolved,
@@ -287,7 +287,7 @@ export class ExperimentRepository {
       where: { id: runId },
       data: {
         status: "invalid",
-        activeLockKey: null,
+        activeLockKey: await this.retainM9RunLock(runId),
         valid: false,
         exclusionReason: reason,
         completedAt,
@@ -302,6 +302,7 @@ export class ExperimentRepository {
         trial: {
           include: {
             recoveryMeasurement: true,
+            historyEpisode: { include: { steps: { orderBy: { diagnosisReadyAt: "asc" } } } },
             evaluationSummary: {
               select: { safetyMaintained: true },
             },
@@ -336,6 +337,51 @@ export class ExperimentRepository {
                   decisionCount: row.trial.recoveryMeasurement.decisionCount,
                 }
               : null,
+            history: row.trial.historyEpisode
+              ? {
+                  measurementVersion: "2.0.0",
+                  firstDiagnosisReadyAt:
+                    row.trial.historyEpisode.steps[0]?.diagnosisReadyAt.toISOString() ?? null,
+                  firstPlanReadyAt:
+                    row.trial.historyEpisode.steps
+                      .filter((step) => step.planReadyAt)
+                      .map((step) => step.planReadyAt!)
+                      .sort((a, b) => a.getTime() - b.getTime())[0]
+                      ?.toISOString() ?? null,
+                  timeToDiagnosisReadyMs:
+                    row.trial.historyEpisode.steps[0] && row.trial.recoveryMeasurement
+                      ? row.trial.historyEpisode.steps[0].diagnosisReadyAt.getTime() -
+                        row.trial.recoveryMeasurement.recoveryTriggeredAt.getTime()
+                      : null,
+                  timeToPlanReadyMs:
+                    row.trial.historyEpisode.steps.some((step) => step.planReadyAt) &&
+                    row.trial.recoveryMeasurement
+                      ? Math.min(
+                          ...row.trial.historyEpisode.steps
+                            .filter((step) => step.planReadyAt)
+                            .map((step) => step.planReadyAt!.getTime()),
+                        ) - row.trial.recoveryMeasurement.recoveryTriggeredAt.getTime()
+                      : null,
+                  compatibilityFingerprint: row.trial.historyEpisode.compatibilityFingerprint,
+                  corpusSourceIds: row.trial.historyEpisode.corpusSourceIds,
+                  steps: row.trial.historyEpisode.steps.map((step) => ({
+                    diagnosisResultId: step.diagnosisResultId,
+                    diagnosisReadyAt: step.diagnosisReadyAt.toISOString(),
+                    planReadyAt: step.planReadyAt?.toISOString() ?? null,
+                    lookupStartedAt: step.lookupStartedAt?.toISOString() ?? null,
+                    lookupCompletedAt: step.lookupCompletedAt?.toISOString() ?? null,
+                    lookupLatencyMs:
+                      step.lookupStartedAt && step.lookupCompletedAt
+                        ? step.lookupCompletedAt.getTime() - step.lookupStartedAt.getTime()
+                        : null,
+                    lookupOutcome: step.lookupOutcome,
+                    planOrigin: step.planOrigin,
+                    sourceTrialId: step.sourceTrialId,
+                    sourcePlanId: step.sourcePlanId,
+                    executionResultIds: step.executionResultIds,
+                  })),
+                }
+              : null,
             modelInvocations: row.trial.modelInvocations.map((invocation) => ({
               operation: invocation.operation,
               durationMs: invocation.durationMs,
@@ -347,5 +393,11 @@ export class ExperimentRepository {
           }
         : null,
     }));
+  }
+
+  private async retainM9RunLock(runId: string): Promise<string | null> {
+    return (await this.prisma.experimentRunManifest.findUnique({ where: { runId } }))
+      ? "global"
+      : null;
   }
 }

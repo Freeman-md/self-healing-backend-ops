@@ -1,0 +1,71 @@
+model RecoveryEpisode {
+  trialRecordId String @id @map("trial_record_id")
+  origin String
+  experimentRunId String? @map("experiment_run_id")
+  compatibilityFingerprint String @map("compatibility_fingerprint")
+  corpusSourceIds Json @map("corpus_source_ids")
+  retrievalEnabled Boolean @map("retrieval_enabled")
+  configuration Json
+  createdAt DateTime @map("created_at")
+  trial TrialRecord @relation(fields: [trialRecordId], references: [id], onDelete: Cascade)
+  steps RecoveryStep[]
+  @@map("recovery_episodes")
+}
+model RecoveryStep {
+  diagnosisResultId String @id @map("diagnosis_result_id")
+  trialRecordId String @map("trial_record_id")
+  signature String?
+  diagnosisReadyAt DateTime @map("diagnosis_ready_at")
+  lookupStartedAt DateTime? @map("lookup_started_at")
+  lookupCompletedAt DateTime? @map("lookup_completed_at")
+  lookupOutcome String? @map("lookup_outcome")
+  sourceTrialId String? @map("source_trial_id")
+  sourcePlanId String? @map("source_plan_id")
+  planId String? @unique @map("plan_id")
+  decisionId String? @unique @map("decision_id")
+  planReadyAt DateTime? @map("plan_ready_at")
+  planOrigin String? @map("plan_origin")
+  executionResultIds Json @default("[]") @map("execution_result_ids")
+  diagnosis DiagnosisResult @relation(fields: [diagnosisResultId], references: [id], onDelete: Cascade)
+  episode RecoveryEpisode @relation(fields: [trialRecordId], references: [trialRecordId], onDelete: Cascade)
+  publishedCase RecoveryCase?
+  @@index([trialRecordId, diagnosisReadyAt])
+  @@map("recovery_steps")
+}
+model RecoveryCase {
+  sourcePlanId String @id @map("source_plan_id")
+  diagnosisResultId String @unique @map("diagnosis_result_id")
+  sourceTrialId String @map("source_trial_id")
+  publishedAt DateTime @map("published_at")
+  step RecoveryStep @relation(fields: [diagnosisResultId], references: [diagnosisResultId], onDelete: Cascade)
+  @@index([sourceTrialId, publishedAt])
+  @@map("recovery_cases")
+}
+model RecoveryAttention {
+  id String @id
+  trialRecordId String @unique @map("trial_record_id")
+  signature String
+  initialEvidenceSnapshotId String @map("initial_evidence_snapshot_id")
+  latestEvidenceSnapshotId String @map("latest_evidence_snapshot_id")
+  diagnosisResultId String? @map("diagnosis_result_id")
+  decisionId String? @map("decision_id")
+  reason String
+  state String @default("requires_attention")
+  createdAt DateTime @map("created_at")
+  acknowledgedAt DateTime? @map("acknowledged_at")
+  reviewedAt DateTime? @map("reviewed_at")
+  notes String?
+  releasedAt DateTime? @map("released_at")
+  healthyEvidenceSnapshotId String? @map("healthy_evidence_snapshot_id")
+  trial TrialRecord @relation(fields: [trialRecordId], references: [id], onDelete: Cascade)
+  @@index([signature, releasedAt])
+  @@map("recovery_attention")
+}
+model ExperimentRunManifest {
+  runId String @id @map("run_id")
+  configuration Json
+  workload Json?
+  restoration Json?
+  run ExperimentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  @@map("experiment_run_manifests")
+}

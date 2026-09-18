@@ -14,6 +14,7 @@ enum ExperimentRunStatus {
 }
 
 enum FaultProfileCode {
+  managed_system_application_network_isolated
   managed_system_application_stopped
   managed_system_postgres_stopped
   managed_system_application_and_postgres_stopped
@@ -62,6 +63,7 @@ model ExperimentRun {
   faultToDetectionMs       Int?                 @map("fault_to_detection_ms")
   timeToHealMs             Int?                 @map("time_to_heal_ms")
   timeToTerminationMs      Int?                 @map("time_to_termination_ms")
+  manifest                 ExperimentRunManifest?
   batch                    ExperimentBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
   trial                    TrialRecord?         @relation(fields: [trialRecordId], references: [id], onDelete: SetNull)
 

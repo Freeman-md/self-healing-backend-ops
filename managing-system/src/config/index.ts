@@ -1,4 +1,6 @@
 import "dotenv/config";
+import { readBuildRevision } from "./build-identity";
+import { z } from "zod/v4";
 
 import {
   readBoolean,
@@ -11,6 +13,7 @@ import {
 } from "./helpers";
 
 export type AppConfig = {
+  buildRevision: string;
   environment: string;
   managedSystem: {
     baseUrl: string;
@@ -33,6 +36,9 @@ export type AppConfig = {
     runMode: "controlled" | "monitor";
     recoveryMode?: "baseline" | "agent";
     agentStrategyVersion: "v1" | "v2";
+    historicalRetrievalEnabled: boolean;
+    sourceTrialIds: string[];
+    targetConfigurationIdentity: string;
     scenarioId?: "S1" | "S2" | "S3";
   };
   monitoring: {
@@ -43,6 +49,7 @@ export type AppConfig = {
 };
 
 export const config: AppConfig = {
+  buildRevision: readBuildRevision(),
   environment: readString(process.env.NODE_ENV, "development"),
   managedSystem: {
     baseUrl: readString(process.env.MANAGED_SYSTEM_BASE_URL, "http://localhost:3004"),
@@ -80,6 +87,17 @@ export const config: AppConfig = {
       readOptionalEnum(process.env.RECOVERY_MODE, ["baseline", "agent"], "RECOVERY_MODE"),
       process.env.AGENT_STRATEGY_VERSION,
     ),
+    historicalRetrievalEnabled: readBoolean(process.env.HISTORICAL_RETRIEVAL_ENABLED, false),
+    sourceTrialIds: z
+      .array(z.string().min(1).max(100))
+      .max(100)
+      .refine((ids) => new Set(ids).size === ids.length)
+      .parse(JSON.parse(process.env.RECOVERY_SOURCE_TRIAL_IDS ?? "[]")),
+    targetConfigurationIdentity: z
+      .string()
+      .min(1)
+      .max(100)
+      .parse(process.env.RECOVERY_TARGET_CONFIGURATION_ID ?? "local-compose-v1"),
     scenarioId: readOptionalEnum(process.env.SCENARIO_ID, ["S1", "S2", "S3"], "SCENARIO_ID"),
   },
   monitoring: {

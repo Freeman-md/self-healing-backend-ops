@@ -60,6 +60,28 @@ export type ExperimentRunReportData = ExperimentRun & {
       observedTimeToHealMs: number | null;
       decisionCount: number;
     } | null;
+    history?: {
+      measurementVersion: string;
+      firstDiagnosisReadyAt: string | null;
+      firstPlanReadyAt: string | null;
+      timeToDiagnosisReadyMs: number | null;
+      timeToPlanReadyMs: number | null;
+      compatibilityFingerprint: string;
+      corpusSourceIds: unknown;
+      steps: Array<{
+        diagnosisResultId: string;
+        diagnosisReadyAt: string;
+        planReadyAt: string | null;
+        lookupStartedAt: string | null;
+        lookupCompletedAt: string | null;
+        lookupLatencyMs: number | null;
+        lookupOutcome: string | null;
+        planOrigin: string | null;
+        sourceTrialId: string | null;
+        sourcePlanId: string | null;
+        executionResultIds: unknown;
+      }>;
+    } | null;
     modelInvocations: Array<{
       operation: string;
       durationMs: number;

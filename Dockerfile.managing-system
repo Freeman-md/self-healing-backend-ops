@@ -12,6 +12,8 @@ COPY prisma ./prisma
 COPY src ./src
 COPY scripts ./scripts
 
+ARG SOURCE_REVISION=unrecorded
+RUN node -e 'const fs = require("node:fs"); const revision = process.argv[1]; if (revision !== "unrecorded" && !/^[a-f0-9]{40}$/.test(revision)) throw new Error("Invalid build revision"); fs.writeFileSync("build-identity.json", JSON.stringify({sourceRevision: revision}));' "$SOURCE_REVISION"
 RUN npm run build
 
 CMD ["npm", "run", "start:container"]

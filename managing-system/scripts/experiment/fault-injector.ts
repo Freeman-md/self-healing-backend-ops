@@ -11,6 +11,10 @@ const containerNames = {
 } as const;
 
 export async function injectFaultProfile(profileCode: FaultProfileCode): Promise<void> {
+  if (profileCode === "managed_system_application_network_isolated") {
+    throw new Error("Isolation requires the Milestone 9 restoration runner.");
+  }
+
   const profile = findFaultProfile(profileCode);
 
   for (const target of profile.stoppedTargets) {

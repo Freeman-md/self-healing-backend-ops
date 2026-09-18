@@ -8,7 +8,10 @@ export type FaultProfileDefinition = {
   stoppedTargets: ContainerRuntimeTarget[];
 };
 
-export const faultProfiles: Record<FaultProfileCode, FaultProfileDefinition> = {
+export const faultProfiles: Record<
+  Exclude<FaultProfileCode, "managed_system_application_network_isolated">,
+  FaultProfileDefinition
+> = {
   managed_system_application_stopped: {
     code: "managed_system_application_stopped",
     expectedIncidentCodes: ["managed_system_service_down", "managed_system_unreachable"],
@@ -30,6 +33,15 @@ export const faultProfiles: Record<FaultProfileCode, FaultProfileDefinition> = {
 };
 
 export function findFaultProfile(code: FaultProfileCode): FaultProfileDefinition {
+  if (code === "managed_system_application_network_isolated") {
+    return {
+      code,
+      expectedIncidentCodes: ["managed_system_unreachable"],
+      expectedActionIds: [],
+      stoppedTargets: [],
+    };
+  }
+
   return faultProfiles[code];
 }
 
