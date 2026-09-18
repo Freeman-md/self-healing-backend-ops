@@ -5,3 +5,10 @@ dist
 npm-debug.log
 Dockerfile
 compose.yaml
+.env
+.env.*
+**/.env
+**/.env.*
+.agents
+output
+recovery-experiment-reports

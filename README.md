@@ -87,3 +87,36 @@ trial ID, source revision, outcome and observed limits in the milestone Completi
 Record. This credential-dependent smoke is pending; mocked tests do not verify
 live OpenAI or Docker behaviour. The comparative benchmark and report draft remain
 outside this implementation milestone.
+
+## Local operator dashboard
+
+The built dashboard is served by `managing-system` at
+`http://127.0.0.1:4300` when `MANAGING_SYSTEM_RUN_MODE=operator`. The browser
+only reaches a bounded same-origin API; it cannot access Docker, Prisma, the
+database or provider credentials directly.
+
+From the repository root, after supplying the existing private testbed
+configuration, build and start the local testbed in operator mode:
+
+```sh
+test -z "$(git status --porcelain)" || exit 1
+SOURCE_REVISION=$(git rev-parse HEAD) MANAGING_SYSTEM_RUN_MODE=operator docker compose up -d --build
+```
+
+Controlled launches require a recorded full build revision. The request ID is
+reused after uncertain acceptance; retries reconcile the persisted run rather
+than injecting another fault. The trial page polls run linkage and restoration.
+Shutdown drains accepted controlled runs before stopping observation or closing
+the database. Do not interrupt a CLI experiment while a fault is active.
+
+The final experimental panels are documented in
+`recovery-experiment-reports/m9-panels-v1/README.md`. Keep acceptance smoke outputs
+separate from final campaign outputs and preserve the earlier canonical evidence.
+
+All published Compose ports, including both databases and the managed application,
+are loopback-only. The operator container listens on `0.0.0.0`
+only so Docker can publish it to the host's `127.0.0.1`; direct local starts
+default to `127.0.0.1`. The dashboard remains visible with current health marked
+unknown when the managing system target or its persisted control plane is
+unavailable. Do not launch a controlled test until the System page reports a
+fresh deterministic healthy observation and launch readiness.

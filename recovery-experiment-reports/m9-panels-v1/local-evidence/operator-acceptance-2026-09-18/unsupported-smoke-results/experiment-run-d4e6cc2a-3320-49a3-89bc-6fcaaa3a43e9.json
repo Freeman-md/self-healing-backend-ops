@@ -1,0 +1,127 @@
+{
+  "id": "experiment-run-d4e6cc2a-3320-49a3-89bc-6fcaaa3a43e9",
+  "batchId": "experiment-batch-b954af5a-8fa8-4250-919b-5fca0e7d8c87",
+  "faultProfile": "managed_system_application_network_isolated",
+  "recoveryMode": "agent",
+  "repetition": 1,
+  "status": "completed",
+  "activeLockKey": null,
+  "startedAt": "2026-09-18T12:02:54.479Z",
+  "faultInjectedAt": "2026-09-18T12:04:13.962Z",
+  "completedAt": "2026-09-18T12:07:28.033Z",
+  "trialRecordId": "trial-af595576-b3c1-4f44-8f27-8a65629958bc",
+  "valid": true,
+  "exclusionReason": null,
+  "runtimeResolved": false,
+  "oracleSucceeded": true,
+  "oracleFirstHealthyObservedAt": null,
+  "oracleCheckedAt": "2026-09-18T12:07:27.027Z",
+  "oracleDetails": {
+    "passed": true,
+    "retrials": 0,
+    "oracleKind": "escalation",
+    "attentionRecorded": true,
+    "unsuitableEffects": 0
+  },
+  "stabilityWindowMs": 10000,
+  "diagnosisCorrect": true,
+  "actionSequenceCorrect": false,
+  "unnecessaryActionCount": 1,
+  "faultToDetectionMs": 11099,
+  "timeToHealMs": null,
+  "timeToTerminationMs": 55991,
+  "manifest": {
+    "runId": "experiment-run-d4e6cc2a-3320-49a3-89bc-6fcaaa3a43e9",
+    "configuration": {
+      "fixture": {
+        "ids": [
+          "1724eb4c-e55f-4227-b563-cae4c5e82934",
+          "f98ac9fa-6a95-4861-a1e3-40c19a0808c0",
+          "92940c8b-887f-4025-ad9d-60cd5957fe95",
+          "c9dc4918-b060-4965-afbd-28257d5d550f",
+          "7491a612-66f5-4b23-907b-81b5a4525b1e",
+          "7784c4f7-e919-474b-beb5-e52812ba23fe",
+          "c6ed5580-5128-45b1-b86c-6c4a698e1f4c",
+          "7f749188-f12b-45ba-bc99-df8a961d9945",
+          "157f9b06-013a-4fc9-8ea5-8cddef1c565a",
+          "3b2c0aa0-6aa2-4bb3-8086-84434fccea9f"
+        ],
+        "marker": "m9-fixture-3482b7f7-ecdb-4509-be1b-3a3eb3fa6d74",
+        "baseUrl": "http://managed-system:3000",
+        "version": "1.0.0"
+      },
+      "protocol": {
+        "seed": "m9-fixed-2026-09-18",
+        "smoke": true,
+        "version": "m9-panels-1.0.0",
+        "runOrder": [
+          {
+            "phase": "single",
+            "profile": "managed_system_application_network_isolated",
+            "repetition": 1
+          }
+        ],
+        "workload": null,
+        "condition": "unsupported",
+        "fixturePath": "/managing-system/experiment-output/m9/operator-acceptance-2026-09-18/fixture.json",
+        "repetitions": 1,
+        "policyVersion": "running-unreachable-hold-v1",
+        "sourceRevision": "e290dee1573ee40418e9851464f8542b490c5ea0",
+        "calibrationPath": null,
+        "preFaultSettleMs": 75000,
+        "retrievalProtocol": "structured-exact-v1",
+        "stabilityWindowMs": 10000,
+        "measurementVersion": "2.0.0",
+        "suppressionWindowMs": 135000,
+        "isolationPreflightPath": "/managing-system/experiment-output/m9/operator-acceptance-2026-09-18/isolation-preflight.json"
+      },
+      "configuration": {
+        "model": "gpt-4.1-mini",
+        "cooldownMs": 15000,
+        "recoveryMode": "agent",
+        "faultProfiles": [
+          "managed_system_application_network_isolated"
+        ],
+        "promptVersion": "1.0.0",
+        "maxRecoverySteps": 3,
+        "preFaultSettleMs": 75000,
+        "monitorIntervalMs": 30000,
+        "stabilityWindowMs": 10000,
+        "agentPromptVersion": "2.1.0",
+        "agentStrategyVersion": "v2",
+        "baselineRuleVersions": {
+          "managed_system_service_down": 1,
+          "database_connectivity_failure": 1
+        },
+        "actionCatalogueFingerprint": "5deebd94960f4a3f835d9f1558fb35414a93be1ab29ebe83cce75d227e8397cc",
+        "agentImplementationVersion": "2.1.0",
+        "consecutiveUnhealthyThreshold": 2
+      },
+      "maxAgentTurns": 12,
+      "sourceTrialIds": [],
+      "providerSettings": {
+        "model": "gpt-4.1-mini",
+        "toolChoice": "required",
+        "parallelToolCalls": false
+      },
+      "retrievalEnabled": true,
+      "expectedRecoveryMode": "agent",
+      "compatibilityFingerprint": "d7d37d49cf5858bec90cbfb337ddc2c26335e2e448c93fa70120c823558192ff",
+      "expectedAgentStrategyVersion": "v2"
+    },
+    "workload": null,
+    "restoration": {
+      "status": "verified",
+      "attachment": {
+        "aliases": [
+          "managed-system-app",
+          "managed-system"
+        ],
+        "project": "self-healing-backend-ops",
+        "networkId": "802be0bb1cb51ba36acf3d751370de3a106d77ecf3ac81c4a7b0de8cf6fc24f7",
+        "containerId": "191ab026658de23d73ae6a72ddebfd493ef30aa96163c83b6d947a9daa6a9dec"
+      },
+      "verifiedAt": "2026-09-18T12:07:31.385Z"
+    }
+  }
+}

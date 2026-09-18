@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "marker": "m9-fixture-3482b7f7-ecdb-4509-be1b-3a3eb3fa6d74",
+  "baseUrl": "http://managed-system:3000",
+  "ids": [
+    "1724eb4c-e55f-4227-b563-cae4c5e82934",
+    "f98ac9fa-6a95-4861-a1e3-40c19a0808c0",
+    "92940c8b-887f-4025-ad9d-60cd5957fe95",
+    "c9dc4918-b060-4965-afbd-28257d5d550f",
+    "7491a612-66f5-4b23-907b-81b5a4525b1e",
+    "7784c4f7-e919-474b-beb5-e52812ba23fe",
+    "c6ed5580-5128-45b1-b86c-6c4a698e1f4c",
+    "7f749188-f12b-45ba-bc99-df8a961d9945",
+    "157f9b06-013a-4fc9-8ea5-8cddef1c565a",
+    "3b2c0aa0-6aa2-4bb3-8086-84434fccea9f"
+  ]
+}

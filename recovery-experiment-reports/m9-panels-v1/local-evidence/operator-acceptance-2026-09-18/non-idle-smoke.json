@@ -1,0 +1,32 @@
+{
+  "version": "m9-panels-1.0.0",
+  "sourceRevision": "ae4b08f420e948293f8e6867ff06eda789d866c3",
+  "condition": "non-idle",
+  "seed": "m9-fixed-2026-09-18",
+  "repetitions": 1,
+  "smoke": true,
+  "measurementVersion": "2.0.0",
+  "retrievalProtocol": "structured-exact-v1",
+  "policyVersion": "running-unreachable-hold-v1",
+  "fixturePath": "/managing-system/experiment-output/m9/operator-acceptance-2026-09-18/fixture.json",
+  "workload": {
+    "offeredRate": 5,
+    "concurrency": 4,
+    "timeoutMs": 3000,
+    "warmupMs": 10000,
+    "postRecoveryMs": 10000,
+    "maximumDurationMs": 300000
+  },
+  "calibrationPath": "/managing-system/experiment-output/m9/operator-acceptance-2026-09-18/calibration.json",
+  "isolationPreflightPath": null,
+  "stabilityWindowMs": 10000,
+  "preFaultSettleMs": 75000,
+  "suppressionWindowMs": 135000,
+  "runOrder": [
+    {
+      "profile": "managed_system_application_stopped",
+      "repetition": 1,
+      "phase": "single"
+    }
+  ]
+}

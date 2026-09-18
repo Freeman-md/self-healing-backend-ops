@@ -1,0 +1,184 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --color-surface: #ffffff;
+  --color-canvas: #f4f6f8;
+  --color-ink: #182536;
+  --color-muted: #526174;
+  --color-border: #dce2e8;
+  --color-control-border: #718096;
+  --color-primary: #244b70;
+  --color-primary-hover: #1c3d5d;
+  --color-primary-pressed: #142f49;
+  --color-primary-soft: #edf3f9;
+  --color-success: #176447;
+  --color-success-soft: #eaf5ef;
+  --color-warning: #80520b;
+  --color-warning-soft: #fff4df;
+  --color-danger: #a52c36;
+  --color-danger-soft: #fdeff0;
+  --radius-control: 0.375rem;
+  --radius-panel: 0.75rem;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    background: var(--color-canvas);
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    min-width: 20rem;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01", "ss03";
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+}
+
+@utility focus-ring {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@utility panel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+}
+
+@utility control {
+  min-height: 2.75rem;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+@utility primary-action {
+  min-height: 2.75rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-control);
+  background: var(--color-primary);
+  color: white;
+  font-weight: 500;
+}
+
+@utility secondary-action {
+  min-height: 2.75rem;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .primary-action:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+  }
+
+  .secondary-action:hover:not(:disabled) {
+    background: var(--color-primary-soft);
+  }
+}
+
+.primary-action:active:not(:disabled) {
+  background: var(--color-primary-pressed);
+}
+
+.primary-action:focus-visible,
+.secondary-action:focus-visible,
+.control:focus-visible,
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.primary-action:disabled,
+.secondary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.mobile-menu::backdrop {
+  background: color-mix(in srgb, var(--color-ink) 22%, transparent);
+}
+
+.mobile-menu:focus-visible {
+  outline: 0;
+}
+
+[translate="no"] {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+@media (max-width: 639px) {
+  .trial-table,
+  .trial-table tbody,
+  .trial-table tr,
+  .trial-table td {
+    display: block;
+    width: 100%;
+    white-space: normal;
+  }
+  .trial-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .trial-table td {
+    padding: 0.5rem 0;
+  }
+  .trial-table tr {
+    padding: 1rem 0;
+  }
+  .trial-table td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--color-muted);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    margin-bottom: 0.25rem;
+  }
+  .trial-table a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}

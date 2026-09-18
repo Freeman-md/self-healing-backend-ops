@@ -1,0 +1,121 @@
+{
+  "measurementVersion": "2.0.0",
+  "episodes": [
+    {
+      "trialRecordId": "trial-d1c9ab79-8ba7-449f-9957-7a57840448f0",
+      "origin": "experiment",
+      "experimentRunId": "experiment-run-35d90697-3db6-4cd2-9118-5246b73dd323",
+      "compatibilityFingerprint": "d7d37d49cf5858bec90cbfb337ddc2c26335e2e448c93fa70120c823558192ff",
+      "corpusSourceIds": [],
+      "retrievalEnabled": true,
+      "configuration": {
+        "protocol": "structured-exact-v1",
+        "runtimeIdentity": {
+          "model": "gpt-4.1-mini",
+          "cooldownMs": 15000,
+          "sourceRevision": "ac601e9055659dab374ba37614ba5b62f01b71a6",
+          "maxRecoverySteps": 3,
+          "monitorIntervalMs": 30000,
+          "consecutiveUnhealthyThreshold": 2
+        },
+        "measurementVersion": "2.0.0"
+      },
+      "createdAt": "2026-09-18T11:55:37.406Z",
+      "steps": [
+        {
+          "diagnosisResultId": "diagnosis-cda9ef0f-71e3-4dde-a12a-f9c193198aa3",
+          "trialRecordId": "trial-d1c9ab79-8ba7-449f-9957-7a57840448f0",
+          "signature": "fb7f0596ba1808be09908433e80388ac8c913f93127156c4c1ca6cb0627673b8",
+          "diagnosisReadyAt": "2026-09-18T11:55:45.137Z",
+          "lookupStartedAt": "2026-09-18T11:55:45.140Z",
+          "lookupCompletedAt": "2026-09-18T11:55:45.140Z",
+          "lookupOutcome": "no_eligible_source",
+          "sourceTrialId": null,
+          "sourcePlanId": null,
+          "planId": "recovery-plan-933584b3-cc0f-409a-85df-143eca58daa4",
+          "decisionId": "recovery-decision-7e71043c-e0de-4dd6-9f78-407ef2a76440",
+          "planReadyAt": "2026-09-18T11:55:47.320Z",
+          "planOrigin": "generated",
+          "executionResultIds": [
+            "action-execution-3edd50cc-7ba3-4262-a901-a894f0434582"
+          ]
+        },
+        {
+          "diagnosisResultId": "diagnosis-bffb8c6a-f9c6-4861-aa6e-bdc9ae9b3a01",
+          "trialRecordId": "trial-d1c9ab79-8ba7-449f-9957-7a57840448f0",
+          "signature": "f09121df8129d477376791f2dea37684be2ea0f389ab626d05dd79464e7f1747",
+          "diagnosisReadyAt": "2026-09-18T11:56:01.967Z",
+          "lookupStartedAt": null,
+          "lookupCompletedAt": null,
+          "lookupOutcome": null,
+          "sourceTrialId": null,
+          "sourcePlanId": null,
+          "planId": "recovery-plan-6ac313ba-f37b-4bf9-8d1c-f5ab8e60a00f",
+          "decisionId": "recovery-decision-a01c2941-3141-42bd-beba-cccb0263c89b",
+          "planReadyAt": "2026-09-18T11:56:01.967Z",
+          "planOrigin": "generated",
+          "executionResultIds": []
+        }
+      ]
+    },
+    {
+      "trialRecordId": "trial-5934fb7c-87a0-4792-84e1-3bc69aa0bc44",
+      "origin": "experiment",
+      "experimentRunId": "experiment-run-04c244c3-d638-4539-9a11-07505898c47b",
+      "compatibilityFingerprint": "d7d37d49cf5858bec90cbfb337ddc2c26335e2e448c93fa70120c823558192ff",
+      "corpusSourceIds": [
+        "trial-d1c9ab79-8ba7-449f-9957-7a57840448f0"
+      ],
+      "retrievalEnabled": true,
+      "configuration": {
+        "protocol": "structured-exact-v1",
+        "runtimeIdentity": {
+          "model": "gpt-4.1-mini",
+          "cooldownMs": 15000,
+          "sourceRevision": "ac601e9055659dab374ba37614ba5b62f01b71a6",
+          "maxRecoverySteps": 3,
+          "monitorIntervalMs": 30000,
+          "consecutiveUnhealthyThreshold": 2
+        },
+        "measurementVersion": "2.0.0"
+      },
+      "createdAt": "2026-09-18T11:58:17.869Z",
+      "steps": [
+        {
+          "diagnosisResultId": "diagnosis-e93b40bb-a8f7-4be7-ae2f-bcea06197ba6",
+          "trialRecordId": "trial-5934fb7c-87a0-4792-84e1-3bc69aa0bc44",
+          "signature": "fb7f0596ba1808be09908433e80388ac8c913f93127156c4c1ca6cb0627673b8",
+          "diagnosisReadyAt": "2026-09-18T11:58:24.646Z",
+          "lookupStartedAt": "2026-09-18T11:58:24.648Z",
+          "lookupCompletedAt": "2026-09-18T11:58:24.662Z",
+          "lookupOutcome": "candidate",
+          "sourceTrialId": "trial-d1c9ab79-8ba7-449f-9957-7a57840448f0",
+          "sourcePlanId": "recovery-plan-933584b3-cc0f-409a-85df-143eca58daa4",
+          "planId": "recovery-plan-148705cd-d6ce-4eb8-be67-15507e7080d8",
+          "decisionId": "recovery-decision-f5bd162d-53b5-442e-8e70-339fdf292e2b",
+          "planReadyAt": "2026-09-18T11:58:26.454Z",
+          "planOrigin": "retrieved",
+          "executionResultIds": [
+            "action-execution-40c02d38-65c1-4cb7-82f8-d5984d826905"
+          ]
+        },
+        {
+          "diagnosisResultId": "diagnosis-c46b8558-1b0c-43f1-8e0f-6d68f1704ce2",
+          "trialRecordId": "trial-5934fb7c-87a0-4792-84e1-3bc69aa0bc44",
+          "signature": "f09121df8129d477376791f2dea37684be2ea0f389ab626d05dd79464e7f1747",
+          "diagnosisReadyAt": "2026-09-18T11:58:45.493Z",
+          "lookupStartedAt": null,
+          "lookupCompletedAt": null,
+          "lookupOutcome": null,
+          "sourceTrialId": null,
+          "sourcePlanId": null,
+          "planId": "recovery-plan-e583e8ce-4fa0-42c5-8816-0594fd841018",
+          "decisionId": "recovery-decision-73af836f-9c2f-45cf-87a0-c9fdab7df91e",
+          "planReadyAt": "2026-09-18T11:58:45.493Z",
+          "planOrigin": "generated",
+          "executionResultIds": []
+        }
+      ]
+    }
+  ]
+}

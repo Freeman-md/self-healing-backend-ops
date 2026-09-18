@@ -1,0 +1,8 @@
+{
+  "offeredRate": 5,
+  "concurrency": 4,
+  "timeoutMs": 3000,
+  "warmupMs": 10000,
+  "postRecoveryMs": 10000,
+  "maximumDurationMs": 300000
+}

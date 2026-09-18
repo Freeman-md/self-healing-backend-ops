@@ -33,7 +33,7 @@ export type AppConfig = {
     postActionHealthPollIntervalMs: number;
   };
   trial: {
-    runMode: "controlled" | "monitor";
+    runMode: "controlled" | "monitor" | "operator";
     recoveryMode?: "baseline" | "agent";
     agentStrategyVersion: "v1" | "v2";
     historicalRetrievalEnabled: boolean;
@@ -45,6 +45,10 @@ export type AppConfig = {
     intervalMs: number;
     consecutiveUnhealthyThreshold: number;
     cooldownMs: number;
+  };
+  operator: {
+    host: "127.0.0.1" | "0.0.0.0";
+    port: number;
   };
 };
 
@@ -75,7 +79,7 @@ export const config: AppConfig = {
     runMode:
       readOptionalEnum(
         process.env.MANAGING_SYSTEM_RUN_MODE,
-        ["controlled", "monitor"],
+        ["controlled", "monitor", "operator"],
         "MANAGING_SYSTEM_RUN_MODE",
       ) ?? "controlled",
     recoveryMode: readOptionalEnum(
@@ -107,5 +111,14 @@ export const config: AppConfig = {
       2,
     ),
     cooldownMs: readNumber(process.env.MONITOR_RECOVERY_COOLDOWN_MS, 60000),
+  },
+  operator: {
+    host:
+      readOptionalEnum(
+        process.env.MANAGING_SYSTEM_OPERATOR_HOST,
+        ["127.0.0.1", "0.0.0.0"],
+        "MANAGING_SYSTEM_OPERATOR_HOST",
+      ) ?? "127.0.0.1",
+    port: readNumber(process.env.MANAGING_SYSTEM_OPERATOR_PORT, 4300),
   },
 };

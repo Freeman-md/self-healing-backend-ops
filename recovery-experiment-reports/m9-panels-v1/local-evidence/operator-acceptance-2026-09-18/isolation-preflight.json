@@ -1,0 +1,16 @@
+{
+  "runId": "preflight-cdeafcfd-bc93-41ed-af21-8966b8f4e5a9",
+  "startedAt": "2026-09-18T12:01:18.495Z",
+  "restartDidNotRepair": true,
+  "restorationVerified": true,
+  "attachment": {
+    "containerId": "191ab026658de23d73ae6a72ddebfd493ef30aa96163c83b6d947a9daa6a9dec",
+    "networkId": "802be0bb1cb51ba36acf3d751370de3a106d77ecf3ac81c4a7b0de8cf6fc24f7",
+    "aliases": [
+      "managed-system-app",
+      "managed-system"
+    ],
+    "project": "self-healing-backend-ops"
+  },
+  "completedAt": "2026-09-18T12:01:32.982Z"
+}

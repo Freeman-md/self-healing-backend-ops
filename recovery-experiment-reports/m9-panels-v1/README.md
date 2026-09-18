@@ -1,6 +1,6 @@
 # Milestone 9 prepared protocols
 
-These are prepared procedures, not observed results. Live Docker/OpenAI checks and all final campaigns remain human tasks. Preserve earlier canonical reports. Use a disposable local Compose testbed with synthetic work orders only.
+These are prepared procedures, not final observed results. Bounded local acceptance evidence is kept separately under `local-evidence/`; all final campaigns remain human tasks. Preserve earlier canonical reports. Use a disposable local Compose testbed with synthetic work orders only.
 
 ## Runtime and tests
 
@@ -18,7 +18,7 @@ Start the local testbed and monitor from the exact approved revision. Require a 
 ```sh
 M9_REVISION=$(git rev-parse HEAD)
 test -z "$(git status --porcelain)" || exit 1
-SOURCE_REVISION="$M9_REVISION" RECOVERY_MODE=agent AGENT_STRATEGY_VERSION=v2 docker compose up -d --build
+SOURCE_REVISION="$M9_REVISION" MANAGING_SYSTEM_RUN_MODE=monitor RECOVERY_MODE=agent AGENT_STRATEGY_VERSION=v2 docker compose up -d --build
 ```
 
 Retrieval defaults off. `HISTORICAL_RETRIEVAL_ENABLED=true` enables V2 2.1.0/prompt 2.1.0; off retains V2 2.0.0/prompt 2.0.0 and eight turns. Enabled uses twelve turns. Both permit at most three ActionService invocations. `RECOVERY_SOURCE_TRIAL_IDS` is a JSON allowlist (maximum 100 unique IDs), default `[]`. Empty means cold, not deletion. Change `RECOVERY_TARGET_CONFIGURATION_ID` whenever the managed deployment configuration changes. Fingerprints additionally include target origin, request/action settings, active catalogue, safety rules and shared policy version.
@@ -42,16 +42,12 @@ Latency summaries include completed errors/timeouts, exclude capacity-skipped of
 
 ## Unsupported preflight
 
-The application must remain running and unreachable with its single validated local Compose bridge attachment removed. The captured container ID, network ID and aliases must remain unchanged. The preflight performs a restart while detached and proves that this does not restore reachability; finally it restores the attachment and verifies a fixture read. Stop the monitor before this isolated preflight. Execute it from the host with a **separate host-addressed fixture**, the existing Docker CLI, and private DATABASE_URL configured for the same managing-system history database. The preflight acquires the existing global controlled-run lock before mutation:
+The application must remain running and unreachable with its single validated local Compose bridge attachment removed. The captured container ID, network ID and aliases must remain unchanged. The preflight performs a restart while detached and proves that this does not restore reachability; finally it restores the attachment and verifies a fixture read. Wait for all active controlled runs to restore and release their locks, then stop the monitor before this isolated preflight. Use a one-off Compose runner with the existing private configuration and internal fixture, so no host-side database credentials or second fixture are necessary. The preflight acquires the existing global controlled-run lock before mutation:
 
 ```sh
 RECOVERY_MODE=agent docker compose stop managing-system
-cd managing-system
-npm run experiment:workload -- --operation setup --base-url http://localhost:3004 --file /tmp/m9-host-fixture.json
-npx tsx scripts/m9-isolation-preflight.ts --fixture /tmp/m9-host-fixture.json --output /tmp/m9-isolation-preflight.json
-cd ..
-RECOVERY_MODE=agent AGENT_STRATEGY_VERSION=v2 docker compose up -d managing-system
-docker cp /tmp/m9-isolation-preflight.json managing-system-app:/managing-system/experiment-output/m9/isolation-preflight.json
+RECOVERY_MODE=agent docker compose run --rm --no-deps managing-system npx tsx scripts/m9-isolation-preflight.ts --fixture /managing-system/experiment-output/m9/fixture.json --output /managing-system/experiment-output/m9/isolation-preflight.json
+SOURCE_REVISION="$M9_REVISION" MANAGING_SYSTEM_RUN_MODE=monitor RECOVERY_MODE=agent AGENT_STRATEGY_VERSION=v2 docker compose up -d --no-build managing-system
 ```
 
 A preflight failure is a stop, not permission to relax target checks. Restoration errors retain the captured attachment for operator repair. The panel retains its exclusive database lock until restoration and business/health checks succeed; it does not silently release a failed restoration lock. Review a retained run manifest before repairing the exact attachment and explicitly releasing that run's lock. No automated database-reset or network-prune command is provided.
@@ -76,7 +72,7 @@ For each condition below, set the indicated monitor mode/version before preparat
 Example commands for `v2-empty`; substitute each table condition and its mode/version, keeping distinct manifest/output paths:
 
 ```sh
-SOURCE_REVISION="$M9_REVISION" RECOVERY_MODE=agent AGENT_STRATEGY_VERSION=v2 docker compose up -d --build --force-recreate managing-system
+SOURCE_REVISION="$M9_REVISION" MANAGING_SYSTEM_RUN_MODE=monitor RECOVERY_MODE=agent AGENT_STRATEGY_VERSION=v2 docker compose up -d --build --force-recreate managing-system
 docker exec managing-system-app npm run experiment:m9 -- --prepare --condition v2-empty --revision "$M9_REVISION" --fixture /managing-system/experiment-output/m9/fixture.json --manifest /managing-system/experiment-output/m9/v2-empty.json
 docker exec managing-system-app npm run experiment:m9 -- --manifest /managing-system/experiment-output/m9/v2-empty.json --output /managing-system/experiment-output/m9/v2-empty-results
 ```
@@ -95,7 +91,9 @@ docker cp managing-system-app:/managing-system/experiment-output/m9/. recovery-e
 
 ## Attention service and manual acceptance
 
-The public `AttentionService` exposes `listAttention`, `readAttention`, `acknowledgeAttention` and `reviewAttention`. Notes are 1–4000 trimmed characters; transitions are requires_attention → acknowledged → reviewed with application timestamps. There is no fabricated operator identity, HTTP endpoint, approval/resume operation or action authority. Inspection and review use an application service harness with the configured repository; never edit trial outcome to acknowledge a record.
+The public `AttentionService` exposes `listAttention`, `readAttention`, `acknowledgeAttention` and `reviewAttention`. In operator mode the local-only dashboard exposes guarded acknowledge/review HTTP endpoints. Notes are 1–4000 trimmed characters; transitions are requires_attention → acknowledged → reviewed with application timestamps. There is no fabricated operator identity, approval/resume operation or action authority; never edit trial outcome to acknowledge a record. Review does not repair the incident or release an unhealthy hold. Only deterministic healthy evidence releases suppression.
+
+The panel CLI deliberately requires `MANAGING_SYSTEM_RUN_MODE=monitor`. Prefer the explicit monitor-mode startup above for final campaigns. For bounded acceptance while the operator monitor is already observing the matching strategy, use `docker exec -e MANAGING_SYSTEM_RUN_MODE=monitor managing-system-app npm run experiment:m9 -- ...`. This changes the CLI process configuration only; it does not start a second monitor or bypass frozen-identity checks. Do not launch another dashboard or CLI fault while the shared lock is held. Monitor-mode campaigns do not serve the dashboard; restart in operator mode after all observations have restored.
 
 Before final campaigns, inspect a cold/warm pair, a single unsupported trial and a bounded workload observation. Confirm the plan source, copied semantics, fresh IDs, action safety, attention and release evidence. These are live acceptance tasks, not satisfied by mock tests. For bounded smoke, add `--smoke` to the preparation command and use a separate `*-smoke.json` manifest and `*-smoke-results` directory. This prospectively schedules one observation (one cold/warm pair for `reuse`) and records `smoke: true` and one requested repetition. Use `reuse`, `unsupported` and `non-idle` smoke manifests before the full panels. Never interrupt a runner while a fault is active; smoke observations are not substituted into the final five-repetition panels.
 
@@ -103,6 +101,4 @@ Cleanup after exporting evidence:
 
 ```sh
 docker exec managing-system-app npm run experiment:workload -- --operation cleanup --file /managing-system/experiment-output/m9/fixture.json
-cd managing-system
-npm run experiment:workload -- --operation cleanup --file /tmp/m9-host-fixture.json
 ```

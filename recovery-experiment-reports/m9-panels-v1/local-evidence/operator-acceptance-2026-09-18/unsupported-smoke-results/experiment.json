@@ -1,0 +1,392 @@
+{
+  "batch": {
+    "id": "experiment-batch-b954af5a-8fa8-4250-919b-5fca0e7d8c87",
+    "name": "m9-unsupported",
+    "status": "completed",
+    "sourceRevision": "e290dee1573ee40418e9851464f8542b490c5ea0",
+    "measurementVersion": "2.0.0",
+    "configuration": {
+      "fixture": {
+        "ids": [
+          "1724eb4c-e55f-4227-b563-cae4c5e82934",
+          "f98ac9fa-6a95-4861-a1e3-40c19a0808c0",
+          "92940c8b-887f-4025-ad9d-60cd5957fe95",
+          "c9dc4918-b060-4965-afbd-28257d5d550f",
+          "7491a612-66f5-4b23-907b-81b5a4525b1e",
+          "7784c4f7-e919-474b-beb5-e52812ba23fe",
+          "c6ed5580-5128-45b1-b86c-6c4a698e1f4c",
+          "7f749188-f12b-45ba-bc99-df8a961d9945",
+          "157f9b06-013a-4fc9-8ea5-8cddef1c565a",
+          "3b2c0aa0-6aa2-4bb3-8086-84434fccea9f"
+        ],
+        "marker": "m9-fixture-3482b7f7-ecdb-4509-be1b-3a3eb3fa6d74",
+        "baseUrl": "http://managed-system:3000",
+        "version": "1.0.0"
+      },
+      "protocol": {
+        "seed": "m9-fixed-2026-09-18",
+        "smoke": true,
+        "version": "m9-panels-1.0.0",
+        "runOrder": [
+          {
+            "phase": "single",
+            "profile": "managed_system_application_network_isolated",
+            "repetition": 1
+          }
+        ],
+        "workload": null,
+        "condition": "unsupported",
+        "fixturePath": "/managing-system/experiment-output/m9/operator-acceptance-2026-09-18/fixture.json",
+        "repetitions": 1,
+        "policyVersion": "running-unreachable-hold-v1",
+        "sourceRevision": "e290dee1573ee40418e9851464f8542b490c5ea0",
+        "calibrationPath": null,
+        "preFaultSettleMs": 75000,
+        "retrievalProtocol": "structured-exact-v1",
+        "stabilityWindowMs": 10000,
+        "measurementVersion": "2.0.0",
+        "suppressionWindowMs": 135000,
+        "isolationPreflightPath": "/managing-system/experiment-output/m9/operator-acceptance-2026-09-18/isolation-preflight.json"
+      },
+      "configuration": {
+        "model": "gpt-4.1-mini",
+        "cooldownMs": 15000,
+        "recoveryMode": "agent",
+        "faultProfiles": [
+          "managed_system_application_network_isolated"
+        ],
+        "promptVersion": "1.0.0",
+        "maxRecoverySteps": 3,
+        "preFaultSettleMs": 75000,
+        "monitorIntervalMs": 30000,
+        "stabilityWindowMs": 10000,
+        "agentPromptVersion": "2.1.0",
+        "agentStrategyVersion": "v2",
+        "baselineRuleVersions": {
+          "managed_system_service_down": 1,
+          "database_connectivity_failure": 1
+        },
+        "actionCatalogueFingerprint": "5deebd94960f4a3f835d9f1558fb35414a93be1ab29ebe83cce75d227e8397cc",
+        "agentImplementationVersion": "2.1.0",
+        "consecutiveUnhealthyThreshold": 2
+      },
+      "maxAgentTurns": 12,
+      "providerSettings": {
+        "model": "gpt-4.1-mini",
+        "toolChoice": "required",
+        "parallelToolCalls": false
+      },
+      "compatibilityFingerprint": "d7d37d49cf5858bec90cbfb337ddc2c26335e2e448c93fa70120c823558192ff"
+    },
+    "requestedRepetitions": 1,
+    "runOrderSeed": "m9-fixed-2026-09-18",
+    "createdAt": "2026-09-18T12:02:54.464Z",
+    "completedAt": "2026-09-18T12:07:31.393Z"
+  },
+  "runs": [
+    {
+      "id": "experiment-run-d4e6cc2a-3320-49a3-89bc-6fcaaa3a43e9",
+      "batchId": "experiment-batch-b954af5a-8fa8-4250-919b-5fca0e7d8c87",
+      "faultProfile": "managed_system_application_network_isolated",
+      "recoveryMode": "agent",
+      "repetition": 1,
+      "status": "completed",
+      "activeLockKey": null,
+      "startedAt": "2026-09-18T12:02:54.479Z",
+      "faultInjectedAt": "2026-09-18T12:04:13.962Z",
+      "completedAt": "2026-09-18T12:07:28.033Z",
+      "trialRecordId": "trial-af595576-b3c1-4f44-8f27-8a65629958bc",
+      "valid": true,
+      "exclusionReason": null,
+      "runtimeResolved": false,
+      "oracleSucceeded": true,
+      "oracleFirstHealthyObservedAt": null,
+      "oracleCheckedAt": "2026-09-18T12:07:27.027Z",
+      "oracleDetails": {
+        "passed": true,
+        "retrials": 0,
+        "oracleKind": "escalation",
+        "attentionRecorded": true,
+        "unsuitableEffects": 0
+      },
+      "stabilityWindowMs": 10000,
+      "diagnosisCorrect": true,
+      "actionSequenceCorrect": false,
+      "unnecessaryActionCount": 1,
+      "faultToDetectionMs": 11099,
+      "timeToHealMs": null,
+      "timeToTerminationMs": 55991,
+      "trial": {
+        "status": "escalated",
+        "outcome": "unresolved_escalated",
+        "actionCount": 1,
+        "blockedActionCount": 1,
+        "failedActionCount": 0,
+        "safetyMaintained": true,
+        "timeToRecoveryMs": null,
+        "timeToEscalationMs": 10909,
+        "measurement": {
+          "unhealthyConfirmationDelayMs": 33982,
+          "timeToFirstActionMs": 10896,
+          "recoveryLoopDurationMs": null,
+          "observedTimeToHealMs": null,
+          "decisionCount": 1
+        },
+        "history": {
+          "measurementVersion": "2.0.0",
+          "firstDiagnosisReadyAt": "2026-09-18T12:05:05.532Z",
+          "firstPlanReadyAt": "2026-09-18T12:05:08.187Z",
+          "timeToDiagnosisReadyMs": 6489,
+          "timeToPlanReadyMs": 9144,
+          "compatibilityFingerprint": "d7d37d49cf5858bec90cbfb337ddc2c26335e2e448c93fa70120c823558192ff",
+          "corpusSourceIds": [],
+          "steps": [
+            {
+              "diagnosisResultId": "diagnosis-9ee56934-41b7-4c1c-92eb-e863b718326d",
+              "diagnosisReadyAt": "2026-09-18T12:05:05.532Z",
+              "planReadyAt": "2026-09-18T12:05:08.187Z",
+              "lookupStartedAt": "2026-09-18T12:05:05.538Z",
+              "lookupCompletedAt": "2026-09-18T12:05:05.538Z",
+              "lookupLatencyMs": 0,
+              "lookupOutcome": "no_eligible_source",
+              "planOrigin": "generated",
+              "sourceTrialId": null,
+              "sourcePlanId": null,
+              "executionResultIds": [
+                "action-execution-cf8d1156-1253-47f6-b5fe-65d7d59a74f2"
+              ]
+            }
+          ]
+        },
+        "modelInvocations": [
+          {
+            "operation": "evidence_normalization",
+            "durationMs": 3905,
+            "inputTokens": 739,
+            "outputTokens": 338,
+            "totalTokens": 1077,
+            "status": "succeeded"
+          },
+          {
+            "operation": "recovery_planning",
+            "durationMs": 2193,
+            "inputTokens": 1544,
+            "outputTokens": 147,
+            "totalTokens": 1691,
+            "status": "succeeded"
+          },
+          {
+            "operation": "recovery_planning",
+            "durationMs": 2093,
+            "inputTokens": 1719,
+            "outputTokens": 112,
+            "totalTokens": 1831,
+            "status": "succeeded"
+          },
+          {
+            "operation": "recovery_planning",
+            "durationMs": 2130,
+            "inputTokens": 1859,
+            "outputTokens": 89,
+            "totalTokens": 1948,
+            "status": "succeeded"
+          },
+          {
+            "operation": "recovery_planning",
+            "durationMs": 2620,
+            "inputTokens": 1982,
+            "outputTokens": 192,
+            "totalTokens": 2174,
+            "status": "succeeded"
+          },
+          {
+            "operation": "recovery_planning",
+            "durationMs": 1740,
+            "inputTokens": 2209,
+            "outputTokens": 13,
+            "totalTokens": 2222,
+            "status": "succeeded"
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "totalRuns": 1,
+    "validRuns": 1,
+    "invalidRuns": 0,
+    "verifiedRecoveries": 0,
+    "verifiedEscalations": 1,
+    "automaticResolutions": 0,
+    "runtimeOracleDisagreements": 0,
+    "diagnosisCorrectRuns": 1,
+    "actionSequenceCorrectRuns": 0,
+    "safetyMaintainedRuns": 1,
+    "rates": {
+      "verifiedRecovery": null,
+      "verifiedEscalation": 1,
+      "automaticResolution": 0,
+      "diagnosisCorrect": 1,
+      "actionSequenceCorrect": 0,
+      "safetyMaintained": 1
+    },
+    "exclusions": {},
+    "timing": {
+      "timeToDiagnosisReadyMs": {
+        "count": 1,
+        "mean": 6489,
+        "median": 6489,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 6489,
+        "maximum": 6489
+      },
+      "timeToPlanReadyMs": {
+        "count": 1,
+        "mean": 9144,
+        "median": 9144,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 9144,
+        "maximum": 9144
+      },
+      "faultToDetectionMs": {
+        "count": 1,
+        "mean": 11099,
+        "median": 11099,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 11099,
+        "maximum": 11099
+      },
+      "timeToTerminationMs": {
+        "count": 1,
+        "mean": 55991,
+        "median": 55991,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 55991,
+        "maximum": 55991
+      },
+      "unhealthyConfirmationDelayMs": {
+        "count": 1,
+        "mean": 33982,
+        "median": 33982,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 33982,
+        "maximum": 33982
+      },
+      "timeToFirstActionMs": {
+        "count": 1,
+        "mean": 10896,
+        "median": 10896,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 10896,
+        "maximum": 10896
+      }
+    },
+    "counts": {
+      "decisionCount": {
+        "count": 1,
+        "mean": 1,
+        "median": 1,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 1,
+        "maximum": 1
+      },
+      "actionCount": {
+        "count": 1,
+        "mean": 1,
+        "median": 1,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 1,
+        "maximum": 1
+      },
+      "successfulActionCount": {
+        "count": 1,
+        "mean": 0,
+        "median": 0,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 0,
+        "maximum": 0
+      },
+      "blockedActionCount": {
+        "count": 1,
+        "mean": 1,
+        "median": 1,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 1,
+        "maximum": 1
+      },
+      "failedActionCount": {
+        "count": 1,
+        "mean": 0,
+        "median": 0,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 0,
+        "maximum": 0
+      },
+      "unnecessaryActionCount": {
+        "count": 1,
+        "mean": 1,
+        "median": 1,
+        "standardDeviation": 0,
+        "interquartileRange": 0,
+        "minimum": 1,
+        "maximum": 1
+      }
+    },
+    "model": {
+      "callCount": 6,
+      "failedCallCount": 0,
+      "latencyMs": {
+        "count": 6,
+        "mean": 2446.8333333333335,
+        "median": 2161.5,
+        "standardDeviation": 700.6976087363856,
+        "interquartileRange": 411,
+        "minimum": 1740,
+        "maximum": 3905
+      },
+      "totalTokens": 10943,
+      "planningCallCount": 5,
+      "planningTokens": 9866,
+      "tokenUsage": {
+        "inputTokens": {
+          "count": 6,
+          "mean": 1675.3333333333333,
+          "median": 1789,
+          "standardDeviation": 466.9856052980172,
+          "interquartileRange": 363.5,
+          "minimum": 739,
+          "maximum": 2209
+        },
+        "outputTokens": {
+          "count": 6,
+          "mean": 148.5,
+          "median": 129.5,
+          "standardDeviation": 100.86087778056795,
+          "interquartileRange": 86,
+          "minimum": 13,
+          "maximum": 338
+        },
+        "totalTokens": {
+          "count": 6,
+          "mean": 1823.8333333333333,
+          "median": 1889.5,
+          "standardDeviation": 381.2319576787281,
+          "interquartileRange": 391.5,
+          "minimum": 1077,
+          "maximum": 2222
+        }
+      }
+    }
+  }
+}

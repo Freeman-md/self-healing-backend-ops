@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - managed_system_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -33,7 +33,7 @@ services:
       METRICS_ENABLED: "true"
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/managed_system
     ports:
-      - "3004:3000"
+      - "127.0.0.1:3004:3000"
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 5s
@@ -42,8 +42,8 @@ services:
 
   managing-system:
     build:
-      context: ./managing-system
-      dockerfile: ../Dockerfile.managing-system
+      context: .
+      dockerfile: Dockerfile.managing-system
       args:
         SOURCE_REVISION: ${SOURCE_REVISION:-unrecorded}
     container_name: managing-system-app
@@ -60,7 +60,9 @@ services:
       DOCKER_ACTION_TIMEOUT_MS: "10000"
       POST_ACTION_HEALTH_TIMEOUT_MS: "30000"
       POST_ACTION_HEALTH_POLL_INTERVAL_MS: "1000"
-      MANAGING_SYSTEM_RUN_MODE: monitor
+      MANAGING_SYSTEM_RUN_MODE: ${MANAGING_SYSTEM_RUN_MODE:-monitor}
+      MANAGING_SYSTEM_OPERATOR_HOST: 0.0.0.0
+      MANAGING_SYSTEM_OPERATOR_PORT: 4300
       RECOVERY_MODE: ${RECOVERY_MODE:?Set RECOVERY_MODE to baseline or agent}
       AGENT_STRATEGY_VERSION: ${AGENT_STRATEGY_VERSION:-v2}
       HISTORICAL_RETRIEVAL_ENABLED: ${HISTORICAL_RETRIEVAL_ENABLED:-false}
@@ -72,6 +74,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - managing_system_experiment_data:/managing-system/experiment-output
+    ports:
+      - "127.0.0.1:4300:4300"
 
   managing-system-postgres:
     image: postgres:16-alpine
@@ -82,7 +86,7 @@ services:
       POSTGRES_USER: ${MANAGING_SYSTEM_POSTGRES_USER:?Set MANAGING_SYSTEM_POSTGRES_USER}
       POSTGRES_PASSWORD: ${MANAGING_SYSTEM_POSTGRES_PASSWORD:?Set MANAGING_SYSTEM_POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - managing_system_postgres_data:/var/lib/postgresql/data
     healthcheck:
