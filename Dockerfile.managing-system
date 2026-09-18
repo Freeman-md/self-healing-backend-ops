@@ -1,6 +1,6 @@
 FROM node:22-alpine
 
-WORKDIR /workspace/managing-system
+WORKDIR /managing-system
 
 COPY managing-system/package*.json ./
 RUN apk add --no-cache docker-cli python3 make g++ \
@@ -12,13 +12,13 @@ COPY managing-system/prisma ./prisma
 COPY managing-system/src ./src
 COPY managing-system/scripts ./scripts
 
-WORKDIR /workspace/dashboard
+WORKDIR /dashboard
 COPY dashboard/package*.json ./
 RUN npm ci
 COPY dashboard ./
 RUN npm run build
 
-WORKDIR /workspace/managing-system
+WORKDIR /managing-system
 
 ARG SOURCE_REVISION=unrecorded
 RUN node -e 'const fs = require("node:fs"); const revision = process.argv[1]; if (revision !== "unrecorded" && !/^[a-f0-9]{40}$/.test(revision)) throw new Error("Invalid build revision"); fs.writeFileSync("build-identity.json", JSON.stringify({sourceRevision: revision}));' "$SOURCE_REVISION"

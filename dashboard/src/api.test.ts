@@ -6,17 +6,30 @@ describe("operator API contracts", () => {
   it("accepts unknown current health when persisted evidence is stale or unavailable", () => {
     const result = operatorStateSchema.safeParse({
       serverTime: "2026-09-18T10:00:00.000Z",
-      controlPlane: { status: "unavailable", message: "Persisted state could not be read." },
+      controlPlane: {
+        status: "unavailable",
+        message: "Persisted state could not be read.",
+      },
       evidence: null,
       monitor: {
         state: "unavailable",
         heartbeatAt: null,
         activeRunId: null,
         strategy: null,
-        readiness: { canLaunch: false, reasons: ["The persisted control plane is unavailable."] },
+        readiness: {
+          canLaunch: false,
+          reasons: ["The persisted control plane is unavailable."],
+        },
       },
       strategies: [],
-      workloads: [{ id: "idle", label: "Idle local workload", ready: false, reason: "Unavailable" }],
+      workloads: [
+        {
+          id: "idle",
+          label: "Idle local workload",
+          ready: false,
+          reason: "Unavailable",
+        },
+      ],
     });
     expect(result.success).toBe(true);
   });

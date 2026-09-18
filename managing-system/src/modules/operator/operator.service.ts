@@ -23,6 +23,7 @@ export class OperatorService {
       dockerActionsEnabled: boolean;
       agentAvailable: boolean;
       reuseAvailable: boolean;
+      sourceRevision: string;
     },
   ) {}
 
@@ -154,7 +155,11 @@ export class OperatorService {
       ...attentionDto(record),
       initialEvidenceId: record.initialEvidenceSnapshotId,
       healthyEvidenceId: record.healthyEvidenceSnapshotId,
-      currentHealth: evidence ? deterministicState(evidence.signals) : "unknown",
+      currentHealth:
+        evidence &&
+        Date.now() - evidence.createdAt.getTime() <= this.options.monitoringIntervalMs * 2
+          ? deterministicState(evidence.signals)
+          : "unknown",
       trialOutcome: trial?.trial.outcome ?? "not recorded",
     };
   }
@@ -202,6 +207,11 @@ export class OperatorService {
   }
 
   async launchControlledTest(input: ControlledTestRequest) {
+    // Reconcile an accepted launch even while its shared lock or unhealthy evidence blocks new work.
+    const accepted = await this.repository.findAcceptedOperatorRequest(input);
+
+    if (accepted) {return accepted;}
+
     const state = await this.readState();
 
     const selected = state.strategies.find((strategy) => strategy.id === input.strategy);
@@ -215,6 +225,30 @@ export class OperatorService {
     }
 
     return this.runner.launch(input);
+  }
+
+  async readControlledTest(id: string) {
+    const run = await this.repository.readControlledTestRun(id);
+
+    if (!run || !id.startsWith("operator-run-")) {
+      throw new OperatorUnavailableError("The requested controlled test was not found.");
+    }
+
+    const restoration = run.manifest?.restoration;
+
+    const status =
+      restoration && typeof restoration === "object" && !Array.isArray(restoration)
+        ? restoration.status
+        : null;
+
+    return {
+      id: run.id,
+      status: run.status,
+      trialId: run.trialRecordId,
+      lockHeld: run.activeLockKey !== null,
+      restoration: status === "verified" || status === "failed" ? status : "pending",
+      failed: run.exclusionReason !== null,
+    };
   }
 
   private strategies(): OperatorStrategy[] {
@@ -271,6 +305,12 @@ export class OperatorService {
     strategies: OperatorStrategy[];
   }) {
     const reasons: string[] = [];
+
+    if (!/^[a-f0-9]{40}$/.test(this.options.sourceRevision)) {
+      reasons.push(
+        "Rebuild the local image from a clean committed checkout with SOURCE_REVISION before launching tests.",
+      );
+    }
 
     if (!this.options.dockerActionsEnabled) {
       reasons.push("Docker actions are disabled.");

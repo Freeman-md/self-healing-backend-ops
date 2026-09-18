@@ -5,7 +5,13 @@ const isoDate = z.string().datetime();
 const signalSchema = z.object({
   code: z.string(),
   label: z.string(),
-  status: z.enum(["healthy", "degraded", "unhealthy", "unknown", "unavailable"]),
+  status: z.enum([
+    "healthy",
+    "degraded",
+    "unhealthy",
+    "unknown",
+    "unavailable",
+  ]),
   value: z.string().nullable(),
   description: z.string(),
 });
@@ -38,7 +44,14 @@ export const operatorStateSchema = z.object({
     })
     .nullable(),
   monitor: z.object({
-    state: z.enum(["observing", "recovering", "cooldown", "held", "stopped", "unavailable"]),
+    state: z.enum([
+      "observing",
+      "recovering",
+      "cooldown",
+      "held",
+      "stopped",
+      "unavailable",
+    ]),
     heartbeatAt: isoDate.nullable(),
     activeRunId: z.string().nullable(),
     strategy: strategySchema.nullable(),
@@ -49,7 +62,12 @@ export const operatorStateSchema = z.object({
   }),
   strategies: z.array(strategySchema),
   workloads: z.array(
-    z.object({ id: z.literal("idle"), label: z.string(), ready: z.boolean(), reason: z.string().nullable() }),
+    z.object({
+      id: z.literal("idle"),
+      label: z.string(),
+      ready: z.boolean(),
+      reason: z.string().nullable(),
+    }),
   ),
 });
 
@@ -62,7 +80,13 @@ const trialSummarySchema = z.object({
   strategy: z.string(),
   status: z.string(),
   outcome: z.string(),
-  oracle: z.enum(["passed", "failed", "pending", "not_performed", "unavailable"]),
+  oracle: z.enum([
+    "passed",
+    "failed",
+    "pending",
+    "not_performed",
+    "unavailable",
+  ]),
 });
 
 export const trialPageSchema = z.object({
@@ -80,7 +104,15 @@ export const trialDetailSchema = z.object({
   trail: z.array(
     z.object({
       id: z.string(),
-      kind: z.enum(["evidence", "diagnosis", "plan", "decision", "safety", "action", "evaluation"]),
+      kind: z.enum([
+        "evidence",
+        "diagnosis",
+        "plan",
+        "decision",
+        "safety",
+        "action",
+        "evaluation",
+      ]),
       label: z.string(),
       summary: z.string(),
       occurredAt: isoDate.nullable(),
@@ -174,6 +206,15 @@ export const launchResponseSchema = z.object({
   accepted: z.boolean(),
 });
 
+const controlledRunSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  trialId: z.string().nullable(),
+  lockHeld: z.boolean(),
+  restoration: z.enum(["verified", "failed", "pending"]),
+  failed: z.boolean(),
+});
+
 export type OperatorState = z.infer<typeof operatorStateSchema>;
 export type TrialSummary = z.infer<typeof trialSummarySchema>;
 export type TrialDetail = z.infer<typeof trialDetailSchema>;
@@ -204,7 +245,9 @@ async function request<T>(
     signal,
     headers: {
       Accept: "application/json",
-      ...(init.method && init.method !== "GET" ? { "X-Operator-Request": "1" } : {}),
+      ...(init.method && init.method !== "GET"
+        ? { "X-Operator-Request": "1" }
+        : {}),
       ...init.headers,
     },
   });
@@ -212,10 +255,17 @@ async function request<T>(
 
   if (!response.ok) {
     const parsedError = z
-      .object({ error: z.object({ message: z.string(), correlationId: z.string().nullable() }) })
+      .object({
+        error: z.object({
+          message: z.string(),
+          correlationId: z.string().nullable(),
+        }),
+      })
       .safeParse(body);
     throw new ApiError(
-      parsedError.success ? parsedError.data.error.message : "The control plane did not return a usable response.",
+      parsedError.success
+        ? parsedError.data.error.message
+        : "The control plane did not return a usable response.",
       response.status,
       parsedError.success ? parsedError.data.error.correlationId : null,
     );
@@ -225,30 +275,73 @@ async function request<T>(
 }
 
 export const api = {
-  getState: (signal?: AbortSignal) => request("/api/operator/state", operatorStateSchema, {}, signal),
+  getControlledRun: (id: string, signal?: AbortSignal) =>
+    request(
+      `/api/controlled-tests/${encodeURIComponent(id)}`,
+      controlledRunSchema,
+      {},
+      signal,
+    ),
+  getState: (signal?: AbortSignal) =>
+    request("/api/operator/state", operatorStateSchema, {}, signal),
   listTrials: (query: URLSearchParams, signal?: AbortSignal) =>
     request(`/api/trials?${query.toString()}`, trialPageSchema, {}, signal),
   getTrial: (id: string, signal?: AbortSignal) =>
-    request(`/api/trials/${encodeURIComponent(id)}`, trialDetailSchema, {}, signal),
-  listAttention: (signal?: AbortSignal) => request("/api/attention", z.array(attentionSchema), {}, signal),
+    request(
+      `/api/trials/${encodeURIComponent(id)}`,
+      trialDetailSchema,
+      {},
+      signal,
+    ),
+  listAttention: (signal?: AbortSignal) =>
+    request("/api/attention", z.array(attentionSchema), {}, signal),
   getAttention: (id: string, signal?: AbortSignal) =>
-    request(`/api/attention/${encodeURIComponent(id)}`, attentionDetailSchema, {}, signal),
+    request(
+      `/api/attention/${encodeURIComponent(id)}`,
+      attentionDetailSchema,
+      {},
+      signal,
+    ),
   acknowledgeAttention: (id: string) =>
-    request(`/api/attention/${encodeURIComponent(id)}/acknowledge`, attentionDetailSchema, { method: "POST" }),
+    request(
+      `/api/attention/${encodeURIComponent(id)}/acknowledge`,
+      attentionDetailSchema,
+      { method: "POST" },
+    ),
   reviewAttention: (id: string, notes: string) =>
-    request(`/api/attention/${encodeURIComponent(id)}/review`, attentionDetailSchema, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ notes }),
-    }),
+    request(
+      `/api/attention/${encodeURIComponent(id)}/review`,
+      attentionDetailSchema,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes }),
+      },
+    ),
   listRecoveryCases: (signal?: AbortSignal) =>
     request("/api/recovery-cases", z.array(recoveryCaseSchema), {}, signal),
   getRecoveryCase: (planId: string, signal?: AbortSignal) =>
-    request(`/api/recovery-cases/${encodeURIComponent(planId)}`, recoveryCaseSchema, {}, signal),
-  listExperiments: (signal?: AbortSignal) => request("/api/experiments", z.array(experimentSchema), {}, signal),
+    request(
+      `/api/recovery-cases/${encodeURIComponent(planId)}`,
+      recoveryCaseSchema,
+      {},
+      signal,
+    ),
+  listExperiments: (signal?: AbortSignal) =>
+    request("/api/experiments", z.array(experimentSchema), {}, signal),
   getExperiment: (id: string, signal?: AbortSignal) =>
-    request(`/api/experiments/${encodeURIComponent(id)}`, experimentDetailSchema, {}, signal),
-  launchControlledTest: (input: { requestId: string; profile: string; strategy: string; workload: "idle" }) =>
+    request(
+      `/api/experiments/${encodeURIComponent(id)}`,
+      experimentDetailSchema,
+      {},
+      signal,
+    ),
+  launchControlledTest: (input: {
+    requestId: string;
+    profile: string;
+    strategy: string;
+    workload: "idle";
+  }) =>
     request("/api/controlled-tests", launchResponseSchema, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

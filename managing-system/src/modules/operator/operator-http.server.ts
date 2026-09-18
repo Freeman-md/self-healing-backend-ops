@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { access } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, extname, resolve } from "node:path";
@@ -14,7 +14,7 @@ import {
   operatorListTrialsQuerySchema,
 } from "@/modules/operator";
 
-import { hasLocalMutationGuard } from "./operator-http.guard";
+import { hasLocalMutationGuard, hasLocalOperatorHost } from "./operator-http.guard";
 
 const dashboardDirectory = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -75,6 +75,12 @@ export class OperatorHttpServer {
     const correlationId = randomUUID();
 
     try {
+      if (!hasLocalOperatorHost(request.headers, this.options.port)) {
+        sendError(response, 403, "The operator interface accepts local hosts only.", correlationId);
+
+        return;
+      }
+
       const url = new URL(request.url ?? "/", `http://${this.options.host}:${this.options.port}`);
 
       if (url.pathname.startsWith("/api/")) {
@@ -214,6 +220,14 @@ export class OperatorHttpServer {
       );
     }
 
+    if (method === "GET" && parts.length === 3 && parts[1] === "controlled-tests") {
+      return sendJson(
+        response,
+        200,
+        await this.service.readControlledTest(operatorIdentifierSchema.parse(parts[2])),
+      );
+    }
+
     throw new OperatorUnavailableError("The requested operator endpoint was not found.");
   }
 
@@ -251,7 +265,9 @@ export class OperatorHttpServer {
       return;
     }
 
-    createReadStream(file).pipe(response);
+    createReadStream(file)
+      .on("error", () => response.destroy())
+      .pipe(response);
   }
 }
 
@@ -318,9 +334,7 @@ function publicMessage(error: unknown): string {
 
 async function fileExists(path: string): Promise<boolean> {
   try {
-    await access(path);
-
-    return true;
+    return (await stat(path)).isFile();
   } catch {
     return false;
   }

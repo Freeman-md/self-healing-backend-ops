@@ -26,6 +26,8 @@ type ControlledTestRunnerOptions = {
 };
 
 export class LocalControlledTestRunner implements ControlledTestRunner {
+  private activeRunTask: Promise<void> | null = null;
+
   private readonly isolation = new ApplicationNetworkIsolation();
 
   private readonly oracle: RecoveryOracle;
@@ -43,6 +45,10 @@ export class LocalControlledTestRunner implements ControlledTestRunner {
   }
 
   async launch(input: ControlledTestRequest) {
+    const accepted = await this.repository.findAcceptedOperatorRequest(input);
+
+    if (accepted) {return accepted;}
+
     await this.options.ensureReady();
     const binding = strategyBinding(input.strategy);
 
@@ -58,18 +64,30 @@ export class LocalControlledTestRunner implements ControlledTestRunner {
     });
 
     if (!prepared.created) {
-      return { requestId: input.requestId, runId: prepared.run.id, accepted: true };
+      const reconciled = await this.repository.findAcceptedOperatorRequest(input);
+
+      if (!reconciled) {throw new Error("The accepted controlled test could not be reconciled.");}
+
+      return reconciled;
     }
 
     try {
       await this.runtime.prepare(input.strategy);
-      void this.execute(prepared.run.id, input, binding.recoveryMode);
+      this.activeRunTask = this.execute(prepared.run.id, input, binding.recoveryMode).finally(
+        () => {
+          this.activeRunTask = null;
+        },
+      );
 
       return { requestId: input.requestId, runId: prepared.run.id, accepted: true };
     } catch (error) {
       await this.cancelBeforeInjection(prepared.run.id, safeError(error));
       throw error;
     }
+  }
+
+  async waitForActiveRun(): Promise<void> {
+    await this.activeRunTask;
   }
 
   private async createConfiguration(
@@ -102,8 +120,9 @@ export class LocalControlledTestRunner implements ControlledTestRunner {
       retrievalEnabled: binding.reuseEnabled,
       sourceTrialIds: binding.reuseEnabled ? this.options.sourceTrialIds : [],
       compatibilityFingerprint: fingerprint,
-      maxAgentTurns: binding.recoveryMode === "agent" ? (binding.reuseEnabled ? 12 : 8) : null,
+      maxAgentTurns: binding.agentStrategyVersion === "v2" ? (binding.reuseEnabled ? 12 : 8) : null,
       requestedProfile: input.profile,
+      requestedStrategy: input.strategy,
       requestedWorkload: input.workload,
     };
   }
@@ -242,7 +261,7 @@ function strategyBinding(strategy: OperatorStrategyId) {
     return {
       recoveryMode: "baseline" as const,
       agentStrategyVersion: undefined,
-      implementationVersion: undefined,
+      implementationVersion: "1.0.0",
       reuseEnabled: false,
     };
   }

@@ -22,21 +22,43 @@ export function formatTimestamp(value: string | null, detail = false): string {
 }
 
 export function formatDuration(milliseconds: number | null): string {
-  return milliseconds === null ? "Not recorded" : `${(milliseconds / 1000).toFixed(1)} s`;
+  return milliseconds === null
+    ? "Not recorded"
+    : `${(milliseconds / 1000).toFixed(1)} s`;
 }
 
 export function readableStatus(value: string): string {
   return value.replaceAll("_", " ");
 }
 
-export function statusTone(value: string): "success" | "warning" | "danger" | "primary" | "neutral" {
-  if (["healthy", "passed", "verified", "resolved", "resolved_safely", "reviewed"].includes(value)) {
+export function statusTone(
+  value: string,
+): "success" | "warning" | "danger" | "primary" | "neutral" {
+  if (
+    [
+      "healthy",
+      "passed",
+      "verified",
+      "resolved",
+      "resolved_safely",
+      "reviewed",
+    ].includes(value)
+  ) {
     return "success";
   }
   if (["unhealthy", "failed", "invalid", "unavailable"].includes(value)) {
     return "danger";
   }
-  if (["degraded", "unknown", "pending", "requires_attention", "acknowledged", "stale"].includes(value)) {
+  if (
+    [
+      "degraded",
+      "unknown",
+      "pending",
+      "requires_attention",
+      "acknowledged",
+      "stale",
+    ].includes(value)
+  ) {
     return "warning";
   }
   return "primary";

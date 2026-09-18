@@ -402,6 +402,10 @@ async function runOperatorMode(prisma: PrismaService): Promise<void> {
   const repository = new OperatorRepository(prisma);
 
   const assertReady = async () => {
+    if (!/^[a-f0-9]{40}$/.test(config.buildRevision)) {
+      throw new Error("A recorded clean build revision is required before controlled launch.");
+    }
+
     if (!connected) {
       throw new Error("The persisted control plane is unavailable.");
     }
@@ -464,6 +468,7 @@ async function runOperatorMode(prisma: PrismaService): Promise<void> {
     dockerActionsEnabled: config.actions.dockerEnabled,
     agentAvailable: canUseOpenAI(),
     reuseAvailable: config.trial.sourceTrialIds.length > 0,
+    sourceRevision: config.buildRevision,
   });
 
   const server = new OperatorHttpServer(service, config.operator);
@@ -480,8 +485,10 @@ async function runOperatorMode(prisma: PrismaService): Promise<void> {
   }
 
   const shutdown = async () => {
-    await runtime.stop();
     await server.close();
+    // Keep observation and persistence alive until any accepted fault has been restored.
+    await runner.waitForActiveRun();
+    await runtime.stop();
   };
 
   await new Promise<void>((resolve) => {

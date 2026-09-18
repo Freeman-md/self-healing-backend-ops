@@ -99,8 +99,19 @@ From the repository root, after supplying the existing non-secret testbed
 configuration, build and start the local testbed in operator mode:
 
 ```sh
-MANAGING_SYSTEM_RUN_MODE=operator docker compose up -d --build
+test -z "$(git status --porcelain)" || exit 1
+SOURCE_REVISION=$(git rev-parse HEAD) MANAGING_SYSTEM_RUN_MODE=operator docker compose up -d --build
 ```
+
+Controlled launches require a recorded full build revision. The request ID is
+reused after uncertain acceptance; retries reconcile the persisted run rather
+than injecting another fault. The trial page polls run linkage and restoration.
+Shutdown drains accepted controlled runs before stopping observation or closing
+the database. Do not interrupt a CLI experiment while a fault is active.
+
+The final experimental panels are documented in
+`recovery-experiment-reports/m9-panels-v1/README.md`. Keep acceptance smoke outputs
+separate from final campaign outputs and preserve the earlier canonical evidence.
 
 The Compose publication is loopback-only. The container listens on `0.0.0.0`
 only so Docker can publish it to the host's `127.0.0.1`; direct local starts

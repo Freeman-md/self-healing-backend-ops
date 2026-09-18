@@ -1,7 +1,7 @@
 import { Prisma, type FaultProfileCode } from "@/generated/prisma/client";
 import { PrismaService } from "@/infrastructure/database";
 
-import type { OperatorListTrialsQuery } from "./operator.schema";
+import type { ControlledTestRequest, OperatorListTrialsQuery } from "./operator.schema";
 
 const maxReadableText = 2_000;
 
@@ -65,7 +65,15 @@ export class OperatorRepository {
         recoveryMode: true,
         status: true,
         outcome: true,
-        experimentRun: { select: { id: true, oracleSucceeded: true, status: true } },
+        experimentRun: {
+          select: {
+            id: true,
+            oracleSucceeded: true,
+            status: true,
+            manifest: { select: { configuration: true } },
+            batch: { select: { configuration: true } },
+          },
+        },
       },
     });
 
@@ -78,7 +86,10 @@ export class OperatorRepository {
         startedAt: row.startedAt.toISOString(),
         trigger: row.triggerSource,
         scenario: row.scenarioId,
-        strategy: row.recoveryMode,
+        strategy: strategyLabel(
+          row.recoveryMode,
+          row.experimentRun?.manifest?.configuration ?? row.experimentRun?.batch.configuration,
+        ),
         status: row.status,
         outcome: row.outcome,
         oracle: oracleStatus(row.experimentRun),
@@ -106,7 +117,11 @@ export class OperatorRepository {
             id: true,
             oracleSucceeded: true,
             status: true,
-            manifest: { select: { restoration: true } },
+            timeToHealMs: true,
+            timeToTerminationMs: true,
+            faultToDetectionMs: true,
+            manifest: { select: { restoration: true, configuration: true } },
+            batch: { select: { configuration: true } },
           },
         },
         evidenceHistory: {
@@ -266,7 +281,10 @@ export class OperatorRepository {
         completedAt: row.completedAt?.toISOString() ?? null,
         trigger: row.triggerSource,
         scenario: row.scenarioId,
-        strategy: row.recoveryMode,
+        strategy: strategyLabel(
+          row.recoveryMode,
+          row.experimentRun?.manifest?.configuration ?? row.experimentRun?.batch.configuration,
+        ),
         status: row.status,
         outcome: row.outcome,
         oracle: oracleStatus(row.experimentRun),
@@ -276,9 +294,9 @@ export class OperatorRepository {
       trail,
       measurement: {
         observedTimeToHealMs: row.recoveryMeasurement?.observedTimeToHealMs ?? null,
-        timeToHealMs: row.experimentRun?.oracleSucceeded ? (row.experimentRun ? null : null) : null,
-        timeToTerminationMs: null,
-        faultToDetectionMs: null,
+        timeToHealMs: row.experimentRun?.timeToHealMs ?? null,
+        timeToTerminationMs: row.experimentRun?.timeToTerminationMs ?? null,
+        faultToDetectionMs: row.experimentRun?.faultToDetectionMs ?? null,
       },
     };
   }
@@ -471,6 +489,43 @@ export class OperatorRepository {
     });
   }
 
+  async findAcceptedOperatorRequest(input: ControlledTestRequest) {
+    const run = await this.prisma.experimentRun.findUnique({
+      where: { id: `operator-run-${input.requestId}` },
+      select: { id: true, faultProfile: true, manifest: { select: { configuration: true } } },
+    });
+
+    if (!run) {
+      return null;
+    }
+
+    const configuration = run.manifest?.configuration as Record<string, unknown> | undefined;
+
+    if (
+      run.faultProfile !== input.profile ||
+      configuration?.requestedStrategy !== input.strategy ||
+      configuration?.requestedWorkload !== input.workload
+    ) {
+      throw new Error("This request ID belongs to a different controlled test.");
+    }
+
+    return { requestId: input.requestId, runId: run.id, accepted: true };
+  }
+
+  readControlledTestRun(id: string) {
+    return this.prisma.experimentRun.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        status: true,
+        trialRecordId: true,
+        exclusionReason: true,
+        activeLockKey: true,
+        manifest: { select: { restoration: true } },
+      },
+    });
+  }
+
   async createOrReadOperatorRun(input: {
     requestId: string;
     profile: FaultProfileCode;
@@ -585,6 +640,24 @@ export class OperatorRepository {
       });
     });
   }
+}
+
+function strategyLabel(mode: string, configuration: unknown): string {
+  if (mode === "baseline") {return "Baseline";}
+
+  if (!configuration || typeof configuration !== "object" || Array.isArray(configuration))
+    {return "Agent (version not recorded)";}
+
+  const metadata = configuration as Record<string, unknown>;
+
+  const version = metadata.expectedAgentStrategyVersion ?? metadata.agentStrategyVersion;
+
+  if (version === "v1") {return "Agent V1";}
+
+  if (version === "v2")
+    {return `Agent V2${metadata.retrievalEnabled === true ? " (reuse enabled)" : ""}`;}
+
+  return "Agent (version not recorded)";
 }
 
 function emptyDetail() {
