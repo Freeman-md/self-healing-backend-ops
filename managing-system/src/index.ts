@@ -27,11 +27,17 @@ import {
   RecoveryService,
 } from "@/modules/recovery";
 import { SafetyService } from "@/modules/safety";
-import { TrialFactory, TrialRepository, TrialService } from "@/modules/trial";
+import {
+  DEFAULT_MAX_RECOVERY_STEPS,
+  TrialFactory,
+  TrialRepository,
+  TrialService,
+} from "@/modules/trial";
 
 async function main(): Promise<void> {
   console.log({
     event: "managing_system_started",
+    buildRevision: config.buildRevision,
     historicalRetrievalEnabled: config.trial.historicalRetrievalEnabled,
     retrievalProtocol: RETRIEVAL_PROTOCOL_VERSION,
     sourceTrialIds: config.trial.sourceTrialIds,
@@ -111,6 +117,14 @@ async function main(): Promise<void> {
       enabled:
         config.trial.historicalRetrievalEnabled && config.trial.agentStrategyVersion === "v2",
       sourceIds: config.trial.sourceTrialIds,
+      runtimeIdentity: {
+        sourceRevision: config.buildRevision,
+        model: config.openai.model,
+        monitorIntervalMs: config.monitoring.intervalMs,
+        consecutiveUnhealthyThreshold: config.monitoring.consecutiveUnhealthyThreshold,
+        cooldownMs: config.monitoring.cooldownMs,
+        maxRecoverySteps: DEFAULT_MAX_RECOVERY_STEPS,
+      },
       recoveryMode: config.trial.recoveryMode,
       agentStrategyVersion: config.trial.agentStrategyVersion,
       fingerprint: async () =>
@@ -140,7 +154,7 @@ async function main(): Promise<void> {
     evidenceService,
     new EvaluationService(new EvaluationFactory(), new EvaluationRepository(prismaService)),
     recoveryService,
-    3,
+    DEFAULT_MAX_RECOVERY_STEPS,
     new TrialFactory(),
     measurementService,
     historyService,

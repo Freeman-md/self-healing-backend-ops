@@ -259,3 +259,23 @@ export function summarizeWorkload(samples: WorkloadSample[], start: number, end:
     },
   };
 }
+
+// Anchor after independent verification. Later persistence/cleanup cannot extend this interval.
+export async function waitForFixedObservationWindow(
+  durationMs: number,
+  clock: { now: () => number; sleep: (milliseconds: number) => Promise<void> } = {
+    now: Date.now,
+    sleep: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+  },
+): Promise<{ start: number; end: number }> {
+  z.number().int().positive().max(60000).parse(durationMs);
+  const start = clock.now();
+
+  const end = start + durationMs;
+
+  while (clock.now() < end) {
+    await clock.sleep(end - clock.now());
+  }
+
+  return { start, end };
+}

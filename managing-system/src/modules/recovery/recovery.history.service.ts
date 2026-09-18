@@ -8,7 +8,10 @@ import type { ControlledRecoveryEnvironment } from "./recovery.types";
 import type { DiagnosisResult, RecoveryDecision } from "./recovery.schema";
 import { agentV2DecisionSchema } from "./strategies/agent-v2/recovery.agent-v2.schema";
 import { validateDecision } from "./strategies/agent-v2/recovery.agent-v2.validation";
-import { recoveryEvidenceSignature } from "./recovery.history.helpers";
+import {
+  fingerprintRecoveryConfiguration,
+  recoveryEvidenceSignature,
+} from "./recovery.history.helpers";
 
 export const historicalDiagnosisSchema = agentV2DecisionSchema.shape.diagnosisResult.extend({
   suspectedIncidentType: z.string().min(1).max(100),
@@ -50,6 +53,15 @@ export interface HistoricalRecoveryOperations {
   invalidate(): void;
 }
 
+export const recoveryRuntimeIdentitySchema = z.object({
+  sourceRevision: z.string().regex(/^[a-f0-9]{40}$/),
+  model: z.string().min(1),
+  monitorIntervalMs: z.number().positive(),
+  consecutiveUnhealthyThreshold: z.number().int().positive(),
+  cooldownMs: z.number().nonnegative(),
+  maxRecoverySteps: z.number().int().positive(),
+});
+
 export class RecoveryHistoryService {
   constructor(
     readonly repository: RecoveryHistoryRepository,
@@ -61,6 +73,7 @@ export class RecoveryHistoryService {
       fingerprint: () => Promise<string>;
       recoveryMode?: string;
       agentStrategyVersion?: string;
+      runtimeIdentity: z.infer<typeof recoveryRuntimeIdentitySchema>;
     },
   ) {}
 
@@ -82,6 +95,13 @@ export class RecoveryHistoryService {
             expectedRecoveryMode: z.string(),
             expectedAgentStrategyVersion: z.string(),
             compatibilityFingerprint: z.string(),
+            configuration: recoveryRuntimeIdentitySchema
+              .omit({ sourceRevision: true })
+              .extend({ agentImplementationVersion: z.string(), agentPromptVersion: z.string() }),
+            protocol: z.object({
+              sourceRevision: recoveryRuntimeIdentitySchema.shape.sourceRevision,
+            }),
+            maxAgentTurns: z.number().int().positive().nullable(),
           })
           .parse(active.manifest.configuration)
       : undefined;
@@ -101,6 +121,40 @@ export class RecoveryHistoryService {
       throw new Error("Monitor identity/configuration differs from the frozen run manifest.");
     }
 
+    if (manifest) {
+      const actual = recoveryRuntimeIdentitySchema.parse(this.settings.runtimeIdentity);
+
+      const expected = recoveryRuntimeIdentitySchema.parse({
+        ...manifest.configuration,
+        sourceRevision: manifest.protocol.sourceRevision,
+      });
+
+      const version =
+        this.settings.recoveryMode === "baseline" || this.settings.agentStrategyVersion === "v1"
+          ? "1.0.0"
+          : settings.enabled
+            ? "2.1.0"
+            : "2.0.0";
+
+      const turns =
+        this.settings.recoveryMode === "agent" && this.settings.agentStrategyVersion === "v2"
+          ? settings.enabled
+            ? actual.maxRecoverySteps * 3 + 3
+            : actual.maxRecoverySteps * 2 + 2
+          : null;
+
+      if (
+        fingerprintRecoveryConfiguration(actual) !== fingerprintRecoveryConfiguration(expected) ||
+        manifest.configuration.agentImplementationVersion !== version ||
+        manifest.configuration.agentPromptVersion !== version ||
+        manifest.maxAgentTurns !== turns
+      ) {
+        throw new Error(
+          "Monitor runtime model, cadence, limits, build revision or prompt identity differs from the frozen run.",
+        );
+      }
+    }
+
     await this.repository.createEpisode({
       trialRecordId,
       origin: active
@@ -114,6 +168,7 @@ export class RecoveryHistoryService {
       compatibilityFingerprint: settings.fingerprint,
       corpusSourceIds: settings.sourceIds,
       retrievalEnabled: settings.enabled,
+      runtimeIdentity: this.settings.runtimeIdentity,
     });
 
     return settings;

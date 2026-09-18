@@ -13,10 +13,12 @@ DOTENV_CONFIG_PATH=/dev/null npm test
 DOTENV_CONFIG_PATH=/dev/null npm run build
 ```
 
-Start the local testbed and monitor from the exact approved revision:
+Start the local testbed and monitor from the exact approved revision. Require a clean checkout before stamping the image; never claim a dirty checkout is the recorded commit:
 
 ```sh
-RECOVERY_MODE=agent AGENT_STRATEGY_VERSION=v2 docker compose up -d --build
+M9_REVISION=$(git rev-parse HEAD)
+test -z "$(git status --porcelain)" || exit 1
+SOURCE_REVISION="$M9_REVISION" RECOVERY_MODE=agent AGENT_STRATEGY_VERSION=v2 docker compose up -d --build
 ```
 
 Retrieval defaults off. `HISTORICAL_RETRIEVAL_ENABLED=true` enables V2 2.1.0/prompt 2.1.0; off retains V2 2.0.0/prompt 2.0.0 and eight turns. Enabled uses twelve turns. Both permit at most three ActionService invocations. `RECOVERY_SOURCE_TRIAL_IDS` is a JSON allowlist (maximum 100 unique IDs), default `[]`. Empty means cold, not deletion. Change `RECOVERY_TARGET_CONFIGURATION_ID` whenever the managed deployment configuration changes. Fingerprints additionally include target origin, request/action settings, active catalogue, safety rules and shared policy version.
@@ -36,7 +38,7 @@ docker exec managing-system-app npm run experiment:workload -- --operation calib
 
 Confirm the actual Compose application port/base URL before setup; the fixture URL must equal `MANAGED_SYSTEM_BASE_URL`. Calibration runs a ten-second warmup followed by thirty seconds of healthy reads. It passes only with all reads successful, no concurrency skips and achieved rate at least 95% of offered rate. Five requests/second is a starting setting, not a measured capacity claim. If calibration fails, choose a lower fixed rate prospectively, save a new settings/calibration file and freeze that setting for both workload conditions. Never tune within a campaign.
 
-Latency summaries include completed errors/timeouts, exclude capacity-skipped offers and use requests **started** in `[windowStart, windowEnd)`. Exports retain every sample, offered/achieved rates and error/timeout/skip counts. Traffic runs continuously across warmup, injection, recovery and post-recovery. This single workload establishes neither saturation nor production realism.
+Latency summaries include completed errors/timeouts, exclude capacity-skipped offers and use requests **started** in `[windowStart, windowEnd)`. Exports retain every sample, offered/achieved rates and error/timeout/skip counts. Traffic runs continuously across warmup, injection, recovery and post-recovery. The fixed post-recovery interval starts after independent stability/business verification and ends exactly `postRecoveryMs` later. Correlation/oracle time is exported separately as `verification`; delayed persistence does not extend the fixed interval. Failed recovery uses the explicitly labeled `postTermination` interval instead. This single workload establishes neither saturation nor production realism.
 
 ## Unsupported preflight
 
@@ -56,7 +58,7 @@ A preflight failure is a stop, not permission to relax target checks. Restoratio
 
 ## Prepare and execute the panels
 
-Freeze `M9_REVISION` to the full approved checkout SHA with `M9_REVISION=$(git rev-parse HEAD)`. Build the managing image from that exact checkout before any run. Every execution requires a new output directory; failed observations stay recorded and are not replaced or retried. Each condition is run separately with the corresponding monitor version. Run order is deterministic from seed `m9-fixed-2026-09-18`.
+Freeze `M9_REVISION` to the full approved checkout SHA with `M9_REVISION=$(git rev-parse HEAD)`. Build the managing image from that exact clean checkout with `SOURCE_REVISION="$M9_REVISION"` before any run. The Docker build writes a non-secret revision artifact. Both runner and monitor reject M9 execution if that artifact differs from the requested revision; an unstamped local build is explicitly `unrecorded` and cannot run these panels. The monitor also checks the frozen model, cadence, threshold, cooldown, action/turn bounds and implementation/prompt versions before any strategy or action. Every execution requires a new output directory; failed observations stay recorded and are not replaced or retried. Each condition is run separately with the corresponding monitor version. Run order is deterministic from seed `m9-fixed-2026-09-18`.
 
 For each condition below, set the indicated monitor mode/version before preparation/execution:
 
@@ -74,7 +76,7 @@ For each condition below, set the indicated monitor mode/version before preparat
 Example commands for `v2-empty`; substitute each table condition and its mode/version, keeping distinct manifest/output paths:
 
 ```sh
-RECOVERY_MODE=agent AGENT_STRATEGY_VERSION=v2 docker compose up -d --build --force-recreate managing-system
+SOURCE_REVISION="$M9_REVISION" RECOVERY_MODE=agent AGENT_STRATEGY_VERSION=v2 docker compose up -d --build --force-recreate managing-system
 docker exec managing-system-app npm run experiment:m9 -- --prepare --condition v2-empty --revision "$M9_REVISION" --fixture /managing-system/experiment-output/m9/fixture.json --manifest /managing-system/experiment-output/m9/v2-empty.json
 docker exec managing-system-app npm run experiment:m9 -- --manifest /managing-system/experiment-output/m9/v2-empty.json --output /managing-system/experiment-output/m9/v2-empty-results
 ```

@@ -26,11 +26,18 @@ export class RecoveryHistoryRepository {
     compatibilityFingerprint: string;
     corpusSourceIds: string[];
     retrievalEnabled: boolean;
+    runtimeIdentity?: Record<string, string | number>;
   }): Promise<void> {
+    const { runtimeIdentity, ...episode } = input;
+
     await this.prisma.recoveryEpisode.create({
       data: {
-        ...input,
-        configuration: { measurementVersion: "2.0.0", protocol: "structured-exact-v1" },
+        ...episode,
+        configuration: {
+          measurementVersion: "2.0.0",
+          protocol: "structured-exact-v1",
+          runtimeIdentity: runtimeIdentity ?? null,
+        },
         createdAt: new Date(),
       },
     });

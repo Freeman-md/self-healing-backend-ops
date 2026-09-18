@@ -53,6 +53,16 @@ type TrialMeasurementService = Pick<
   "startRecoveryMeasurement" | "recordFirstActionStarted" | "completeRecoveryMeasurement"
 >;
 
+type TrialHistoryService = Pick<
+  RecoveryHistoryService,
+  "beginTrial" | "createControlledOperations"
+> & {
+  repository: Pick<
+    RecoveryHistoryService["repository"],
+    "recordPlan" | "recordExecution" | "publishEligibleTrial"
+  >;
+};
+
 export const DEFAULT_MAX_RECOVERY_STEPS = 3;
 
 export class TrialService {
@@ -66,7 +76,7 @@ export class TrialService {
     private readonly maxRecoverySteps = DEFAULT_MAX_RECOVERY_STEPS,
     private readonly trialFactory = new TrialFactory(),
     private readonly measurementService?: TrialMeasurementService,
-    private readonly historyService?: RecoveryHistoryService,
+    private readonly historyService?: TrialHistoryService,
     private readonly attentionService?: Pick<AttentionService, "recordEscalation">,
   ) {}
 
@@ -124,13 +134,31 @@ export class TrialService {
       firstUnhealthyEvidenceSnapshotId: input.firstUnhealthyEvidenceSnapshotId,
       recoveryTriggeredAt: input.recoveryTriggeredAt ?? startedAt,
     });
-    const history = await this.historyService?.beginTrial(
-      context.trialRecordId,
-      input.triggerSource ?? "controlled",
-    );
+    let history: Awaited<ReturnType<RecoveryHistoryService["beginTrial"]>> | undefined;
 
-    const { currentSnapshot, recoveryDecision, trialState } =
-      strategy.orchestration === "agent"
+    let initializationFailed = false;
+
+    try {
+      history = await this.historyService?.beginTrial(
+        context.trialRecordId,
+        input.triggerSource ?? "controlled",
+      );
+    } catch {
+      initializationFailed = true;
+    }
+
+    const { currentSnapshot, recoveryDecision, trialState } = initializationFailed
+      ? {
+          currentSnapshot: input.snapshot,
+          recoveryDecision: undefined,
+          trialState: {
+            status: "failed",
+            outcome: "failed",
+            reason:
+              "Recovery history initialization failed; no recovery strategy or action was invoked.",
+          } satisfies TrialState,
+        }
+      : strategy.orchestration === "agent"
         ? await this.runAgentRecovery(strategy, context, input.snapshot, history)
         : await this.runExternalRecovery(strategy, context, input.snapshot);
 
@@ -175,7 +203,10 @@ export class TrialService {
           : undefined,
       decisionCount: context.recoveryDecisionIds.length,
     });
-    await this.historyService?.repository.publishEligibleTrial(context.trialRecordId);
+    if (!initializationFailed) {
+      await this.historyService?.repository.publishEligibleTrial(context.trialRecordId);
+    }
+
     const recoveryDecisions = await this.recoveryService.findRecoveryDecisionHistory(
       context.trialRecordId,
     );

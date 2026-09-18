@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { readBuildRevision } from "./build-identity";
 import { z } from "zod/v4";
 
 import {
@@ -12,6 +13,7 @@ import {
 } from "./helpers";
 
 export type AppConfig = {
+  buildRevision: string;
   environment: string;
   managedSystem: {
     baseUrl: string;
@@ -47,6 +49,7 @@ export type AppConfig = {
 };
 
 export const config: AppConfig = {
+  buildRevision: readBuildRevision(),
   environment: readString(process.env.NODE_ENV, "development"),
   managedSystem: {
     baseUrl: readString(process.env.MANAGED_SYSTEM_BASE_URL, "http://localhost:3004"),

@@ -44,6 +44,8 @@ services:
     build:
       context: ./managing-system
       dockerfile: ../Dockerfile.managing-system
+      args:
+        SOURCE_REVISION: ${SOURCE_REVISION:-unrecorded}
     container_name: managing-system-app
     depends_on:
       managing-system-postgres:

@@ -8,3 +8,5 @@ AGENTS.md
 .agents/milestones/active.md
 /**/data
 /managing-system/src/generated/prisma/
+
+/managing-system/build-identity.json

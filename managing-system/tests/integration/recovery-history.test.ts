@@ -383,3 +383,142 @@ test("attention holds survive service reconstruction; review does not heal or re
     await db.close();
   }
 });
+
+test("controlled trials reject different monitor model, cadence, limits and executable identity", async () => {
+  const db = await createPrismaTestDatabase();
+
+  try {
+    const recovery = new RecoveryService(new RecoveryRepository(db.prisma));
+
+    const repository = new RecoveryHistoryRepository(
+      db.prisma,
+      recovery,
+      new EvidenceRepository(db.prisma),
+    );
+
+    const actual = {
+      sourceRevision: "a".repeat(40),
+      model: "test-model",
+      monitorIntervalMs: 1000,
+      consecutiveUnhealthyThreshold: 2,
+      cooldownMs: 5000,
+      maxRecoverySteps: 3,
+    };
+
+    const manifest = {
+      retrievalEnabled: true,
+      sourceTrialIds: [],
+      expectedRecoveryMode: "agent",
+      expectedAgentStrategyVersion: "v2",
+      compatibilityFingerprint: "compatible",
+      protocol: { sourceRevision: actual.sourceRevision },
+      configuration: {
+        ...actual,
+        agentImplementationVersion: "2.1.0",
+        agentPromptVersion: "2.1.0",
+      },
+      maxAgentTurns: 12,
+    };
+
+    await db.prisma.experimentBatch.create({
+      data: {
+        id: "identity-batch",
+        name: "identity",
+        status: "active",
+        sourceRevision: actual.sourceRevision,
+        measurementVersion: "2.0.0",
+        configuration: {},
+        requestedRepetitions: 1,
+        runOrderSeed: "test",
+        createdAt: new Date(),
+      },
+    });
+    await db.prisma.experimentRun.create({
+      data: {
+        id: "identity-run",
+        batchId: "identity-batch",
+        faultProfile: "managed_system_application_stopped",
+        recoveryMode: "agent",
+        repetition: 1,
+        status: "prepared",
+        activeLockKey: "global",
+        startedAt: new Date(),
+        stabilityWindowMs: 1000,
+      },
+    });
+    await db.prisma.experimentRunManifest.create({
+      data: { runId: "identity-run", configuration: manifest },
+    });
+    const mismatches: Partial<typeof actual>[] = [
+      { model: "other-model" },
+      { monitorIntervalMs: 2000 },
+      { consecutiveUnhealthyThreshold: 3 },
+      { cooldownMs: 9000 },
+      { maxRecoverySteps: 2 },
+      { sourceRevision: "b".repeat(40) },
+      { sourceRevision: "unrecorded" },
+    ];
+
+    for (const [index, mismatch] of mismatches.entries()) {
+      const id = `identity-${index}`;
+
+      await db.prisma.trialRecord.create({
+        data: {
+          id,
+          recoveryMode: "agent",
+          status: "started",
+          outcome: "unresolved_not_escalated",
+          startedAt: new Date(),
+        },
+      });
+      const service = new RecoveryHistoryService(repository, recovery, undefined, {
+        enabled: true,
+        sourceIds: [],
+        recoveryMode: "agent",
+        agentStrategyVersion: "v2",
+        fingerprint: async () => "compatible",
+        runtimeIdentity: { ...actual, ...mismatch },
+      });
+
+      await assert.rejects(service.beginTrial(id, "monitor"));
+    }
+
+    assert.equal(await db.prisma.recoveryEpisode.count(), 0);
+    const matching = new RecoveryHistoryService(repository, recovery, undefined, {
+      enabled: true,
+      sourceIds: [],
+      recoveryMode: "agent",
+      agentStrategyVersion: "v2",
+      fingerprint: async () => "compatible",
+      runtimeIdentity: actual,
+    });
+
+    await matching.beginTrial("identity-0", "monitor");
+    assert.deepEqual(
+      (
+        await db.prisma.recoveryEpisode.findUniqueOrThrow({
+          where: { trialRecordId: "identity-0" },
+        })
+      ).configuration,
+      { measurementVersion: "2.0.0", protocol: "structured-exact-v1", runtimeIdentity: actual },
+    );
+    assert.equal(await db.prisma.recoveryEpisode.count(), 1);
+    await db.prisma.experimentRunManifest.update({
+      where: { runId: "identity-run" },
+      data: { configuration: { ...manifest, maxAgentTurns: 8 } },
+    });
+    await assert.rejects(matching.beginTrial("identity-1", "monitor"));
+    await db.prisma.experimentRunManifest.update({
+      where: { runId: "identity-run" },
+      data: {
+        configuration: {
+          ...manifest,
+          configuration: { ...manifest.configuration, agentPromptVersion: "different" },
+        },
+      },
+    });
+    await assert.rejects(matching.beginTrial("identity-2", "monitor"));
+  } finally {
+    await db.close();
+  }
+});

@@ -5,6 +5,7 @@ import { prepareM9Protocol } from "../../../scripts/experiment/m9-protocol";
 import {
   startBoundedWorkload,
   summarizeWorkload,
+  waitForFixedObservationWindow,
   cleanupWorkloadFixture,
 } from "../../../scripts/experiment/workload";
 
@@ -158,4 +159,37 @@ test("workload enforces concurrency, counts skipped offers, and checks business 
     }),
   );
   assert.equal(deleted, false);
+});
+
+test("fixed post-verification window excludes delayed oracle, probe and persistence work", async () => {
+  let now = 1000;
+
+  const trialCompletedAt = now;
+
+  now += 11000; // Slow oracle/correlation.
+  now += 700; // Business probe.
+  const window = await waitForFixedObservationWindow(30000, {
+    now: () => now,
+    sleep: async (duration) => {
+      now += duration + 25;
+    },
+  });
+
+  now += 9000; // Slow publication/persistence after the fixed interval.
+  assert.equal(window.start, trialCompletedAt + 11700);
+  assert.equal(window.end - window.start, 30000);
+  const metrics = summarizeWorkload(
+    [
+      { startedAt: trialCompletedAt + 5000, durationMs: 1, outcome: "success" },
+      { startedAt: window.start, durationMs: 1, outcome: "success" },
+      { startedAt: window.end - 1, durationMs: 1, outcome: "success" },
+      { startedAt: window.end, durationMs: 1, outcome: "success" },
+      { startedAt: now - 1, durationMs: 1, outcome: "success" },
+    ],
+    window.start,
+    window.end,
+  );
+
+  assert.equal(metrics.success, 2);
+  assert.equal(metrics.end - metrics.start, 30000);
 });

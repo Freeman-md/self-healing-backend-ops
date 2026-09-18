@@ -33,6 +33,7 @@ import {
   probeWorkloadFixture,
   startBoundedWorkload,
   summarizeWorkload,
+  waitForFixedObservationWindow,
   validateLocalTestbed,
 } from "./experiment/workload";
 
@@ -88,6 +89,12 @@ async function main(): Promise<void> {
   }
 
   const protocol = m9ProtocolSchema.parse(JSON.parse(await readFile(values.manifest, "utf8")));
+
+  if (config.buildRevision !== protocol.sourceRevision) {
+    throw new Error(
+      "Runner build identity differs from the prepared revision; rebuild from the approved checkout with SOURCE_REVISION.",
+    );
+  }
 
   const fixture = workloadFixtureSchema.parse(
     JSON.parse(await readFile(protocol.fixturePath, "utf8")),
@@ -224,11 +231,11 @@ async function main(): Promise<void> {
       configuration,
       compatibilityFingerprint,
       fixture,
-      maxAgentTurns: retrievalEnabled ? 12 : 8,
+      maxAgentTurns: mode === "agent" && version === "v2" ? (retrievalEnabled ? 12 : 8) : null,
       providerSettings: {
         model: config.openai.model,
-        toolChoice: "required",
-        parallelToolCalls: false,
+        toolChoice: mode === "agent" && version === "v2" ? "required" : null,
+        parallelToolCalls: mode === "agent" && version === "v2" ? false : null,
       },
     };
 
@@ -276,6 +283,10 @@ async function main(): Promise<void> {
       let faultAt: number | null = null;
 
       let trialCompletedAt: number | null = null;
+
+      let postWindow: { start: number; end: number } | undefined;
+
+      let postWindowKind: "post_recovery" | "post_termination" | undefined;
 
       try {
         if (slot.phase === "warm" && !coldSource) {
@@ -334,6 +345,16 @@ async function main(): Promise<void> {
 
         const trial = await experiments.waitForAndLinkMonitorTrial(injected);
 
+        const episode = await prisma.recoveryEpisode.findUnique({
+          where: { trialRecordId: trial.id },
+        });
+
+        if (!episode || episode.experimentRunId !== run.id) {
+          throw new Error(
+            "Monitor did not establish the validated frozen runtime identity; observation is invalid.",
+          );
+        }
+
         trialCompletedAt = new Date(trial.completedAt).getTime();
         let observed = await oracle.verifyStableRecovery(protocol.stabilityWindowMs);
 
@@ -386,7 +407,11 @@ async function main(): Promise<void> {
           }
         }
 
-        await sleep(protocol.workload?.postRecoveryMs ?? 1000);
+        postWindowKind =
+          !attachment && observed.succeeded && trial.status === "resolved"
+            ? "post_recovery"
+            : "post_termination";
+        postWindow = await waitForFixedObservationWindow(protocol.workload?.postRecoveryMs ?? 1000);
         await experiments.completeExperimentRun({ run: injected, trial, oracle: observed });
         if (!attachment && observed.succeeded) {
           await history.publishEligibleTrial(trial.id);
@@ -423,9 +448,20 @@ async function main(): Promise<void> {
                     faultAt && trialCompletedAt
                       ? summarizeWorkload(samples, faultAt, trialCompletedAt)
                       : null,
-                  postRecovery: trialCompletedAt
-                    ? summarizeWorkload(samples, trialCompletedAt, end)
-                    : null,
+                  verification:
+                    trialCompletedAt && postWindow
+                      ? summarizeWorkload(samples, trialCompletedAt, postWindow.start)
+                      : null,
+                  postWindow: postWindow ?? null,
+                  postWindowKind: postWindowKind ?? null,
+                  postRecovery:
+                    postWindow && postWindowKind === "post_recovery"
+                      ? summarizeWorkload(samples, postWindow.start, postWindow.end)
+                      : null,
+                  postTermination:
+                    postWindow && postWindowKind === "post_termination"
+                      ? summarizeWorkload(samples, postWindow.start, postWindow.end)
+                      : null,
                 },
               },
             });
