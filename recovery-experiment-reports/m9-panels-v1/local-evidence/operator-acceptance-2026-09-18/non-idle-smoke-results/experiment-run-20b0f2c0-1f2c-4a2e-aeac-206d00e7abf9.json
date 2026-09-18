@@ -1,0 +1,2943 @@
+{
+  "id": "experiment-run-20b0f2c0-1f2c-4a2e-aeac-206d00e7abf9",
+  "batchId": "experiment-batch-2ef1207d-af2b-4682-972d-3401dc63fdca",
+  "faultProfile": "managed_system_application_stopped",
+  "recoveryMode": "agent",
+  "repetition": 1,
+  "status": "completed",
+  "activeLockKey": null,
+  "startedAt": "2026-09-18T12:10:35.500Z",
+  "faultInjectedAt": "2026-09-18T12:12:03.947Z",
+  "completedAt": "2026-09-18T12:13:42.023Z",
+  "trialRecordId": "trial-46e690f0-4e4a-4a6e-b1d8-19a25b419a5d",
+  "valid": true,
+  "exclusionReason": null,
+  "runtimeResolved": true,
+  "oracleSucceeded": true,
+  "oracleFirstHealthyObservedAt": "2026-09-18T12:13:21.754Z",
+  "oracleCheckedAt": "2026-09-18T12:13:32.012Z",
+  "oracleDetails": {
+    "health": {
+      "status": "healthy",
+      "appStatus": "healthy",
+      "reachable": true,
+      "databaseStatus": "healthy"
+    },
+    "metrics": {
+      "reachable": true
+    },
+    "stableForMs": 10278,
+    "stabilityWindowMs": 10000,
+    "postgresContainerState": "running",
+    "applicationContainerState": "running"
+  },
+  "stabilityWindowMs": 10000,
+  "diagnosisCorrect": true,
+  "actionSequenceCorrect": true,
+  "unnecessaryActionCount": 0,
+  "faultToDetectionMs": 24920,
+  "timeToHealMs": 77807,
+  "timeToTerminationMs": 76608,
+  "manifest": {
+    "runId": "experiment-run-20b0f2c0-1f2c-4a2e-aeac-206d00e7abf9",
+    "configuration": {
+      "fixture": {
+        "ids": [
+          "1724eb4c-e55f-4227-b563-cae4c5e82934",
+          "f98ac9fa-6a95-4861-a1e3-40c19a0808c0",
+          "92940c8b-887f-4025-ad9d-60cd5957fe95",
+          "c9dc4918-b060-4965-afbd-28257d5d550f",
+          "7491a612-66f5-4b23-907b-81b5a4525b1e",
+          "7784c4f7-e919-474b-beb5-e52812ba23fe",
+          "c6ed5580-5128-45b1-b86c-6c4a698e1f4c",
+          "7f749188-f12b-45ba-bc99-df8a961d9945",
+          "157f9b06-013a-4fc9-8ea5-8cddef1c565a",
+          "3b2c0aa0-6aa2-4bb3-8086-84434fccea9f"
+        ],
+        "marker": "m9-fixture-3482b7f7-ecdb-4509-be1b-3a3eb3fa6d74",
+        "baseUrl": "http://managed-system:3000",
+        "version": "1.0.0"
+      },
+      "protocol": {
+        "seed": "m9-fixed-2026-09-18",
+        "smoke": true,
+        "version": "m9-panels-1.0.0",
+        "runOrder": [
+          {
+            "phase": "single",
+            "profile": "managed_system_application_stopped",
+            "repetition": 1
+          }
+        ],
+        "workload": {
+          "warmupMs": 10000,
+          "timeoutMs": 3000,
+          "concurrency": 4,
+          "offeredRate": 5,
+          "postRecoveryMs": 10000,
+          "maximumDurationMs": 300000
+        },
+        "condition": "non-idle",
+        "fixturePath": "/managing-system/experiment-output/m9/operator-acceptance-2026-09-18/fixture.json",
+        "repetitions": 1,
+        "policyVersion": "running-unreachable-hold-v1",
+        "sourceRevision": "ae4b08f420e948293f8e6867ff06eda789d866c3",
+        "calibrationPath": "/managing-system/experiment-output/m9/operator-acceptance-2026-09-18/calibration.json",
+        "preFaultSettleMs": 75000,
+        "retrievalProtocol": "structured-exact-v1",
+        "stabilityWindowMs": 10000,
+        "measurementVersion": "2.0.0",
+        "suppressionWindowMs": 135000,
+        "isolationPreflightPath": null
+      },
+      "configuration": {
+        "model": "gpt-4.1-mini",
+        "cooldownMs": 15000,
+        "recoveryMode": "agent",
+        "faultProfiles": [
+          "managed_system_application_stopped"
+        ],
+        "promptVersion": "1.0.0",
+        "maxRecoverySteps": 3,
+        "preFaultSettleMs": 75000,
+        "monitorIntervalMs": 30000,
+        "stabilityWindowMs": 10000,
+        "agentPromptVersion": "2.0.0",
+        "agentStrategyVersion": "v2",
+        "baselineRuleVersions": {
+          "managed_system_service_down": 1,
+          "database_connectivity_failure": 1
+        },
+        "actionCatalogueFingerprint": "5deebd94960f4a3f835d9f1558fb35414a93be1ab29ebe83cce75d227e8397cc",
+        "agentImplementationVersion": "2.0.0",
+        "consecutiveUnhealthyThreshold": 2
+      },
+      "maxAgentTurns": 8,
+      "sourceTrialIds": [],
+      "providerSettings": {
+        "model": "gpt-4.1-mini",
+        "toolChoice": "required",
+        "parallelToolCalls": false
+      },
+      "retrievalEnabled": false,
+      "expectedRecoveryMode": "agent",
+      "compatibilityFingerprint": "d7d37d49cf5858bec90cbfb337ddc2c26335e2e448c93fa70120c823558192ff",
+      "expectedAgentStrategyVersion": "v2"
+    },
+    "workload": {
+      "warmup": {
+        "end": 1789733523947,
+        "error": 0,
+        "start": 1789733513931,
+        "success": 51,
+        "timeout": 0,
+        "latencyMs": {
+          "max": 18,
+          "p50": 10,
+          "p95": 16,
+          "p99": 18
+        },
+        "definition": "Requests started in [start,end); latency includes errors/timeouts; capacity skips have no latency.",
+        "offeredRate": 5.09185303514377,
+        "achievedRate": 5.09185303514377,
+        "offeredCount": 51,
+        "achievedCount": 51,
+        "capacitySkipped": 0
+      },
+      "samples": [
+        {
+          "outcome": "success",
+          "startedAt": 1789733513931,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733514132,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733514337,
+          "durationMs": 12
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733514536,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733514735,
+          "durationMs": 18
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733514937,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733515133,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733515334,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733515533,
+          "durationMs": 12
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733515733,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733515933,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733516132,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733516337,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733516536,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733516740,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733516937,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733517133,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733517333,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733517533,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733517733,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733517936,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733518133,
+          "durationMs": 12
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733518337,
+          "durationMs": 12
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733518536,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733518733,
+          "durationMs": 15
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733518932,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733519144,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733519333,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733519532,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733519737,
+          "durationMs": 15
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733519934,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733520132,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733520331,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733520534,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733520731,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733520932,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733521132,
+          "durationMs": 14
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733521333,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733521539,
+          "durationMs": 16
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733521737,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733521932,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733522136,
+          "durationMs": 15
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733522333,
+          "durationMs": 14
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733522536,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733522734,
+          "durationMs": 16
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733522936,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733523132,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733523334,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733523531,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733523732,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733523931,
+          "durationMs": 10
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733524132,
+          "durationMs": 4
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733524333,
+          "durationMs": 5
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733524531,
+          "durationMs": 3
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733524762,
+          "durationMs": 126
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733524938,
+          "durationMs": 18
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733525135,
+          "durationMs": 6
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733525332,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733525532,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733525733,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733525936,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733526136,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733526334,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733526535,
+          "durationMs": 20
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733526731,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733526932,
+          "durationMs": 26
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733527134,
+          "durationMs": 52
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733527336,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733527536,
+          "durationMs": 22
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733527738,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733527934,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733528140,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733528339,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733528537,
+          "durationMs": 22
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733528736,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733528938,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733529134,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733529336,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733529534,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733529738,
+          "durationMs": 21
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733529931,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733530138,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733530331,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733530533,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733530734,
+          "durationMs": 27
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733530937,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733531135,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733531338,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733531535,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733531732,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733531936,
+          "durationMs": 24
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733532135,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733532338,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733532536,
+          "durationMs": 6
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733532732,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733532932,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733533139,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733533339,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733533538,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733533735,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733533932,
+          "durationMs": 10
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733534136,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733534339,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733534539,
+          "durationMs": 18
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733534736,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733534937,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733535132,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733535355,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733535541,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733535735,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733535937,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733536148,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733536341,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733536536,
+          "durationMs": 10
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733536732,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733536937,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733537134,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733537335,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733537540,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733537735,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733537940,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733538131,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733538337,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733538533,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733538735,
+          "durationMs": 23
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733538936,
+          "durationMs": 26
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733539143,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733539337,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733539537,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733539732,
+          "durationMs": 6
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733539934,
+          "durationMs": 22
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733540134,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733540332,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733540534,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733540737,
+          "durationMs": 25
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733540936,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733541135,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733541331,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733541537,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733541733,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733541936,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733542136,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733542338,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733542537,
+          "durationMs": 4
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733542733,
+          "durationMs": 5
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733542932,
+          "durationMs": 10
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733543134,
+          "durationMs": 5
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733543334,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733543536,
+          "durationMs": 6
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733543732,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733543932,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733544137,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733544332,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733544535,
+          "durationMs": 5
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733544732,
+          "durationMs": 4
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733544936,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733545140,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733545333,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733545535,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733545734,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733545934,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733546132,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733546335,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733546533,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733546738,
+          "durationMs": 27
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733546931,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733547136,
+          "durationMs": 20
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733547335,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733547531,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733547736,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733547933,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733548133,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733548336,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733548538,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733548735,
+          "durationMs": 20
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733548931,
+          "durationMs": 6
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733549135,
+          "durationMs": 24
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733549333,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733549537,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733549734,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733549935,
+          "durationMs": 21
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733550137,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733550331,
+          "durationMs": 21
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733550532,
+          "durationMs": 6
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733550735,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733550938,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733551131,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733551335,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733551548,
+          "durationMs": 23
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733551743,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733551932,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733552138,
+          "durationMs": 18
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733552332,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733552537,
+          "durationMs": 10
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733552732,
+          "durationMs": 6
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733552936,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733553139,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733553335,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733553533,
+          "durationMs": 32
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733553740,
+          "durationMs": 22
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733553939,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733554137,
+          "durationMs": 18
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733554337,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733554532,
+          "durationMs": 25
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733554737,
+          "durationMs": 20
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733554932,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733555140,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733555332,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733555537,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733555738,
+          "durationMs": 24
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733555937,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733556136,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733556343,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733556541,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733556734,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733556935,
+          "durationMs": 10
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733557135,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733557331,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733557537,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733557733,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733557936,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733558136,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733558337,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733558536,
+          "durationMs": 21
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733558734,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733558935,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733559136,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733559334,
+          "durationMs": 18
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733559537,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733559737,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733559933,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733560132,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733560331,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733560535,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733560734,
+          "durationMs": 20
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733560935,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733561136,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733561337,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733561532,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733561734,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733561937,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733562134,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733562335,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733562533,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733562733,
+          "durationMs": 5
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733562934,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733563135,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733563337,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733563535,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733563735,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733563932,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733564135,
+          "durationMs": 18
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733564345,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733564532,
+          "durationMs": 20
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733564734,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733564932,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733565133,
+          "durationMs": 18
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733565337,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733565533,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733565734,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733565932,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733566132,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733566336,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733566533,
+          "durationMs": 10
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733566737,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733566934,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733567133,
+          "durationMs": 5
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733567331,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733567535,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733567736,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733567934,
+          "durationMs": 6
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733568132,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733568335,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733568537,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733568733,
+          "durationMs": 21
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733568932,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733569135,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733569333,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733569535,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733569735,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733569935,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733570133,
+          "durationMs": 5
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733570332,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733570537,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733570736,
+          "durationMs": 22
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733570936,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733571136,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733571335,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733571537,
+          "durationMs": 27
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733571733,
+          "durationMs": 21
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733571935,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733572131,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733572338,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733572535,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733572737,
+          "durationMs": 20
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733572936,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733573136,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733573333,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733573533,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733573733,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733573932,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733574133,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733574335,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733574532,
+          "durationMs": 18
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733574739,
+          "durationMs": 11
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733574932,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733575131,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733575337,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733575533,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733575733,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733575932,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733576135,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733576333,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733576533,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733576733,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733576935,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733577133,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733577337,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733577532,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733577735,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733577936,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733578133,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733578335,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733578532,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733578734,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733578932,
+          "durationMs": 4
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733579137,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733579339,
+          "durationMs": 10
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733579534,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733579739,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733579932,
+          "durationMs": 20
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733580132,
+          "durationMs": 10
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733580332,
+          "durationMs": 10
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733580535,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733580737,
+          "durationMs": 24
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733580935,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733581131,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733581338,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733581534,
+          "durationMs": 32
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733581732,
+          "durationMs": 26
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733581936,
+          "durationMs": 6
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733582137,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733582333,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733582536,
+          "durationMs": 10
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733582737,
+          "durationMs": 9
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733582932,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733583138,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733583334,
+          "durationMs": 27
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733583534,
+          "durationMs": 20
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733583736,
+          "durationMs": 5
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733583935,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733584138,
+          "durationMs": 14
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733584338,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733584536,
+          "durationMs": 24
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733584732,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733584933,
+          "durationMs": 7
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733585136,
+          "durationMs": 21
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733585336,
+          "durationMs": 8
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733585538,
+          "durationMs": 28
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733585738,
+          "durationMs": 15
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733585940,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733586139,
+          "durationMs": 20
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733586333,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733586542,
+          "durationMs": 24
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733586736,
+          "durationMs": 19
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733586940,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733587136,
+          "durationMs": 16
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733587333,
+          "durationMs": 13
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733587541,
+          "durationMs": 17
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733587737,
+          "durationMs": 12
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733587936,
+          "durationMs": 24
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733588132,
+          "durationMs": 18
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733588332,
+          "durationMs": 1
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733588533,
+          "durationMs": 1
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733588736,
+          "durationMs": 1
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733588932,
+          "durationMs": 1
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733589132,
+          "durationMs": 1
+        },
+        {
+          "outcome": "error",
+          "startedAt": 1789733589332,
+          "durationMs": 1
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733589531,
+          "durationMs": 114
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733589737,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733589937,
+          "durationMs": 12
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733590132,
+          "durationMs": 24
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733590331,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733590537,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733590744,
+          "durationMs": 14
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733590934,
+          "durationMs": 16
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733591134,
+          "durationMs": 14
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733591335,
+          "durationMs": 12
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733591536,
+          "durationMs": 15
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733591737,
+          "durationMs": 15
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733591936,
+          "durationMs": 15
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733592134,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733592333,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733592536,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733592732,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733592937,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733593135,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733593332,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733593536,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733593734,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733593937,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733594136,
+          "durationMs": 3
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733594336,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733594534,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733594733,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733594932,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733595133,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733595332,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733595535,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733595731,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733595935,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733596133,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733596335,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733596536,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733596732,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733596937,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733597137,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733597332,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733597531,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733597732,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733597932,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733598132,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733598335,
+          "durationMs": 12
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733598536,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733598732,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733598937,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733599132,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733599332,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733599532,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733599734,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733599932,
+          "durationMs": 21
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733600138,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733600331,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733600532,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733600731,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733600936,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733601136,
+          "durationMs": 12
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733601336,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733601534,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733601733,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733601932,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733602133,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733602337,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733602531,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733602733,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733602933,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733603134,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733603333,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733603532,
+          "durationMs": 3
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733603732,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733603933,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733604134,
+          "durationMs": 14
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733604334,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733604533,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733604733,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733604936,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733605133,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733605332,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733605534,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733605733,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733605937,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733606134,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733606334,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733606536,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733606733,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733606931,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733607135,
+          "durationMs": 18
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733607334,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733607532,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733607736,
+          "durationMs": 12
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733607932,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733608134,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733608335,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733608539,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733608731,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733608935,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733609132,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733609335,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733609534,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733609736,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733609935,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733610137,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733610332,
+          "durationMs": 3
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733610533,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733610736,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733610936,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733611137,
+          "durationMs": 16
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733611336,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733611533,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733611732,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733611933,
+          "durationMs": 15
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733612136,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733612336,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733612535,
+          "durationMs": 4
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733612736,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733612935,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733613133,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733613335,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733613536,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733613732,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733613937,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733614132,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733614333,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733614537,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733614734,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733614931,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733615134,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733615332,
+          "durationMs": 14
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733615532,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733615737,
+          "durationMs": 16
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733615936,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733616136,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733616333,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733616536,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733616739,
+          "durationMs": 15
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733616932,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733617135,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733617335,
+          "durationMs": 6
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733617539,
+          "durationMs": 10
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733617732,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733617931,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733618132,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733618336,
+          "durationMs": 23
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733618537,
+          "durationMs": 9
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733618737,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733618931,
+          "durationMs": 3
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733619136,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733619334,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733619533,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733619733,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733619934,
+          "durationMs": 7
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733620135,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733620332,
+          "durationMs": 3
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733620531,
+          "durationMs": 5
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733620736,
+          "durationMs": 12
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733620936,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733621136,
+          "durationMs": 8
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733621332,
+          "durationMs": 13
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733621537,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733621735,
+          "durationMs": 11
+        },
+        {
+          "outcome": "success",
+          "startedAt": 1789733621936,
+          "durationMs": 21
+        }
+      ],
+      "summary": {
+        "end": 1789733622091,
+        "error": 327,
+        "start": 1789733513931,
+        "success": 214,
+        "timeout": 0,
+        "latencyMs": {
+          "max": 126,
+          "p50": 11,
+          "p95": 22,
+          "p99": 28
+        },
+        "definition": "Requests started in [start,end); latency includes errors/timeouts; capacity skips have no latency.",
+        "offeredRate": 5.001849112426036,
+        "achievedRate": 5.001849112426036,
+        "offeredCount": 541,
+        "achievedCount": 541,
+        "capacitySkipped": 0
+      },
+      "recovery": {
+        "end": 1789733600555,
+        "error": 327,
+        "start": 1789733523947,
+        "success": 56,
+        "timeout": 0,
+        "latencyMs": {
+          "max": 126,
+          "p50": 13,
+          "p95": 24,
+          "p99": 32
+        },
+        "definition": "Requests started in [start,end); latency includes errors/timeouts; capacity skips have no latency.",
+        "offeredRate": 4.999477861319966,
+        "achievedRate": 4.999477861319966,
+        "offeredCount": 383,
+        "achievedCount": 383,
+        "capacitySkipped": 0
+      },
+      "postWindow": {
+        "end": 1789733622019,
+        "start": 1789733612019
+      },
+      "postRecovery": {
+        "end": 1789733622019,
+        "error": 0,
+        "start": 1789733612019,
+        "success": 50,
+        "timeout": 0,
+        "latencyMs": {
+          "max": 23,
+          "p50": 9,
+          "p95": 16,
+          "p99": 23
+        },
+        "definition": "Requests started in [start,end); latency includes errors/timeouts; capacity skips have no latency.",
+        "offeredRate": 5,
+        "achievedRate": 5,
+        "offeredCount": 50,
+        "achievedCount": 50,
+        "capacitySkipped": 0
+      },
+      "verification": {
+        "end": 1789733612019,
+        "error": 0,
+        "start": 1789733600555,
+        "success": 57,
+        "timeout": 0,
+        "latencyMs": {
+          "max": 18,
+          "p50": 8,
+          "p95": 15,
+          "p99": 18
+        },
+        "definition": "Requests started in [start,end); latency includes errors/timeouts; capacity skips have no latency.",
+        "offeredRate": 4.97208653175157,
+        "achievedRate": 4.97208653175157,
+        "offeredCount": 57,
+        "achievedCount": 57,
+        "capacitySkipped": 0
+      },
+      "postWindowKind": "post_recovery",
+      "postTermination": null
+    },
+    "restoration": {
+      "status": "verified",
+      "attachment": null,
+      "verifiedAt": "2026-09-18T12:13:45.319Z"
+    }
+  }
+}

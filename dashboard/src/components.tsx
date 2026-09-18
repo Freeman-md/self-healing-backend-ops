@@ -55,7 +55,7 @@ export function StatusBadge({
 }: PropsWithChildren<{ tone?: StatusTone }>) {
   return (
     <span
-      className={`inline-flex min-h-7 items-center border px-2 text-sm/5 font-medium ${statusToneClasses[tone]} rounded-control`}
+      className={`inline-flex min-h-7 max-w-full shrink-0 items-center border px-2 text-sm/5 font-medium ${statusToneClasses[tone]} rounded-control`}
     >
       {children}
     </span>

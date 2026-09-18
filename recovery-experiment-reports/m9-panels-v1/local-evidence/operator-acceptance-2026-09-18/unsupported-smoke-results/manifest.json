@@ -1,0 +1,73 @@
+{
+  "protocol": {
+    "version": "m9-panels-1.0.0",
+    "sourceRevision": "e290dee1573ee40418e9851464f8542b490c5ea0",
+    "condition": "unsupported",
+    "seed": "m9-fixed-2026-09-18",
+    "repetitions": 1,
+    "smoke": true,
+    "measurementVersion": "2.0.0",
+    "retrievalProtocol": "structured-exact-v1",
+    "policyVersion": "running-unreachable-hold-v1",
+    "fixturePath": "/managing-system/experiment-output/m9/operator-acceptance-2026-09-18/fixture.json",
+    "workload": null,
+    "calibrationPath": null,
+    "isolationPreflightPath": "/managing-system/experiment-output/m9/operator-acceptance-2026-09-18/isolation-preflight.json",
+    "stabilityWindowMs": 10000,
+    "preFaultSettleMs": 75000,
+    "suppressionWindowMs": 135000,
+    "runOrder": [
+      {
+        "profile": "managed_system_application_network_isolated",
+        "repetition": 1,
+        "phase": "single"
+      }
+    ]
+  },
+  "configuration": {
+    "recoveryMode": "agent",
+    "agentStrategyVersion": "v2",
+    "agentImplementationVersion": "2.1.0",
+    "agentPromptVersion": "2.1.0",
+    "model": "gpt-4.1-mini",
+    "promptVersion": "1.0.0",
+    "maxRecoverySteps": 3,
+    "monitorIntervalMs": 30000,
+    "consecutiveUnhealthyThreshold": 2,
+    "cooldownMs": 15000,
+    "faultProfiles": [
+      "managed_system_application_network_isolated"
+    ],
+    "stabilityWindowMs": 10000,
+    "preFaultSettleMs": 75000,
+    "baselineRuleVersions": {
+      "database_connectivity_failure": 1,
+      "managed_system_service_down": 1
+    },
+    "actionCatalogueFingerprint": "5deebd94960f4a3f835d9f1558fb35414a93be1ab29ebe83cce75d227e8397cc"
+  },
+  "compatibilityFingerprint": "d7d37d49cf5858bec90cbfb337ddc2c26335e2e448c93fa70120c823558192ff",
+  "fixture": {
+    "version": "1.0.0",
+    "marker": "m9-fixture-3482b7f7-ecdb-4509-be1b-3a3eb3fa6d74",
+    "baseUrl": "http://managed-system:3000",
+    "ids": [
+      "1724eb4c-e55f-4227-b563-cae4c5e82934",
+      "f98ac9fa-6a95-4861-a1e3-40c19a0808c0",
+      "92940c8b-887f-4025-ad9d-60cd5957fe95",
+      "c9dc4918-b060-4965-afbd-28257d5d550f",
+      "7491a612-66f5-4b23-907b-81b5a4525b1e",
+      "7784c4f7-e919-474b-beb5-e52812ba23fe",
+      "c6ed5580-5128-45b1-b86c-6c4a698e1f4c",
+      "7f749188-f12b-45ba-bc99-df8a961d9945",
+      "157f9b06-013a-4fc9-8ea5-8cddef1c565a",
+      "3b2c0aa0-6aa2-4bb3-8086-84434fccea9f"
+    ]
+  },
+  "maxAgentTurns": 12,
+  "providerSettings": {
+    "model": "gpt-4.1-mini",
+    "toolChoice": "required",
+    "parallelToolCalls": false
+  }
+}

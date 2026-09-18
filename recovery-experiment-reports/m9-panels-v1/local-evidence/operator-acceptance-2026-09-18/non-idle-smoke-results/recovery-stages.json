@@ -1,0 +1,62 @@
+{
+  "measurementVersion": "2.0.0",
+  "episodes": [
+    {
+      "trialRecordId": "trial-46e690f0-4e4a-4a6e-b1d8-19a25b419a5d",
+      "origin": "experiment",
+      "experimentRunId": "experiment-run-20b0f2c0-1f2c-4a2e-aeac-206d00e7abf9",
+      "compatibilityFingerprint": "d7d37d49cf5858bec90cbfb337ddc2c26335e2e448c93fa70120c823558192ff",
+      "corpusSourceIds": [],
+      "retrievalEnabled": false,
+      "configuration": {
+        "protocol": "structured-exact-v1",
+        "runtimeIdentity": {
+          "model": "gpt-4.1-mini",
+          "cooldownMs": 15000,
+          "sourceRevision": "ae4b08f420e948293f8e6867ff06eda789d866c3",
+          "maxRecoverySteps": 3,
+          "monitorIntervalMs": 30000,
+          "consecutiveUnhealthyThreshold": 2
+        },
+        "measurementVersion": "2.0.0"
+      },
+      "createdAt": "2026-09-18T12:13:03.664Z",
+      "steps": [
+        {
+          "diagnosisResultId": "diagnosis-83ed23fd-44e9-47c3-92e2-2bfbea8e04b5",
+          "trialRecordId": "trial-46e690f0-4e4a-4a6e-b1d8-19a25b419a5d",
+          "signature": "fb7f0596ba1808be09908433e80388ac8c913f93127156c4c1ca6cb0627673b8",
+          "diagnosisReadyAt": "2026-09-18T12:13:06.982Z",
+          "lookupStartedAt": null,
+          "lookupCompletedAt": null,
+          "lookupOutcome": null,
+          "sourceTrialId": null,
+          "sourcePlanId": null,
+          "planId": "recovery-plan-aa469774-f242-4a8e-b98e-ce42f7047319",
+          "decisionId": "recovery-decision-6c85535a-7a25-4e76-b8a5-fce0d700ee15",
+          "planReadyAt": "2026-09-18T12:13:06.982Z",
+          "planOrigin": "generated",
+          "executionResultIds": [
+            "action-execution-2f973ff7-c75a-4e5a-9257-1ea434b15d08"
+          ]
+        },
+        {
+          "diagnosisResultId": "diagnosis-a505ca69-f337-406e-aa17-54255673f8d3",
+          "trialRecordId": "trial-46e690f0-4e4a-4a6e-b1d8-19a25b419a5d",
+          "signature": "0b20d909fc284a2c733a9833f29759cdde2b370e4bfef3b6968a2ec460491c90",
+          "diagnosisReadyAt": "2026-09-18T12:13:20.551Z",
+          "lookupStartedAt": null,
+          "lookupCompletedAt": null,
+          "lookupOutcome": null,
+          "sourceTrialId": null,
+          "sourcePlanId": null,
+          "planId": "recovery-plan-b8671157-7564-4240-a31e-54ca95e2c0a2",
+          "decisionId": "recovery-decision-e9b9bf1a-fb26-49c9-b2b7-d50b003879c0",
+          "planReadyAt": "2026-09-18T12:13:20.551Z",
+          "planOrigin": "generated",
+          "executionResultIds": []
+        }
+      ]
+    }
+  ]
+}

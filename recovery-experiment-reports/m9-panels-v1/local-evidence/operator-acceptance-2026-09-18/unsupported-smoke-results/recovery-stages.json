@@ -1,0 +1,46 @@
+{
+  "measurementVersion": "2.0.0",
+  "episodes": [
+    {
+      "trialRecordId": "trial-af595576-b3c1-4f44-8f27-8a65629958bc",
+      "origin": "experiment",
+      "experimentRunId": "experiment-run-d4e6cc2a-3320-49a3-89bc-6fcaaa3a43e9",
+      "compatibilityFingerprint": "d7d37d49cf5858bec90cbfb337ddc2c26335e2e448c93fa70120c823558192ff",
+      "corpusSourceIds": [],
+      "retrievalEnabled": true,
+      "configuration": {
+        "protocol": "structured-exact-v1",
+        "runtimeIdentity": {
+          "model": "gpt-4.1-mini",
+          "cooldownMs": 15000,
+          "sourceRevision": "e290dee1573ee40418e9851464f8542b490c5ea0",
+          "maxRecoverySteps": 3,
+          "monitorIntervalMs": 30000,
+          "consecutiveUnhealthyThreshold": 2
+        },
+        "measurementVersion": "2.0.0"
+      },
+      "createdAt": "2026-09-18T12:04:59.073Z",
+      "steps": [
+        {
+          "diagnosisResultId": "diagnosis-9ee56934-41b7-4c1c-92eb-e863b718326d",
+          "trialRecordId": "trial-af595576-b3c1-4f44-8f27-8a65629958bc",
+          "signature": "434ec8cfa383571aa84fd5c1b21de149f05c3f9c2ee859968693600c7dbbc104",
+          "diagnosisReadyAt": "2026-09-18T12:05:05.532Z",
+          "lookupStartedAt": "2026-09-18T12:05:05.538Z",
+          "lookupCompletedAt": "2026-09-18T12:05:05.538Z",
+          "lookupOutcome": "no_eligible_source",
+          "sourceTrialId": null,
+          "sourcePlanId": null,
+          "planId": "recovery-plan-2e7e74be-e6fa-412f-8113-e94edb1b7354",
+          "decisionId": "recovery-decision-fdeadad7-3601-4fe6-9ec0-9919fc07ac28",
+          "planReadyAt": "2026-09-18T12:05:08.187Z",
+          "planOrigin": "generated",
+          "executionResultIds": [
+            "action-execution-cf8d1156-1253-47f6-b5fe-65d7d59a74f2"
+          ]
+        }
+      ]
+    }
+  ]
+}

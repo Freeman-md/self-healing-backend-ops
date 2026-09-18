@@ -1,0 +1,443 @@
+{
+  "audit": {
+    "ranAt": "2026-09-18T12:22:00Z",
+    "skill": "ui-design",
+    "mode": "audit",
+    "scope": {
+      "mode": "diff",
+      "diffBase": "origin/main",
+      "files": [
+        "dashboard/.gitignore",
+        "dashboard/eslint.config.js",
+        "dashboard/index.html",
+        "dashboard/package-lock.json",
+        "dashboard/package.json",
+        "dashboard/public/favicon.svg",
+        "dashboard/src/api.test.ts",
+        "dashboard/src/api.ts",
+        "dashboard/src/app.tsx",
+        "dashboard/src/components.tsx",
+        "dashboard/src/format.test.ts",
+        "dashboard/src/format.ts",
+        "dashboard/src/hooks/use-resource.test.tsx",
+        "dashboard/src/hooks/use-resource.ts",
+        "dashboard/src/main.tsx",
+        "dashboard/src/pages.test.tsx",
+        "dashboard/src/pages.tsx",
+        "dashboard/src/styles.css",
+        "dashboard/tsconfig.app.json",
+        "dashboard/tsconfig.build.json",
+        "dashboard/tsconfig.json",
+        "dashboard/tsconfig.node.json",
+        "dashboard/vite.config.ts"
+      ],
+      "filesAudited": 23
+    },
+    "featuresDetected": [
+      "admin-dashboard",
+      "form",
+      "modal",
+      "async-data"
+    ],
+    "rulesPlanned": 22,
+    "rulesRun": 22,
+    "selfCheck": {
+      "passed": true,
+      "failures": []
+    }
+  },
+  "verdict": "READY",
+  "summary": {
+    "found": {
+      "releaseBlockers": 3,
+      "fixThisSprint": 4,
+      "backlog": 0,
+      "total": 7
+    },
+    "applied": {
+      "releaseBlockers": 3,
+      "fixThisSprint": 4,
+      "backlog": 0,
+      "total": 7
+    },
+    "remaining": {
+      "releaseBlockers": 0,
+      "fixThisSprint": 0,
+      "backlog": 0,
+      "total": 0
+    },
+    "outOfScope": 0,
+    "unknown": 1,
+    "suppressed": 0
+  },
+  "consideredAndRejected": [
+    {
+      "candidate": "Mobile navigation dialog",
+      "rule": "focus-not-restored",
+      "guard": "Native modal Escape restored focus to the Menu trigger in Chromium at 390px."
+    },
+    {
+      "candidate": "Failed attention review",
+      "rule": "forms-lost-data-on-error",
+      "guard": "Aborting the POST left the entered review notes intact for reconciliation/retry."
+    },
+    {
+      "candidate": "Sidebar navigation",
+      "rule": "nav-semantic-links",
+      "guard": "Rendered navigation uses anchors with actual destination URLs, not click-only divs."
+    }
+  ],
+  "deferredTo": [
+    {
+      "concern": "Measured layout shift and CWV",
+      "tool": "Lighthouse/PerformanceObserver",
+      "reason": "No held-response CLS measurement; readiness here is not a performance certification."
+    },
+    {
+      "concern": "Formal accessibility and cross-browser validation",
+      "tool": "axe-core, human screen reader and Safari",
+      "reason": "Native semantic, keyboard and Chromium checks do not replace these audits."
+    }
+  ],
+  "findings": [
+    {
+      "rule": "states-no-error-state",
+      "category": "states",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "App",
+      "file": "dashboard/src/app.tsx",
+      "line": 34,
+      "result": "fail",
+      "defaultTier": "release-blocker",
+      "assignedTier": "release-blocker",
+      "tierReason": "Health-read failure guards a fault-launch control.",
+      "severity": "HIGH",
+      "observed": "Cached health remained actionable after a refresh failure.",
+      "fix": "Mark cached evidence stale, make readiness unavailable and show retry feedback.",
+      "applied": true,
+      "appliedChange": "dashboard/src/app.tsx:34-80: Mark cached evidence stale, make readiness unavailable and show retry feedback.",
+      "suppressed": false
+    },
+    {
+      "rule": "async-out-of-order-responses",
+      "category": "async",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "UseResource",
+      "file": "dashboard/src/hooks/use-resource.ts",
+      "line": 28,
+      "result": "fail",
+      "defaultTier": "release-blocker",
+      "assignedTier": "release-blocker",
+      "tierReason": "Freshness affects controlled fault-launch readiness.",
+      "severity": "HIGH",
+      "observed": "Older concurrent requests could overwrite a newer observation.",
+      "fix": "Abort superseded requests and accept only the latest mounted request sequence.",
+      "applied": true,
+      "appliedChange": "dashboard/src/hooks/use-resource.ts:28-64: Abort superseded requests and accept only the latest mounted request sequence.",
+      "suppressed": false
+    },
+    {
+      "rule": "async-no-error-boundary",
+      "category": "async",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "ViewBoundary",
+      "file": "dashboard/src/components.tsx",
+      "line": 21,
+      "result": "fail",
+      "defaultTier": "release-blocker",
+      "assignedTier": "fix-this-sprint",
+      "tierReason": "Internal local operator surface; downgrade per admin surface override.",
+      "severity": "MEDIUM",
+      "observed": "A render failure had no ancestor error boundary.",
+      "fix": "Add a view-scoped error boundary with actionable retry feedback.",
+      "applied": true,
+      "appliedChange": "dashboard/src/components.tsx:21-42: Add a view-scoped error boundary with actionable retry feedback.",
+      "suppressed": false
+    },
+    {
+      "rule": "forms-error-association",
+      "category": "forms",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "AttentionDetail",
+      "file": "dashboard/src/pages.tsx",
+      "line": 843,
+      "result": "fail",
+      "defaultTier": "release-blocker",
+      "assignedTier": "release-blocker",
+      "tierReason": "Required field error must remain perceivable.",
+      "severity": "HIGH",
+      "observed": "Blank review notes lacked an invalid-state attribute.",
+      "fix": "Associate the existing note error with aria-invalid and an announced alert.",
+      "applied": true,
+      "appliedChange": "dashboard/src/pages.tsx:833-871: Associate the existing note error with aria-invalid and an announced alert.",
+      "suppressed": false
+    },
+    {
+      "rule": "microcopy-vague-error",
+      "category": "microcopy",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "Request",
+      "file": "dashboard/src/api.ts",
+      "line": 245,
+      "result": "fail",
+      "defaultTier": "fix-this-sprint",
+      "assignedTier": "fix-this-sprint",
+      "tierReason": "Network failure needs a safe reconciliation path.",
+      "severity": "MEDIUM",
+      "observed": "Interrupted mutation displayed an unhelpful native fetch error.",
+      "fix": "Return bounded, actionable acceptance-uncertain feedback without losing the review draft.",
+      "applied": true,
+      "appliedChange": "dashboard/src/api.ts:245-266: Return bounded, actionable acceptance-uncertain feedback without losing the review draft.",
+      "suppressed": false
+    },
+    {
+      "rule": "microcopy-leaked-error-message",
+      "category": "microcopy",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "Request",
+      "file": "dashboard/src/api.ts",
+      "line": 287,
+      "result": "fail",
+      "defaultTier": "release-blocker",
+      "assignedTier": "fix-this-sprint",
+      "tierReason": "Internal local operator surface; downgrade per admin surface override.",
+      "severity": "MEDIUM",
+      "observed": "Invalid successful API payload could surface raw Zod schema details.",
+      "fix": "Use safeParse and expose a sanitized validation failure.",
+      "applied": true,
+      "appliedChange": "dashboard/src/api.ts:287-299: Use safeParse and expose a sanitized validation failure.",
+      "suppressed": false
+    },
+    {
+      "rule": "nav-live-region-feedback",
+      "category": "nav",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "AttentionDetail",
+      "file": "dashboard/src/pages.tsx",
+      "line": 775,
+      "result": "fail",
+      "defaultTier": "fix-this-sprint",
+      "assignedTier": "fix-this-sprint",
+      "tierReason": "Async administrative completion should be announced.",
+      "severity": "MEDIUM",
+      "observed": "Acknowledgement/review completion feedback lacked status announcement.",
+      "fix": "Wrap completion feedback in a polite status live region.",
+      "applied": true,
+      "appliedChange": "dashboard/src/pages.tsx:775-780: Wrap completion feedback in a polite status live region.",
+      "suppressed": false
+    },
+    {
+      "rule": "forms-no-disable-while-submitting",
+      "category": "forms",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/pages.tsx",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Pending mutation controls are disabled and duplicate submissions guarded."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "forms-lost-data-on-error",
+      "category": "forms",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/pages.tsx",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Interrupted review retains the notes draft; browser assertion passed."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "interaction-target-size",
+      "category": "interaction",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/styles.css",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Action controls use a 44px minimum; mobile menu and primary actions remain operable."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "forms-mobile-input-font-size",
+      "category": "forms",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/styles.css",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Editable form controls use 16px text."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "mobile-viewport-scaling",
+      "category": "mobile",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/index.html",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Viewport width=device-width is present without disabling zoom; native scrolling retained."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "mobile-hover-only-affordance",
+      "category": "mobile",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/components.tsx",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Navigation and detail controls are visible native links/buttons, not hover-only controls."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "interaction-keyboard-operable",
+      "category": "interaction",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/components.tsx",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Native links/buttons/dialog retain keyboard operation; menu Escape exercised."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "interaction-focus-visible",
+      "category": "interaction",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/styles.css",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Explicit focus-visible styling exists for links and controls."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "focus-broken-focus-trap",
+      "category": "focus",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/components.tsx",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Mobile menu uses native showModal dialog, not a hand-built untrapped overlay."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "focus-not-restored",
+      "category": "focus",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/components.tsx",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Escape restores focus to the Menu trigger; real Chromium assertion passed."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "a11y-semantic-html-first",
+      "category": "a11y",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/components.tsx",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Native headings, navigation, dialog and buttons used; mobile table retained AX row/header semantics."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "nav-semantic-links",
+      "category": "nav",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/components.tsx",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Navigation uses anchors with real href destinations."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "forms-labels-and-autocomplete",
+      "category": "forms",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/pages.tsx",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "Profile/strategy/consent/review controls have explicit labels; no personal-data autocomplete fields are collected."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "states-no-empty-state",
+      "category": "states",
+      "detect": "static",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "file": "dashboard/src/pages.tsx",
+      "line": 1,
+      "result": "pass",
+      "evidence": [
+        "History and attention lists contain actionable empty states distinct from loading and failed reads."
+      ],
+      "suppressed": false
+    },
+    {
+      "rule": "states-layout-shift",
+      "category": "states",
+      "detect": "rendered",
+      "feature": "admin-dashboard",
+      "surface": "OperatorDashboard",
+      "result": "unknown",
+      "reason": "Loading and final layouts were inspected, but a held-response PerformanceObserver/CLS measurement was not performed; no numerical CLS pass claimed.",
+      "suppressed": false
+    }
+  ]
+}
